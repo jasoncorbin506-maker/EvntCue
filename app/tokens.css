@@ -1,0 +1,178 @@
+/* =============================================================================
+   tokens.css — EvntCue canonical design tokens
+   =============================================================================
+   Path 1 (locked 2026-05-04): Cormorant Garamond + Barlow, editorial-luxe.
+
+   Import once in app/layout.tsx:
+     import "./tokens.css";
+
+   Every component references var(--token-name). Hex literals in component
+   code are a bug. If a value isn't here, add it here first.
+
+   Per-portal accent (--prime) is set by the portal's layout, NOT here.
+   See handoff/CLAUDE.md "Per-portal accent" table. Pattern:
+
+     // app/(platform)/orgnz/layout.tsx
+     <div style={{ "--prime": "var(--rose)", "--prime-tint": "var(--rt)" }}>...</div>
+   ============================================================================= */
+
+:root {
+  /* ---------- Typography ---------- */
+  /* Loaded via next/font/google in app/layout.tsx; these names are the
+     CSS-side handles. Do not hardcode font-family elsewhere. */
+  --font-display: var(--font-display-loaded), 'Cormorant Garamond', Georgia, serif;
+  --font-body:    var(--font-body-loaded), 'Barlow', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-ui:      var(--font-ui-loaded), 'Barlow Condensed', 'Barlow', sans-serif;
+  --font-mono:    'JetBrains Mono', ui-monospace, monospace;
+
+  /* ---------- Surface ramp (dark, foundational) ---------- */
+  /* Use --ink for the primary background, --ink2-5 for cards and elevation. */
+  --ink:  #030710;  /* page background */
+  --ink2: #050C18;  /* primary card */
+  --ink3: #0A1424;  /* raised card */
+  --ink4: #0F1C30;  /* hovered card */
+  --ink5: #14243C;  /* deepest elevation */
+
+  /* Plum-tinted variants used in master/Cue surfaces (per master doc §18) */
+  --plum:  #0B1220;  /* --ec-ink in master spec */
+  --plum2: #180F28;  /* --ec-ink-raised in master spec */
+
+  /* ---------- Text ramp (on dark surfaces) ---------- */
+  --txt:  rgba(255, 255, 255, 0.92);  /* primary text */
+  --txt2: rgba(255, 255, 255, 0.55);  /* secondary text */
+  --txt3: rgba(255, 255, 255, 0.28);  /* tertiary / disabled */
+  --txt4: rgba(255, 255, 255, 0.14);  /* hint / muted UI */
+
+  /* ---------- Borders ---------- */
+  --bdr:  rgba(255, 255, 255, 0.07);  /* default hairline */
+  --bdr2: rgba(255, 255, 255, 0.14);  /* emphasized */
+
+  /* ---------- Cross-portal accents ---------- */
+  /* Available everywhere. Each portal's --prime is one of these (set in
+     layout) but the others are still callable for cross-references —
+     e.g., a Plnr screen showing a Vndr's status pill uses --teal. */
+
+  /* Rose — Orgnz prime, also Cue voice indicator */
+  --rose:    #D4778A;
+  --rl:      rgba(212, 119, 138, 0.08);
+  --rb:      rgba(212, 119, 138, 0.28);
+  --rt:      #E8A0B0;
+  --rtt:     #F2DDA0;
+
+  /* Violet — Plnr prime */
+  --violet:  #AFA9EC;
+  --vl:      rgba(175, 169, 236, 0.10);
+  --vt:      #C4BFEF;
+
+  /* Amber — Catr prime, also "warn" semantic */
+  --amber:   #C98A1A;
+  --al:      rgba(201, 138, 26, 0.10);
+  --ab:      rgba(201, 138, 26, 0.28);
+  --at:      #E8C46A;
+  --att:     #F2DDA0;
+
+  /* Blue — Venue prime */
+  --blue:    #2A6BDB;
+  --blul:    rgba(42, 107, 219, 0.10);
+  --blub:    rgba(42, 107, 219, 0.28);
+  --blut:    #7EB3F5;
+  --blutt:   #B8D8F8;
+
+  /* Teal — Vndr prime, also "success" semantic */
+  --teal:    #0F9B7E;
+  --tl:      rgba(15, 155, 126, 0.10);
+  --tb:      rgba(15, 155, 126, 0.28);
+  --tt:      #5DCAA5;
+  --ttt:     #B8EDE0;
+
+  /* Red — "danger" semantic */
+  --red:     #C94040;
+  --redl:    rgba(201, 64, 64, 0.10);
+  --redb:    rgba(201, 64, 64, 0.28);
+  --redt:    #E88080;
+
+  /* ---------- Semantic aliases ---------- */
+  /* Use these in code; they map to whichever palette color is right.
+     Changing the alias in one place propagates everywhere. */
+  --success: var(--teal);
+  --warn:    var(--amber);
+  --danger:  var(--red);
+
+  /* ---------- Spacing scale ---------- */
+  /* 4-pt base, doubling. Use these instead of arbitrary px. */
+  --sp-1:  4px;
+  --sp-2:  8px;
+  --sp-3:  12px;
+  --sp-4:  16px;
+  --sp-5:  20px;
+  --sp-6:  24px;
+  --sp-8:  32px;
+  --sp-10: 40px;
+  --sp-12: 48px;
+  --sp-16: 64px;
+
+  /* ---------- Type scale ---------- */
+  --fs-xs:  11px;
+  --fs-sm:  12px;
+  --fs-md:  14px;   /* body default */
+  --fs-lg:  16px;
+  --fs-xl:  20px;
+  --fs-2xl: 28px;
+  --fs-3xl: 40px;
+  --fs-4xl: 56px;   /* hero display, Cormorant italic */
+
+  /* ---------- Radius ---------- */
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 20px;
+  --r-pill: 999px;
+
+  /* ---------- Shadow ---------- */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.40);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.30);
+  --shadow-lg: 0 8px 32px rgba(0, 0, 0, 0.40);
+
+  /* ---------- Per-portal accent (defaults to rose / Orgnz)  ---------- */
+  /* Override in app/(platform)/<role>/layout.tsx via inline style.
+     This default makes shared components render reasonably outside a portal. */
+  --prime:        var(--rose);
+  --prime-light:  var(--rl);
+  --prime-bold:   var(--rb);
+  --prime-tint:   var(--rt);
+  --prime-pale:   var(--rtt);
+}
+
+/* =============================================================================
+   Body baseline
+   ============================================================================= */
+
+body {
+  font-family: var(--font-body);
+  font-size: var(--fs-md);
+  line-height: 1.6;
+  color: var(--txt);
+  background: var(--ink);
+  font-feature-settings: "ss01", "cv11";
+  letter-spacing: -0.005em;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Display headings use Cormorant italic — the editorial-luxe signature.
+   Override per-component when you want upright Cormorant or sans. */
+h1, h2, h3, .display {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  letter-spacing: -0.01em;
+}
+
+/* UI labels / dense text use Barlow Condensed */
+.ui-label {
+  font-family: var(--font-ui);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: var(--fs-xs);
+  font-weight: 500;
+  color: var(--txt2);
+}
