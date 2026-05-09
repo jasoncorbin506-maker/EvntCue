@@ -85,7 +85,8 @@
   --blut:    #7EB3F5;
   --blutt:   #B8D8F8;
 
-  /* Teal — Vndr prime, also "success" semantic */
+  /* Teal — "success" semantic only. Vndr prime is Coral as of 2026-05-05;
+     this is no longer a portal accent, just the success state color. */
   --teal:    #0F9B7E;
   --tl:      rgba(15, 155, 126, 0.10);
   --tb:      rgba(15, 155, 126, 0.28);
