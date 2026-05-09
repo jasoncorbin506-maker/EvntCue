@@ -1,0 +1,2010 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
+<title>EvntCue — Claim your venue</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,500;0,600;1,300;1,400;1,500&family=Barlow+Condensed:wght@300;400;500;600;700&family=Barlow:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+:root{
+  --ink:#050A14;--ink2:#0B1220;--ink3:#111928;--ink4:#152136;--ink5:#1B2A45;
+  /* Venu — bay blue (locked §18 2026-05-05) */
+  --blue:#2A6BDB;--bl:rgba(42,107,219,0.11);--bb:rgba(42,107,219,0.32);--bt:#7EB3F5;--btt:#B8D8F8;
+  /* Cue — rose (cross-portal, never changes) */
+  --rose:#D4778A;--rl:rgba(212,119,138,0.11);--rb:rgba(212,119,138,0.32);--rt:#E8A0B0;
+  /* Cross-portal references */
+  --coral:#E8622A;--cl:rgba(232,98,42,0.11);--cb:rgba(232,98,42,0.32);
+  /* Semantic only */
+  --teal:#1A9E82;--tl:rgba(26,158,130,0.11);--tt:#5DCAA5;
+  --gold:#C98A1A;--gl:rgba(201,138,26,0.11);--gt:#E8C46A;
+  --txt:rgba(255,255,255,0.92);--txt2:rgba(255,255,255,0.56);--txt3:rgba(255,255,255,0.28);
+  --txt4:rgba(255,255,255,0.16);
+  --bdr:rgba(255,255,255,0.08);--bdr2:rgba(42,107,219,0.22);--bdrh:rgba(42,107,219,0.42);
+  --fn:'Barlow',sans-serif;
+  --fc:'Barlow Condensed',sans-serif;
+  --fd:'Cormorant Garamond',serif;
+}
+html,body{min-height:100vh;background:var(--ink);font-family:var(--fn);color:var(--txt);overflow-x:hidden;font-size:14px;line-height:1.55}
+body{
+  background:
+    radial-gradient(ellipse 60% 40% at 20% 0%, rgba(42,107,219,0.10), transparent 60%),
+    radial-gradient(ellipse 50% 35% at 85% 100%, rgba(42,107,219,0.06), transparent 70%),
+    var(--ink);
+}
+
+/* ============ TYPOGRAPHY ============ */
+.ey{font-family:var(--fc);font-weight:600;text-transform:uppercase;letter-spacing:.14em;font-size:9px;color:var(--bt)}
+.ey-rose{color:var(--rt)}
+.ey-d{color:var(--txt3)}
+.h1{font-family:var(--fd);font-weight:300;font-style:italic;font-size:38px;line-height:1.08;letter-spacing:-0.01em;color:#fff}
+.h1 em{color:var(--bt);font-style:italic}
+.h2{font-family:var(--fd);font-weight:300;font-style:italic;font-size:26px;line-height:1.15;color:#fff}
+.h2 em{color:var(--bt);font-style:italic}
+.h3{font-family:var(--fd);font-weight:400;font-style:italic;font-size:20px;line-height:1.2;color:#fff}
+.h3 em{color:var(--bt)}
+.lab{font-family:var(--fc);font-weight:600;text-transform:uppercase;letter-spacing:.12em;font-size:10px;color:var(--txt2)}
+.bdy{font-size:13px;line-height:1.65;color:var(--txt)}
+.bdy-d{color:var(--txt2)}
+.num{font-family:var(--fd);font-weight:400;font-style:italic}
+
+/* ============ APP SHELL ============ */
+.app{max-width:480px;margin:0 auto;min-height:100vh;position:relative;padding-bottom:120px}
+@media(min-width:520px){.app{box-shadow:0 0 80px rgba(42,107,219,0.04)}}
+
+/* ============ TOPBAR ============ */
+.tb{position:sticky;top:0;z-index:40;background:rgba(5,10,20,0.86);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-bottom:0.5px solid var(--bdr);padding:13px 22px;display:flex;align-items:center;justify-content:space-between;gap:14px}
+.tb-l{display:flex;align-items:center;gap:9px;min-width:0}
+.brand-mark{width:18px;height:18px;color:var(--bt);flex-shrink:0;filter:drop-shadow(0 0 8px rgba(126,179,245,0.4))}
+.wm{font-family:var(--fd);font-size:18px;letter-spacing:-0.01em;line-height:1;display:inline-flex;align-items:baseline}
+.wm-evnt{font-style:italic;font-weight:300;color:var(--txt2)}
+.wm-cue{font-style:normal;font-weight:500;color:#fff}
+.tb-r{display:flex;align-items:center;gap:10px;flex-shrink:0}
+.role-pill{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;background:var(--bl);border:0.5px solid var(--bb);border-radius:6px;font-family:var(--fc);font-weight:600;font-size:9px;color:var(--bt);letter-spacing:.12em;text-transform:uppercase}
+.role-dot{width:5px;height:5px;border-radius:50%;background:var(--blue);box-shadow:0 0 8px var(--blue)}
+.tb-step{font-family:var(--fc);font-weight:600;font-size:10px;color:var(--txt2);letter-spacing:.06em}
+.tb-step b{color:var(--bt);font-weight:700}
+
+/* progress bar */
+.prog{height:1px;background:var(--bdr);position:relative;overflow:hidden}
+.prog-f{height:100%;background:linear-gradient(90deg,var(--blue),var(--bt));transition:width .5s cubic-bezier(.2,.8,.2,1);width:0%}
+
+/* ============ STAGES ============ */
+.stage{display:none;padding:28px 22px 80px;animation:fade .35s ease}
+.stage.on{display:block}
+@keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* dots */
+.dots{display:flex;gap:5px;justify-content:center;padding:18px 0 8px}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--bdr);transition:all .3s}
+.dot.done{background:var(--teal)}
+.dot.act{background:var(--blue);box-shadow:0 0 10px var(--blue);width:22px;border-radius:3px}
+
+/* ============ STAGE 0 — LANDING ============ */
+.hero{padding:8px 0 24px;text-align:left}
+.hero-eye{margin-bottom:14px}
+.hero h1{margin-bottom:18px}
+.hero-sub{font-size:14px;color:var(--txt2);line-height:1.6;margin-bottom:24px}
+
+/* live-inquiry illustration */
+.illus{background:linear-gradient(180deg,var(--ink2),var(--ink3));border:0.5px solid var(--bdr);border-radius:18px;padding:20px;margin-bottom:24px;position:relative;overflow:hidden}
+.illus::before{content:'';position:absolute;top:0;left:0;right:0;height:1px;background:linear-gradient(90deg,transparent,var(--bb),transparent)}
+.illus-h{font-family:var(--fc);font-weight:600;font-size:9px;color:var(--txt3);letter-spacing:.14em;text-transform:uppercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.illus-h::before{content:'';width:4px;height:4px;border-radius:50%;background:var(--blue);animation:ping 2s infinite}
+@keyframes ping{0%,100%{opacity:.3;transform:scale(1)}50%{opacity:1;transform:scale(1.4);box-shadow:0 0 8px var(--blue)}}
+
+.iq{padding:14px;border-radius:12px;background:rgba(42,107,219,0.05);border:0.5px solid var(--bb);margin-bottom:10px}
+.iq-row{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+.iq-name{font-family:var(--fd);font-style:italic;font-weight:400;font-size:16px;color:#fff}
+.iq-meta{font-size:11px;color:var(--txt2);margin-bottom:8px}
+.iq-tag{display:inline-flex;align-items:center;gap:5px;padding:3px 8px;border-radius:4px;font-family:var(--fc);font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.iq-tag.qual{background:var(--tl);border:0.5px solid rgba(26,158,130,0.32);color:var(--tt)}
+.iq-tag.tag-d{background:var(--gl);border:0.5px solid rgba(201,138,26,0.32);color:var(--gt)}
+.iq-tag.tag-blue{background:var(--bl);border:0.5px solid var(--bb);color:var(--bt)}
+.iq-tag.tag-rose{background:var(--rl);border:0.5px solid var(--rb);color:var(--rt)}
+.iq-bottom{display:flex;justify-content:space-between;align-items:center;padding-top:10px;border-top:0.5px solid var(--bdr)}
+.iq-amount{font-family:var(--fd);font-style:italic;font-size:18px;color:var(--bt)}
+.iq-cue{font-size:11px;color:var(--txt2);font-style:italic;font-family:var(--fd)}
+
+/* ============ TAX-EXEMPT BLOCK ============ */
+.taxex{display:none;background:rgba(212,119,138,0.04);border:0.5px solid var(--rb);border-radius:12px;padding:14px 16px;margin:-6px 0 18px;animation:fade .3s ease}
+.taxex.on{display:block}
+.taxex-h{margin-bottom:10px}
+.taxex-tog{display:flex;gap:12px;align-items:flex-start;cursor:pointer}
+.taxex-c{width:18px;height:18px;border-radius:5px;border:1.2px solid var(--rt);flex-shrink:0;cursor:pointer;position:relative;margin-top:2px;transition:all .15s}
+.taxex-c.on{background:var(--rt);border-color:var(--rt)}
+.taxex-c.on::after{content:'';position:absolute;left:5px;top:1px;width:5px;height:10px;border:solid #fff;border-width:0 2px 2px 0;transform:rotate(45deg)}
+.taxex-l{flex:1;min-width:0}
+.taxex-l-t{font-size:13px;color:var(--txt);line-height:1.4;margin-bottom:3px;font-family:var(--fn)}
+.taxex-l-t em{font-family:var(--fd);font-style:italic;color:var(--rt);font-size:13.5px;font-weight:500}
+.taxex-l-s{font-size:11px;color:var(--txt2);line-height:1.5}
+
+/* ============ FINANCIAL METRICS CARD ============ */
+.metrics-card{position:relative}
+.met-hero{padding:20px;background:linear-gradient(135deg,rgba(42,107,219,0.08),rgba(42,107,219,0.02));border:0.5px solid var(--bb);border-radius:14px;margin-bottom:12px;text-align:center}
+.met-hero-l{font-family:var(--fc);font-size:9px;font-weight:600;color:var(--bt);letter-spacing:.14em;text-transform:uppercase;margin-bottom:6px}
+.met-hero-n{font-family:var(--fd);font-style:italic;font-weight:300;font-size:36px;line-height:1.05;color:#fff;margin-bottom:5px}
+.met-hero-n em{color:var(--bt);font-style:italic}
+.met-hero-d{font-size:11px;color:var(--txt2);font-family:var(--fc);font-weight:500;letter-spacing:.04em}
+
+.met-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:14px}
+.met-c{padding:12px 13px;background:var(--ink3);border:0.5px solid var(--bdr);border-radius:9px}
+.met-c-trust{position:relative}
+.met-c-trust-r{display:flex;align-items:center;justify-content:space-between;margin-bottom:3px}
+.badge-mini{width:26px;height:26px;flex-shrink:0;filter:drop-shadow(0 0 6px rgba(42,107,219,0.5))}
+.met-c-l{font-family:var(--fc);font-size:9px;font-weight:600;color:var(--txt2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:5px}
+.met-c-n{font-family:var(--fd);font-style:italic;font-size:20px;color:#fff;line-height:1.05;margin-bottom:3px;font-weight:400}
+.met-c-n small{font-size:11px;color:var(--txt3);font-weight:300}
+.met-c-s{font-family:var(--fc);font-size:9.5px;color:var(--txt3);letter-spacing:.04em;font-weight:500}
+
+.met-flow{padding:14px 13px;background:rgba(42,107,219,0.04);border:0.5px solid var(--bb);border-radius:10px}
+.met-flow-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.met-flow-l{font-family:var(--fc);font-size:9.5px;font-weight:600;color:var(--bt);letter-spacing:.12em;text-transform:uppercase}
+.met-flow-r{font-family:var(--fc);font-size:9px;color:var(--txt3);letter-spacing:.06em;text-transform:uppercase;font-weight:500}
+.met-flow-bar{display:flex;height:8px;border-radius:4px;overflow:hidden;background:var(--ink4);margin-bottom:10px}
+.met-bar-seg{height:100%;transition:width .4s}
+.seg-rental{background:var(--bt)}
+.seg-inhouse{background:var(--rt)}
+.seg-fb{background:var(--gt)}
+.seg-vendor{background:var(--tt)}
+.met-flow-leg{display:grid;grid-template-columns:1fr 1fr;gap:6px 10px;font-size:10.5px;color:var(--txt2);font-family:var(--fc);font-weight:500;letter-spacing:.02em}
+.met-flow-leg span{display:flex;align-items:center;gap:6px}
+.met-flow-leg span b{margin-left:auto;color:#fff;font-weight:600;font-family:var(--fd);font-style:italic}
+.leg-dot{width:8px;height:8px;border-radius:2px;flex-shrink:0}
+
+.yield-v.zero{color:var(--txt3);font-weight:300}
+
+/* ============ TRUST SCORE BREAKDOWN ============ */
+.trust-card .wel-c-l{color:var(--bt)}
+.trust-rows{display:flex;flex-direction:column;gap:11px;margin-bottom:18px}
+.trust-row{display:grid;grid-template-columns:1fr auto;gap:12px;align-items:center}
+.trust-row-l{min-width:0}
+.trust-row-t{font-family:var(--fd);font-style:italic;font-size:14px;color:#fff;line-height:1.2;margin-bottom:2px}
+.trust-row-s{font-family:var(--fc);font-size:9.5px;color:var(--txt3);letter-spacing:.04em;font-weight:500}
+.trust-row-r{display:flex;flex-direction:column;align-items:flex-end;gap:5px;min-width:90px}
+.trust-bar-w{width:80px;height:3px;background:var(--ink4);border-radius:3px;overflow:hidden}
+.trust-bar-f{height:100%;background:linear-gradient(90deg,var(--blue),var(--bt));border-radius:3px}
+.trust-bar-f.tbf-zero{background:var(--ink4)}
+.trust-row-pts{font-family:var(--fd);font-style:italic;font-size:13px;color:var(--bt);line-height:1}
+.trust-row .trust-bar-f.tbf-zero + .trust-row-pts,.trust-row-pts:empty{color:var(--txt3)}
+
+/* Tier track */
+.trust-tier-track{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;padding:14px 0;margin:14px 0;border-top:0.5px solid var(--bdr);border-bottom:0.5px solid var(--bdr)}
+.trust-tier{display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center}
+.trust-tier-dot{width:10px;height:10px;border-radius:50%;background:var(--ink4);border:1px solid var(--bdr)}
+.trust-tier-dot.done{background:var(--teal);border-color:var(--teal);box-shadow:0 0 6px rgba(26,158,130,0.5)}
+.trust-tier-dot.pulse{background:var(--bt);border-color:var(--bt);box-shadow:0 0 0 3px rgba(126,179,245,0.18),0 0 8px var(--bt);animation:tier-pulse 2.4s infinite}
+@keyframes tier-pulse{0%,100%{box-shadow:0 0 0 3px rgba(126,179,245,0.18),0 0 8px var(--bt)}50%{box-shadow:0 0 0 6px rgba(126,179,245,0.10),0 0 12px var(--bt)}}
+.trust-tier-l{font-family:var(--fc);font-size:9px;font-weight:600;color:var(--txt2);letter-spacing:.08em;text-transform:uppercase}
+.trust-tier.act .trust-tier-l{color:var(--bt)}
+.trust-tier-v{font-family:var(--fd);font-style:italic;font-size:13px;color:var(--txt3);line-height:1}
+.trust-tier.act .trust-tier-v{color:#fff}
+
+/* ============ FLOOR PLAN UPLOAD ============ */
+.fp-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+.fp-cell{aspect-ratio:1;border-radius:10px;background:var(--ink3);border:0.5px dashed var(--bdr);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;cursor:pointer;transition:all .15s;padding:10px;text-align:center;position:relative;overflow:hidden}
+.fp-cell:hover{border-color:var(--bb);background:var(--bl)}
+.fp-cell.has{border-style:solid;border-color:var(--bb);background:linear-gradient(135deg,#0f1c30,#1a2e4d 50%,#0f1c30)}
+.fp-cell.has::after{content:'';position:absolute;inset:0;background:
+  repeating-linear-gradient(0deg,rgba(126,179,245,0.18) 0,rgba(126,179,245,0.18) 1px,transparent 1px,transparent 18px),
+  repeating-linear-gradient(90deg,rgba(126,179,245,0.18) 0,rgba(126,179,245,0.18) 1px,transparent 1px,transparent 18px);
+  opacity:.7}
+.fp-cell.has::before{content:'';position:absolute;top:8px;right:8px;width:14px;height:14px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal),inset 0 0 0 3px #fff;z-index:2}
+.fp-cell-i{color:var(--bt);transition:color .15s;z-index:1}
+.fp-cell.has .fp-cell-i{color:var(--btt)}
+.fp-cell-i .ic{width:22px;height:22px}
+.fp-cell-l{font-family:var(--fd);font-style:italic;font-size:13px;color:#fff;font-weight:400;z-index:1}
+.fp-cell-h{font-family:var(--fc);font-size:9px;color:var(--txt3);text-transform:uppercase;letter-spacing:.08em;font-weight:500;z-index:1}
+.fp-cell.has .fp-cell-h{color:var(--bt)}
+.fp-foot{font-size:11px;color:var(--txt2);line-height:1.5;margin-top:10px;font-family:var(--fn)}
+.fp-foot em{font-family:var(--fd);font-style:italic;color:var(--txt3);font-size:11.5px}
+.freebox{background:linear-gradient(180deg,rgba(42,107,219,0.05),rgba(42,107,219,0.01));border:0.5px solid var(--bb);border-radius:18px;padding:22px;margin-bottom:24px}
+.freebox-h{margin-bottom:18px}
+.freebox-h .ey{margin-bottom:8px;display:block}
+.freebox-h h3{font-family:var(--fd);font-style:italic;font-weight:400;font-size:20px;color:#fff;line-height:1.25}
+.freebox-h h3 em{color:var(--bt);font-style:italic}
+.feat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:18px}
+.feat{padding:14px;background:var(--ink2);border:0.5px solid var(--bdr);border-radius:11px;transition:border-color .15s}
+.feat:hover{border-color:var(--bb)}
+.feat-i{width:30px;height:30px;border-radius:8px;background:var(--bl);border:0.5px solid var(--bb);display:flex;align-items:center;justify-content:center;color:var(--bt);margin-bottom:9px}
+.feat-i .ic{width:15px;height:15px}
+.feat-t{font-family:var(--fd);font-style:italic;font-weight:400;font-size:14px;color:#fff;margin-bottom:4px;line-height:1.25}
+.feat-d{font-size:11px;color:var(--txt2);line-height:1.5}
+.free-foot{display:flex;gap:12px;align-items:flex-start;padding:14px;background:rgba(212,119,138,0.05);border:0.5px solid var(--rb);border-radius:10px}
+.free-foot .ey{flex-shrink:0;margin-top:1px}
+.free-foot-t{font-size:12px;color:var(--txt);line-height:1.55;font-family:var(--fn)}
+.free-foot-t em{font-family:var(--fd);font-style:italic;color:var(--rt);font-size:13.5px;font-weight:500}
+/* keep input[type=range] styling — used by Step 3 rental slider */
+input[type="range"]{-webkit-appearance:none;appearance:none;width:100%;height:3px;background:var(--ink4);border-radius:3px;outline:none;background-image:linear-gradient(var(--blue),var(--blue));background-size:50% 100%;background-repeat:no-repeat}
+input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:18px;height:18px;border-radius:50%;background:var(--bt);cursor:pointer;box-shadow:0 0 0 4px rgba(42,107,219,0.25),0 2px 8px rgba(0,0,0,0.3)}
+input[type="range"]::-moz-range-thumb{width:18px;height:18px;border-radius:50%;background:var(--bt);cursor:pointer;border:none;box-shadow:0 0 0 4px rgba(42,107,219,0.25)}
+
+/* comparison strip */
+.comp{margin:24px 0;padding:18px 0;border-top:0.5px solid var(--bdr);border-bottom:0.5px solid var(--bdr)}
+.comp-eye{margin-bottom:12px;text-align:center}
+.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.comp-c{padding:11px 12px;background:var(--ink2);border:0.5px solid var(--bdr);border-radius:8px}
+.comp-c.us{border-color:var(--bb);background:rgba(42,107,219,0.04)}
+.comp-n{font-family:var(--fd);font-style:italic;font-size:13px;color:var(--txt2);margin-bottom:3px;font-weight:400}
+.comp-c.us .comp-n{color:#fff;font-weight:500}
+.comp-r{font-family:var(--fc);font-size:9.5px;color:var(--txt3);text-transform:uppercase;letter-spacing:.06em;font-weight:600;margin-bottom:4px}
+.comp-c.us .comp-r{color:var(--bt)}
+.comp-rr{font-size:10.5px;color:var(--txt3);line-height:1.4}
+.comp-c.us .comp-rr{color:var(--txt2)}
+
+/* CTA */
+.cta-wrap{margin:24px 0 0}
+.btn-cta{width:100%;padding:18px 22px;background:var(--blue);border:none;border-radius:14px;color:#fff;font-family:var(--fc);font-weight:600;font-size:13px;text-transform:uppercase;letter-spacing:.14em;cursor:pointer;transition:all .2s;box-shadow:0 4px 24px rgba(42,107,219,0.32);display:flex;align-items:center;justify-content:center;gap:10px}
+.btn-cta:hover{background:#3478e8;transform:translateY(-1px);box-shadow:0 6px 32px rgba(42,107,219,0.42)}
+.btn-cta:active{transform:translateY(0)}
+.btn-cta .arr{transition:transform .2s}
+.btn-cta:hover .arr{transform:translateX(4px)}
+.cta-fp{text-align:center;margin-top:12px;font-size:11px;color:var(--txt3);font-family:var(--fc);letter-spacing:.06em}
+
+/* ============ CUE READ ============ */
+.cue{background:rgba(212,119,138,0.04);border:0.5px solid var(--rb);border-radius:12px;padding:14px 16px;margin:14px 0;display:flex;gap:12px;align-items:flex-start}
+.cue-mk{font-size:14px;color:var(--rt);flex-shrink:0;line-height:1.4;margin-top:1px}
+.cue-b{flex:1}
+.cue-l{font-family:var(--fc);font-weight:600;font-size:9px;color:var(--rt);letter-spacing:.14em;text-transform:uppercase;margin-bottom:4px}
+.cue-t{font-family:var(--fd);font-style:italic;font-weight:400;font-size:14px;color:var(--txt);line-height:1.45}
+.cue-t em{color:var(--rt);font-style:italic;font-weight:500}
+
+/* ============ STAGE 1 — TYPE ============ */
+.q-h{margin-bottom:24px}
+.q-h .ey{margin-bottom:10px}
+.q-h h2{font-family:var(--fd);font-style:italic;font-weight:300;font-size:30px;line-height:1.12;color:#fff;margin-bottom:8px}
+.q-h h2 em{color:var(--bt)}
+.q-h .sub{font-size:13px;color:var(--txt2);line-height:1.6}
+
+.opts{display:flex;flex-direction:column;gap:8px}
+.opt{display:flex;align-items:center;gap:14px;padding:16px 18px;background:var(--ink2);border:0.5px solid var(--bdr);border-radius:14px;cursor:pointer;transition:all .18s;text-align:left;width:100%;font-family:var(--fn);color:var(--txt)}
+.opt:hover{border-color:var(--bdrh);background:var(--ink3)}
+.opt.sel{border-color:var(--blue);background:rgba(42,107,219,0.08);box-shadow:0 0 0 1px var(--blue),0 6px 24px rgba(42,107,219,0.18)}
+.opt-ico{width:38px;height:38px;border-radius:10px;background:var(--bl);border:0.5px solid var(--bb);display:flex;align-items:center;justify-content:center;flex-shrink:0;color:var(--bt)}
+.opt.sel .opt-ico{background:rgba(42,107,219,0.2);color:var(--btt)}
+.opt-b{flex:1;min-width:0}
+.opt-t{font-family:var(--fd);font-style:italic;font-weight:400;font-size:16px;color:#fff;margin-bottom:2px}
+.opt-d{font-size:11px;color:var(--txt2);line-height:1.45}
+.opt-c{flex-shrink:0;width:18px;height:18px;border-radius:50%;border:1.2px solid var(--bdr);position:relative;transition:all .2s}
+.opt.sel .opt-c{border-color:var(--blue)}
+.opt.sel .opt-c::after{content:'';position:absolute;inset:3px;border-radius:50%;background:var(--blue)}
+
+.market-card{margin-top:18px;padding:14px 16px;border:0.5px dashed var(--bb);border-radius:12px;background:rgba(42,107,219,0.03);font-size:12px;color:var(--txt2);line-height:1.55;display:none}
+.market-card.on{display:block;animation:fade .3s}
+.market-card .mk-l{font-family:var(--fc);font-weight:600;font-size:9px;color:var(--bt);letter-spacing:.12em;text-transform:uppercase;margin-bottom:6px}
+.market-card em{font-style:italic;color:var(--btt);font-family:var(--fd);font-size:14px;font-weight:400}
+
+/* ============ FORM ============ */
+.field{margin-bottom:18px}
+.field-l{display:block;font-family:var(--fc);font-weight:600;font-size:10px;color:var(--txt2);letter-spacing:.1em;text-transform:uppercase;margin-bottom:8px}
+.field-l b{color:var(--rt);font-weight:600}
+.inp{width:100%;padding:13px 14px;background:var(--ink2);border:0.5px solid var(--bdr);border-radius:10px;color:var(--txt);font-family:var(--fn);font-size:14px;transition:border-color .18s;outline:none}
+.inp:focus{border-color:var(--blue);background:rgba(42,107,219,0.04)}
+.inp::placeholder{color:var(--txt3)}
+textarea.inp{resize:vertical;min-height:80px;line-height:1.55;font-family:var(--fn)}
+
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:8px}
+
+.sel-pills{display:flex;flex-wrap:wrap;gap:6px}
+.pill-opt{padding:7px 12px;background:var(--ink2);border:0.5px solid var(--bdr);border-radius:18px;font-family:var(--fc);font-weight:500;font-size:11px;color:var(--txt2);cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.06em;display:inline-flex;align-items:center;gap:6px;line-height:1}
+.pill-opt:hover{border-color:var(--bdrh);color:var(--txt)}
+.pill-opt.on{background:rgba(42,107,219,0.12);border-color:var(--bb);color:var(--bt)}
+
+/* Editable pill rows (inclusions, restrictions, custom) */
+.pillrow{display:flex;flex-wrap:wrap;gap:6px;align-items:center}
+.pillrow .pill-opt{position:relative}
+.pillrow .pill-opt .px{display:none;width:14px;height:14px;border-radius:50%;background:rgba(255,255,255,0.08);align-items:center;justify-content:center;font-size:13px;line-height:1;font-weight:400;color:var(--txt2);cursor:pointer;transition:all .15s;margin-left:1px}
+.pillrow .pill-opt.on .px{display:inline-flex}
+.pillrow .pill-opt .px:hover{background:var(--rl);color:var(--rt)}
+.pillrow .pill-opt.custom{background:rgba(212,119,138,0.10);border-color:var(--rb);color:var(--rt)}
+.pillrow .pill-opt.custom:hover{border-color:rgba(212,119,138,0.5)}
+.pillrow .pill-opt.custom .px:hover{background:var(--rl);color:var(--rt)}
+.pill-price{font-family:var(--fd);font-style:italic;font-size:11px;color:var(--rt);margin-left:2px;text-transform:none;letter-spacing:0;font-weight:500}
+.pill-opt.on.custom .pill-price{color:#fff}
+
+/* Add-your-own chip */
+.pill-add{padding:7px 12px;background:transparent;border:0.5px dashed var(--bb);border-radius:18px;font-family:var(--fc);font-weight:600;font-size:11px;color:var(--bt);cursor:pointer;transition:all .15s;text-transform:uppercase;letter-spacing:.06em;line-height:1}
+.pill-add:hover{background:var(--bl);border-style:solid}
+
+/* Inline draft form */
+.pill-draft{display:inline-flex;align-items:center;gap:4px;padding:3px 4px 3px 8px;background:var(--ink3);border:0.5px solid var(--bb);border-radius:18px;animation:fade .2s}
+.pill-draft input[type="text"],.pill-draft input[type="number"]{background:transparent;border:none;outline:none;color:var(--txt);font-family:var(--fn);font-size:12px;padding:4px 2px;min-width:0}
+.pill-draft input[type="text"]{width:120px}
+.pill-draft input[type="number"]{width:48px;text-align:left}
+.pill-draft input::placeholder{color:var(--txt3)}
+.pill-draft .draft-sep{font-family:var(--fd);font-style:italic;color:var(--rt);font-size:13px;padding:0 1px 0 4px}
+.pill-draft .draft-ok{background:var(--blue);border:none;color:#fff;font-family:var(--fc);font-weight:600;font-size:10px;letter-spacing:.06em;text-transform:uppercase;padding:5px 10px;border-radius:14px;cursor:pointer;line-height:1}
+.pill-draft .draft-ok:hover{background:#3478e8}
+.pill-draft .draft-x{background:transparent;border:none;color:var(--txt3);width:22px;height:22px;cursor:pointer;font-size:14px;border-radius:50%;display:flex;align-items:center;justify-content:center;line-height:1}
+.pill-draft .draft-x:hover{background:rgba(255,255,255,0.06);color:var(--txt)}
+
+/* ============ ATMOSPHERE BOARD ============ */
+.atmo{background:linear-gradient(180deg,var(--ink2),var(--ink3));border:0.5px solid var(--bdr);border-radius:16px;padding:18px;margin-top:18px}
+.atmo-h{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:14px}
+.atmo-h h3{font-family:var(--fd);font-style:italic;font-size:17px;color:#fff;font-weight:400}
+.atmo-edit{background:transparent;border:0.5px solid var(--bdr);color:var(--txt2);font-family:var(--fc);font-weight:600;font-size:9.5px;letter-spacing:.1em;text-transform:uppercase;padding:6px 11px;border-radius:6px;cursor:pointer;transition:all .15s;display:none;flex-shrink:0}
+.atmo-edit:hover{border-color:var(--bb);color:var(--bt)}
+.atmo.collapsed .atmo-edit{display:block}
+.atmo.collapsed .atmo-grid{display:none}
+.atmo.collapsed #atmoIntro{display:none}
+.atmo-strip{display:none;gap:5px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch;margin-bottom:14px}
+.atmo.collapsed .atmo-strip{display:flex;animation:fade .35s ease}
+.atmo-strip::-webkit-scrollbar{height:0}
+.atmo-thumb{flex:0 0 auto;width:54px;height:54px;border-radius:7px;border:0.5px solid var(--bb);background:linear-gradient(135deg,#1a3052,#0f1c30,#1a3052);position:relative;overflow:hidden}
+.atmo-thumb::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,rgba(126,179,245,0.4),transparent 60%),radial-gradient(circle at 70% 70%,rgba(232,160,176,0.2),transparent 60%);opacity:.7}
+.atmo-c{font-size:11px;color:var(--txt2);line-height:1.6;margin-bottom:14px}
+.atmo-c em{color:var(--bt);font-family:var(--fd);font-style:italic;font-size:13px}
+
+.atmo-grid{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin-bottom:14px}
+.atmo-cell{aspect-ratio:1;border-radius:8px;background:var(--ink4);border:0.5px dashed var(--bdr);display:flex;align-items:center;justify-content:center;color:var(--txt3);font-size:18px;cursor:pointer;transition:all .15s;position:relative;overflow:hidden}
+.atmo-cell:hover{border-color:var(--bb);color:var(--bt);background:var(--bl)}
+.atmo-cell.has{border-style:solid;border-color:var(--bb);background:linear-gradient(135deg,#1a3052,#0f1c30,#1a3052);color:transparent}
+.atmo-cell.has::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,rgba(126,179,245,0.4),transparent 60%),radial-gradient(circle at 70% 70%,rgba(232,160,176,0.2),transparent 60%);opacity:.7}
+
+/* attestation */
+.atte{margin-top:14px;padding:12px;background:rgba(232,196,106,0.04);border:0.5px solid rgba(232,196,106,0.22);border-radius:10px;display:flex;gap:10px;align-items:flex-start;display:none}
+.atte.on{display:flex;animation:fade .3s}
+.atte-c{width:18px;height:18px;border-radius:4px;border:1.2px solid var(--gold);flex-shrink:0;cursor:pointer;position:relative;margin-top:1px}
+.atte-c.on::after{content:'';position:absolute;inset:3px;background:var(--gold);border-radius:2px}
+.atte-t{font-size:11px;color:var(--txt);line-height:1.55}
+.atte-t em{color:var(--gt);font-family:var(--fd);font-style:italic;font-size:12.5px}
+
+/* readout */
+.read{display:none;margin-top:14px;padding:12px;background:rgba(42,107,219,0.04);border:0.5px solid var(--bb);border-radius:10px}
+.read.on{display:block;animation:fade .4s}
+.read-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.read-h-l{font-family:var(--fc);font-weight:600;font-size:9px;color:var(--bt);letter-spacing:.12em;text-transform:uppercase}
+.read-h-r{font-size:10px;color:var(--txt3);font-family:var(--fc);font-weight:500;letter-spacing:.06em}
+.read-row{display:grid;grid-template-columns:90px 1fr;gap:10px;font-size:11px;padding:5px 0;align-items:baseline}
+.read-row + .read-row{border-top:0.5px solid var(--bdr)}
+.read-l{font-family:var(--fc);font-weight:600;color:var(--txt2);text-transform:uppercase;letter-spacing:.06em;font-size:9px}
+.read-v{font-family:var(--fd);font-style:italic;color:#fff;font-size:13px}
+.read-fix{margin-top:10px;font-size:10px;color:var(--rt);font-family:var(--fc);font-weight:500;letter-spacing:.04em;cursor:pointer;text-decoration:underline;text-decoration-color:var(--rb);text-underline-offset:3px}
+
+/* ============ STAGE 4 — SPACES ============ */
+.space-card{background:var(--ink2);border:0.5px solid var(--bdr);border-radius:14px;padding:18px;margin-bottom:12px;position:relative}
+.space-card.add{border-style:dashed;border-color:var(--bb);background:rgba(42,107,219,0.03);text-align:center;padding:22px;cursor:pointer;transition:all .15s}
+.space-card.add:hover{background:rgba(42,107,219,0.06);border-color:var(--blue)}
+.space-card.add .lab{color:var(--bt);margin-bottom:4px}
+.space-card.add .h3{color:var(--bt);font-size:18px}
+.sc-head{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.sc-name{font-family:var(--fd);font-style:italic;font-size:18px;font-weight:400;color:#fff}
+.sc-num{font-family:var(--fc);font-size:9px;color:var(--txt3);font-weight:600;letter-spacing:.1em;text-transform:uppercase}
+.sc-rm{font-family:var(--fc);font-size:10px;color:var(--txt3);font-weight:500;letter-spacing:.06em;cursor:pointer;text-transform:uppercase;background:none;border:none;padding:4px 6px}
+.sc-rm:hover{color:var(--rt)}
+
+/* log scale slider for rental */
+.rate-w{margin:6px 0 14px}
+.rate-h{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px}
+.rate-l{font-family:var(--fc);font-weight:600;font-size:10px;color:var(--txt2);text-transform:uppercase;letter-spacing:.08em}
+.rate-v{font-family:var(--fd);font-style:italic;font-size:22px;color:var(--bt)}
+.rate-ticks{display:flex;justify-content:space-between;margin-top:6px;padding:0 2px}
+.rate-tick{font-size:9px;color:var(--txt3);font-family:var(--fc);font-weight:500}
+.rate-bench{display:none;margin-top:10px;padding:10px 12px;background:rgba(42,107,219,0.04);border:0.5px solid var(--bb);border-radius:8px;font-size:11px;color:var(--txt2);line-height:1.5}
+.rate-bench.on{display:block;animation:fade .3s}
+.rate-bench em{color:var(--bt);font-family:var(--fd);font-style:italic;font-size:13px}
+
+/* ============ STAGE 5 — COMMISSION ============ */
+.flow-card{background:var(--ink2);border:0.5px solid var(--bdr);border-radius:14px;padding:18px;margin-bottom:10px;cursor:pointer;transition:all .15s}
+.flow-card:hover{border-color:var(--bdrh)}
+.flow-card.on{border-color:var(--blue);background:rgba(42,107,219,0.05)}
+.flow-h{display:flex;justify-content:space-between;align-items:flex-start;gap:12px;margin-bottom:8px}
+.flow-h-l{flex:1;min-width:0}
+.flow-t{font-family:var(--fd);font-style:italic;font-size:16px;color:#fff;margin-bottom:2px}
+.flow-c{font-family:var(--fc);font-weight:500;font-size:9px;color:var(--txt3);letter-spacing:.1em;text-transform:uppercase}
+.flow-d{font-size:11.5px;color:var(--txt2);line-height:1.55}
+.tog{width:40px;height:22px;border-radius:11px;background:var(--ink4);border:0.5px solid var(--bdr);position:relative;flex-shrink:0;transition:all .2s;cursor:pointer}
+.tog::after{content:'';position:absolute;top:2px;left:2px;width:16px;height:16px;border-radius:50%;background:var(--txt3);transition:all .2s}
+.flow-card.on .tog{background:var(--bl);border-color:var(--bb)}
+.flow-card.on .tog::after{transform:translateX(18px);background:var(--bt)}
+
+/* gates */
+.gate{display:flex;gap:12px;align-items:flex-start;padding:14px;background:var(--ink2);border:0.5px solid var(--bdr);border-radius:12px;margin-bottom:8px}
+.gate-i{width:32px;height:32px;border-radius:8px;background:var(--gl);border:0.5px solid rgba(201,138,26,0.32);display:flex;align-items:center;justify-content:center;color:var(--gt);flex-shrink:0}
+.gate.done .gate-i{background:var(--tl);border-color:rgba(26,158,130,0.32);color:var(--tt)}
+.gate-b{flex:1;min-width:0}
+.gate-t{font-family:var(--fd);font-style:italic;font-size:14px;color:#fff;margin-bottom:4px;font-weight:400;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.gate-mode{font-family:var(--fc);font-size:8.5px;font-weight:600;letter-spacing:.1em;text-transform:uppercase;padding:2px 7px;border-radius:4px;font-style:normal}
+.gate-mode.soft{background:rgba(201,138,26,0.10);border:0.5px solid rgba(201,138,26,0.28);color:var(--gt)}
+.gate-mode.required{background:rgba(232,98,42,0.12);border:0.5px solid rgba(232,98,42,0.32);color:var(--coral)}
+.gate-mode.cond{background:rgba(126,179,245,0.10);border:0.5px solid var(--bb);color:var(--bt)}
+.gate-d{font-size:10.5px;color:var(--txt2);line-height:1.5}
+.gate-d em{color:var(--gt);font-family:var(--fd);font-style:italic;font-size:11.5px}
+.gate.done .gate-d em{color:var(--tt)}
+.gate-a{padding:6px 11px;font-family:var(--fc);font-weight:600;font-size:10px;color:var(--bt);background:var(--bl);border:0.5px solid var(--bb);border-radius:6px;cursor:pointer;letter-spacing:.06em;text-transform:uppercase;flex-shrink:0;align-self:center}
+.gate-a:hover{background:rgba(42,107,219,0.18)}
+.gate.done .gate-a{color:var(--tt);background:var(--tl);border-color:rgba(26,158,130,0.32)}
+
+/* stripe block */
+.stripe{margin-top:18px;padding:18px;border:0.5px solid var(--bb);border-radius:14px;background:rgba(42,107,219,0.04)}
+.stripe-h{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:10px;gap:14px}
+.stripe-h .h3{font-size:17px}
+.stripe-l{font-family:var(--fc);font-size:9px;font-weight:600;color:var(--bt);letter-spacing:.1em;text-transform:uppercase;padding:4px 8px;background:var(--bl);border:0.5px solid var(--bb);border-radius:5px}
+.stripe-d{font-size:11.5px;color:var(--txt);line-height:1.6;margin-bottom:14px}
+.stripe-d em{font-family:var(--fd);font-style:italic;color:var(--bt);font-size:13px}
+.stripe-btn{width:100%;padding:14px 18px;background:transparent;border:1px dashed var(--bb);border-radius:10px;color:var(--bt);font-family:var(--fc);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.12em;cursor:pointer;transition:all .15s}
+.stripe-btn:hover{background:var(--bl);border-style:solid;border-color:var(--blue)}
+
+/* ============ STAGE 6 — WELCOME / DASHBOARD PREVIEW ============ */
+.wel-h{text-align:center;padding:8px 0 26px;margin-bottom:6px}
+.wel-h .ey{margin-bottom:14px;display:inline-block}
+.wel-h h1{font-size:34px;line-height:1.1;margin-bottom:14px}
+.wel-h .sub{color:var(--txt2);font-size:13px;line-height:1.65;max-width:340px;margin:0 auto}
+
+.wel-card{background:var(--ink2);border:0.5px solid var(--bdr);border-radius:16px;padding:20px;margin-bottom:14px}
+.wel-c-h{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:14px}
+.wel-c-t{font-family:var(--fd);font-style:italic;font-size:17px;font-weight:400;color:#fff}
+.wel-c-l{font-family:var(--fc);font-weight:600;font-size:9px;color:var(--txt3);letter-spacing:.12em;text-transform:uppercase}
+
+
+
+
+
+
+
+
+
+
+
+
+.badge-wrap{display:flex;flex-direction:column;align-items:center;gap:6px;margin-top:18px}
+.badge-svg{width:88px;height:88px;display:block;filter:drop-shadow(0 4px 20px rgba(42,107,219,0.35))}
+.badge-tier{font-family:var(--fc);font-weight:600;font-size:9.5px;letter-spacing:.2em;text-transform:uppercase;color:var(--bt)}
+
+/* tier modifiers — for future Top Venue / Premier */
+.badge-wrap.top-venue .badge-tier{color:#D8DEE9}
+.badge-wrap.premier .badge-tier{color:#E8C46A}
+
+/* hero metric */
+.heroM{padding:24px;background:linear-gradient(135deg,rgba(42,107,219,0.10),rgba(42,107,219,0.02));border:0.5px solid var(--bb);border-radius:18px;margin-bottom:14px;text-align:center;position:relative;overflow:hidden}
+.heroM-bg{position:absolute;inset:0;background:
+  radial-gradient(ellipse 60% 40% at 30% 30%,rgba(126,179,245,0.45),transparent 70%),
+  radial-gradient(ellipse 50% 35% at 70% 70%,rgba(232,160,176,0.30),transparent 70%),
+  radial-gradient(ellipse 40% 30% at 50% 100%,rgba(201,138,26,0.20),transparent 70%),
+  linear-gradient(135deg,#1a3052,#0f1c30 50%,#231a30);
+  opacity:.55;filter:blur(2px) saturate(1.1);z-index:0}
+.heroM-fade{position:absolute;inset:0;background:linear-gradient(180deg,rgba(5,10,20,0.30),rgba(5,10,20,0.65));z-index:1}
+.heroM-c{position:relative;z-index:2}
+.heroM-l{font-family:var(--fc);font-weight:600;font-size:10px;color:var(--bt);letter-spacing:.14em;text-transform:uppercase;margin-bottom:8px;display:flex;align-items:center;justify-content:center;gap:8px;transition:opacity .6s ease,max-height .6s ease,margin-bottom .6s ease;max-height:24px}
+.heroM-l.gone{opacity:0;max-height:0;margin-bottom:0;overflow:hidden;pointer-events:none}
+.heroM-l .pp-dot{width:5px;height:5px;border-radius:50%;background:var(--teal);box-shadow:0 0 8px var(--teal)}
+.heroM-n{font-family:var(--fd);font-style:italic;font-weight:300;font-size:36px;color:#fff;line-height:1.1;margin-bottom:6px;text-shadow:0 2px 24px rgba(0,0,0,0.5)}
+.heroM-n em{color:var(--btt)}
+.heroM-s{font-size:11px;color:var(--txt);line-height:1.5;text-shadow:0 1px 8px rgba(0,0,0,0.5)}
+
+/* sample inquiry */
+.in-card{padding:14px;border-radius:10px;background:var(--ink3);border:0.5px solid var(--bdr);margin-bottom:8px}
+.in-r1{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;gap:10px}
+.in-name{font-family:var(--fd);font-style:italic;font-weight:400;font-size:15px;color:#fff;line-height:1.3}
+.in-amt{font-family:var(--fd);font-style:italic;font-size:16px;color:var(--bt);text-align:right;line-height:1.2}
+.in-meta{font-size:10.5px;color:var(--txt2);margin-bottom:9px;line-height:1.5}
+.in-tag{display:inline-flex;align-items:center;gap:5px;padding:2px 7px;border-radius:4px;font-family:var(--fc);font-weight:600;font-size:9px;text-transform:uppercase;letter-spacing:.08em}
+.in-tag.q1{background:var(--gl);color:var(--gt);border:0.5px solid rgba(201,138,26,0.32)}
+.in-tag.q2{background:var(--bl);color:var(--bt);border:0.5px solid var(--bb)}
+.in-tag.q3{background:var(--tl);color:var(--tt);border:0.5px solid rgba(26,158,130,0.32)}
+
+/* mini calendar */
+.cal{display:grid;grid-template-columns:60px 1fr 1fr 1fr;gap:4px;margin-top:10px}
+.cal.cal-7{grid-template-columns:54px repeat(7,1fr);gap:3px}
+.cal-h{font-family:var(--fc);font-size:9px;color:var(--txt3);letter-spacing:.06em;text-transform:uppercase;font-weight:600;padding:4px 2px;text-align:center}
+.cal-h.lab{text-align:left}
+.cal-c{height:30px;border-radius:5px;background:var(--ink3);border:0.5px solid var(--bdr);display:flex;align-items:center;justify-content:center;font-family:var(--fc);font-weight:600;font-size:9px;color:var(--txt3);position:relative}
+.cal-c.b{background:rgba(26,158,130,0.18);border-color:rgba(26,158,130,0.32);color:var(--tt)}
+.cal-c.h{background:rgba(232,196,106,0.12);border-color:rgba(232,196,106,0.28);color:var(--gt)}
+.cal-c.i{background:rgba(42,107,219,0.10);border-color:var(--bb);color:var(--bt)}
+.cal-rl{font-family:var(--fd);font-style:italic;font-size:11.5px;color:var(--txt2);padding:6px 4px 6px 0;text-align:right;align-self:center;line-height:1.15}
+.cal-leg{display:flex;gap:12px;margin-top:10px;flex-wrap:wrap;font-family:var(--fc);font-size:9px;color:var(--txt2);letter-spacing:.06em;text-transform:uppercase;font-weight:500}
+.cal-leg span{display:flex;align-items:center;gap:5px}
+.cal-leg span::before{content:'';width:8px;height:8px;border-radius:2px}
+.cal-leg .lb::before{background:rgba(26,158,130,0.5)}
+.cal-leg .lh::before{background:rgba(232,196,106,0.5)}
+.cal-leg .li::before{background:rgba(42,107,219,0.45)}
+
+/* "preview / sample data" footer used on calendar + earnings panels */
+.prv-foot{margin-top:12px;padding-top:10px;border-top:0.5px dashed var(--bdr);font-family:var(--fd);font-style:italic;font-size:11.5px;color:var(--txt2);line-height:1.5}
+
+/* trust score */
+.trust{display:flex;align-items:center;gap:18px}
+.trust-num{font-family:var(--fd);font-style:italic;font-weight:300;font-size:48px;color:var(--bt);line-height:1}
+.trust-num small{font-size:18px;color:var(--txt3);font-weight:300}
+.trust-bd{flex:1}
+.trust-bd-r{display:flex;justify-content:space-between;font-size:10px;padding:3px 0;color:var(--txt2)}
+.trust-bd-r b{color:var(--txt);font-weight:600;font-family:var(--fc)}
+.trust-bar{height:2px;background:var(--ink4);border-radius:2px;margin-top:3px;overflow:hidden}
+.trust-bar div{height:100%;background:var(--bt);border-radius:2px}
+
+/* yield meter */
+.yield-rows{display:flex;flex-direction:column;gap:10px}
+.yield-r{display:flex;justify-content:space-between;align-items:center;padding:10px 12px;background:var(--ink3);border:0.5px solid var(--bdr);border-radius:8px}
+.yield-l{display:flex;flex-direction:column}
+.yield-t{font-family:var(--fd);font-style:italic;font-size:13px;color:#fff;margin-bottom:1px}
+.yield-d{font-family:var(--fc);font-size:9px;color:var(--txt3);letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.yield-v{font-family:var(--fd);font-style:italic;font-size:16px;color:var(--bt)}
+
+/* atmosphere mini */
+.atmo-mini{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:5px}
+.atmo-mini-c{aspect-ratio:1;border-radius:6px;background:linear-gradient(135deg,#1a3052,#0f1c30,#1a3052);border:0.5px solid var(--bb);position:relative;overflow:hidden}
+.atmo-mini-c::after{content:'';position:absolute;inset:0;background:radial-gradient(circle at 30% 30%,rgba(126,179,245,0.4),transparent 60%),radial-gradient(circle at 70% 70%,rgba(232,160,176,0.2),transparent 60%);opacity:.7}
+
+/* ============ NAV BAR ============ */
+.nav{position:fixed;bottom:0;left:0;right:0;background:rgba(5,10,20,0.96);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:0.5px solid var(--bdr);padding:14px 22px calc(14px + env(safe-area-inset-bottom));display:flex;gap:10px;z-index:50}
+.nav-w{max-width:480px;margin:0 auto;display:flex;gap:10px;width:100%}
+.btn{flex:1;padding:14px 18px;border-radius:11px;font-family:var(--fc);font-weight:600;font-size:12px;text-transform:uppercase;letter-spacing:.12em;cursor:pointer;transition:all .18s;border:none;display:flex;align-items:center;justify-content:center;gap:8px}
+.btn-back{background:transparent;border:0.5px solid var(--bdr);color:var(--txt2);flex:0 0 auto;padding:14px 22px}
+.btn-back:hover{border-color:var(--bdrh);color:var(--txt)}
+.btn-next{background:var(--blue);color:#fff;box-shadow:0 4px 18px rgba(42,107,219,0.3)}
+.btn-next:hover{background:#3478e8}
+.btn-next:disabled{background:var(--ink4);color:var(--txt3);box-shadow:none;cursor:not-allowed}
+
+/* ============ DRAFT FOOTER ============ */
+.draft-foot{display:flex;justify-content:space-between;align-items:center;margin:14px 0 4px;padding:12px 14px;background:rgba(232,196,106,0.04);border:0.5px solid rgba(232,196,106,0.22);border-radius:10px;font-size:11px;color:var(--gt);font-family:var(--fc);font-weight:500;letter-spacing:.04em}
+.draft-foot em{color:var(--txt);font-style:italic;font-family:var(--fd);font-size:12px}
+
+/* svg icons */
+svg{display:block}
+.ic{width:18px;height:18px;stroke:currentColor;stroke-width:1.4;fill:none;stroke-linecap:round;stroke-linejoin:round}
+.ic-lg{width:24px;height:24px}
+
+/* utility */
+.mt8{margin-top:8px}.mt12{margin-top:12px}.mt16{margin-top:16px}.mt24{margin-top:24px}
+.mb8{margin-bottom:8px}.mb12{margin-bottom:12px}
+.tac{text-align:center}.fl{display:flex}.gap8{gap:8px}.aic{align-items:center}.jcsb{justify-content:space-between}
+.hidden{display:none !important}
+</style>
+</head>
+<body>
+
+<div class="app">
+
+<!-- ====================== TOPBAR ====================== -->
+<div class="tb" id="tb">
+  <div class="tb-l">
+    <svg class="brand-mark" viewBox="0 0 24 24" aria-hidden="true">
+      <!-- 4-point star — the cue moment -->
+      <path d="M12 2 L13.6 10.4 L22 12 L13.6 13.6 L12 22 L10.4 13.6 L2 12 L10.4 10.4 Z" fill="currentColor"/>
+      <!-- 6-dot calendar grid below would clutter at 24px; star alone reads cleaner -->
+    </svg>
+    <div class="wm"><span class="wm-evnt">Evnt</span><span class="wm-cue">Cue</span></div>
+  </div>
+  <div class="tb-r">
+    <span class="role-pill"><span class="role-dot"></span>Venu</span>
+    <span id="tb-step"></span>
+  </div>
+</div>
+<div class="prog"><div class="prog-f" id="prog"></div></div>
+
+
+<!-- ============================================================ -->
+<!-- STAGE 0 — LANDING -->
+<!-- ============================================================ -->
+<div class="stage on" data-stage="0">
+  <div class="hero">
+    <div class="ey hero-eye">For the people who host the room</div>
+    <h1 class="h1"><em>Deposits,</em> not inquiries.</h1>
+    <div class="hero-sub">Stop chasing unvetted leads. EvntCue sends you booked clients &mdash; vetted, with deposits already in escrow. <em style="font-family:var(--fd);font-style:italic;color:var(--bt);font-size:14.5px">List free. Reply. Get paid.</em></div>
+  </div>
+
+  <!-- live-inquiry illustration -->
+  <div class="illus">
+    <div class="illus-h">Live in your inbox</div>
+
+    <div class="iq">
+      <div class="iq-row">
+        <div>
+          <div class="iq-name">Marisol &amp; Diego</div>
+          <div class="iq-meta">Garden Terrace &middot; Sat Sep 12, 2026 &middot; 140 guests</div>
+        </div>
+        <span class="iq-tag qual">Ready to book</span>
+      </div>
+      <div class="iq-bottom">
+        <div>
+          <div class="iq-cue">$5,000 escrow against your space</div>
+        </div>
+        <div class="iq-amount">$18,400</div>
+      </div>
+    </div>
+
+    <div class="iq" style="opacity:.85">
+      <div class="iq-row">
+        <div>
+          <div class="iq-name">Henley corporate retreat</div>
+          <div class="iq-meta">Loft &middot; Thu Oct 23, 2026 &middot; 60 guests</div>
+        </div>
+        <span class="iq-tag tag-blue">Quote sent</span>
+      </div>
+      <div class="iq-bottom">
+        <div>
+          <div class="iq-cue">Awaiting deposit &middot; 3 days left</div>
+        </div>
+        <div class="iq-amount">$6,200</div>
+      </div>
+    </div>
+
+    <div class="iq" style="opacity:.7">
+      <div class="iq-row">
+        <div>
+          <div class="iq-name">Anjali &amp; Rohan</div>
+          <div class="iq-meta">Grand Ballroom &middot; Sat Mar 14, 2027 &middot; 380 guests</div>
+        </div>
+        <span class="iq-tag tag-d">Browsing only</span>
+      </div>
+    </div>
+
+    <div class="iq" style="opacity:.55">
+      <div class="iq-row">
+        <div>
+          <div class="iq-name">Cohen bat mitzvah</div>
+          <div class="iq-meta">Library &middot; Sun Jun 6, 2026 &middot; 220 guests</div>
+        </div>
+        <span class="iq-tag tag-rose">Capacity mismatch</span>
+      </div>
+      <div class="iq-bottom">
+        <div>
+          <div class="iq-cue">Cue suggests redirecting to Grand Ballroom</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- WHAT YOU GET FREE -->
+  <div class="freebox">
+    <div class="freebox-h">
+      <div class="ey">What is free, on day one</div>
+      <h3 class="h3">Eight tools your venue runs on. <em>Free until your first booking clears.</em></h3>
+    </div>
+
+    <div class="feat-grid">
+      <div class="feat">
+        <div class="feat-i"><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/></svg></div>
+        <div class="feat-t">Multi-space booking calendar</div>
+        <div class="feat-d">Day and month grid across every space. Inquiries, holds, and confirmed bookings on one timeline. Public availability hits this calendar.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-i"><svg class="ic" viewBox="0 0 24 24"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg></div>
+        <div class="feat-t">Reply in minutes, not days</div>
+        <div class="feat-d">Cue drafts the first response the moment an inquiry lands &mdash; tuned to the Orgnz, the date, and your space. Response speed is the #1 reason venues win or lose bookings. Tap to send.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-i"><svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13h6M9 17h6"/></svg></div>
+        <div class="feat-t">BEO &amp; proposals</div>
+        <div class="feat-d">Branded proposals with tiered packages. Clients select, sign, and pay deposit in one flow. BEO acknowledgment workflow built in.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-i"><svg class="ic" viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+        <div class="feat-t">Site visit scheduler</div>
+        <div class="feat-d">Tasting and walk-through scheduling with reminders. Track which visits convert &mdash; without spreadsheets.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-i"><svg class="ic" viewBox="0 0 24 24"><path d="M3 11l18-7v17L3 14zM3 11v3"/></svg></div>
+        <div class="feat-t">Deposit schedules</div>
+        <div class="feat-d">Auto-collect deposits and balances on the schedule you set. EvntCue&rsquo;s escrow holds the money until the contract is signed.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-i"><svg class="ic" viewBox="0 0 24 24"><path d="M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8z"/></svg></div>
+        <div class="feat-t">Client communication portal</div>
+        <div class="feat-d">One thread per booking, shared with the Orgnz, the Plnr, and the Catr. Replaces the email chain.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-i"><svg class="ic" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75"/></svg></div>
+        <div class="feat-t">Preferred vendor directory</div>
+        <div class="feat-d">Invite the vendors you trust. Curated for your spaces, surfaced to every Orgnz who books here.</div>
+      </div>
+      <div class="feat">
+        <div class="feat-i"><svg class="ic" viewBox="0 0 24 24"><path d="M3 3v18h18M7 14l4-4 4 4 5-5"/></svg></div>
+        <div class="feat-t">Earnings &amp; ledger</div>
+        <div class="feat-d">All four fee flows in plain sight: in-house fees, F&amp;B surcharge, vendor passes, planner sourcing. One ledger, one source of truth.</div>
+      </div>
+    </div>
+
+    <div class="free-foot">
+      <span class="ey ey-rose">Cue</span>
+      <div class="free-foot-t"><em>No card. No subscription. No monthly minimum.</em> Claim your venue, build your Atmosphere Board, take your first deposit. Everything above is yours the moment your profile goes live.</div>
+    </div>
+  </div>
+
+  <!-- comparison strip -->
+  <div class="comp">
+    <div class="ey ey-d comp-eye">How EvntCue compares</div>
+    <div class="comp-grid">
+      <div class="comp-c us">
+        <div class="comp-n">EvntCue</div>
+        <div class="comp-r">Free to claim &middot; deposits in escrow</div>
+        <div class="comp-rr">Inquiries arrive qualified.</div>
+      </div>
+      <div class="comp-c">
+        <div class="comp-n">PartySlate</div>
+        <div class="comp-r">Premium subscription</div>
+        <div class="comp-rr">Discovery only &mdash; no booking flow.</div>
+      </div>
+      <div class="comp-c">
+        <div class="comp-n">Eventbrite Venues</div>
+        <div class="comp-r">10&ndash;14% on tickets</div>
+        <div class="comp-rr">Built for ticketed events, not weddings.</div>
+      </div>
+      <div class="comp-c">
+        <div class="comp-n">HoneyBook</div>
+        <div class="comp-r">3% processing only</div>
+        <div class="comp-rr">CRM tool &mdash; no marketplace demand.</div>
+      </div>
+      <div class="comp-c">
+        <div class="comp-n">The Knot Pro</div>
+        <div class="comp-r">$300+/mo subscription</div>
+        <div class="comp-rr">Pay first, hope leads come.</div>
+      </div>
+      <div class="comp-c">
+        <div class="comp-n">Tripleseat</div>
+        <div class="comp-r">$250&ndash;$500/mo</div>
+        <div class="comp-rr">Powerful, but a per-seat cost wall.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- CTA -->
+  <div class="cta-wrap">
+    <button class="btn-cta" onclick="go(1)">
+      <span>Claim your venue</span>
+      <svg class="ic arr" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+    <div class="cta-fp">5 minutes &middot; no payment to start &middot; profile goes live on review</div>
+  </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- STAGE 1 — WHAT KIND OF VENUE -->
+<!-- ============================================================ -->
+<div class="stage" data-stage="1">
+  <div class="dots">
+    <span class="dot act"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+  </div>
+
+  <div class="q-h">
+    <div class="ey">Step 1 of 5 &middot; Your venue type</div>
+    <h2>What <em>kind of venue</em> do you run?</h2>
+    <div class="sub">Pick the closest fit. We will match Orgnzs whose mood boards read like your atmosphere.</div>
+  </div>
+
+  <div class="opts" id="vtype">
+    <button class="opt" data-v="banquet" onclick="pickType(this)">
+      <div class="opt-ico"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21V8l9-5 9 5v13M9 21v-7h6v7M3 13h18"/></svg></div>
+      <div class="opt-b"><div class="opt-t">Banquet hall</div><div class="opt-d">Purpose-built for receptions, galas, and seated dinners.</div></div>
+      <div class="opt-c"></div>
+    </button>
+    <button class="opt" data-v="hotel" onclick="pickType(this)">
+      <div class="opt-ico"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21V5h18v16M7 9h10M7 13h10M7 17h10M3 21h18"/></svg></div>
+      <div class="opt-b"><div class="opt-t">Hotel</div><div class="opt-d">Full-service property with ballrooms, on-site rooms, and catering.</div></div>
+      <div class="opt-c"></div>
+    </button>
+    <button class="opt" data-v="restaurant" onclick="pickType(this)">
+      <div class="opt-ico"><svg class="ic" viewBox="0 0 24 24"><path d="M5 3v8a3 3 0 0 0 6 0V3M8 11v10M16 3c-2 0-3 2-3 4v4h3v10"/></svg></div>
+      <div class="opt-b"><div class="opt-t">Restaurant private room</div><div class="opt-d">A buyout, private dining room, or rooftop within a working restaurant.</div></div>
+      <div class="opt-c"></div>
+    </button>
+    <button class="opt" data-v="outdoor" onclick="pickType(this)">
+      <div class="opt-ico"><svg class="ic" viewBox="0 0 24 24"><path d="M12 21V12M5 12c0-4 3-7 7-7s7 3 7 7M3 21h18M8 17l4-3 4 3"/></svg></div>
+      <div class="opt-b"><div class="opt-t">Outdoor &middot; Garden</div><div class="opt-d">Open-air venue, garden, vineyard, ranch, or destination terrace.</div></div>
+      <div class="opt-c"></div>
+    </button>
+    <button class="opt" data-v="club" onclick="pickType(this)">
+      <div class="opt-ico"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21V8M21 21V8M3 8h18M9 12v9M15 12v9M9 8V3h6v5"/></svg></div>
+      <div class="opt-b"><div class="opt-t">Country club</div><div class="opt-d">Member club with course, ballroom, and on-site catering team.</div></div>
+      <div class="opt-c"></div>
+    </button>
+    <button class="opt" data-v="museum" onclick="pickType(this)">
+      <div class="opt-ico"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21h18M5 21V10M19 21V10M9 21V14h6v7M3 10l9-7 9 7"/></svg></div>
+      <div class="opt-b"><div class="opt-t">Museum &middot; Cultural &middot; University</div><div class="opt-d">Gallery, museum, library, historic site, university hall, or campus venue available for events.</div></div>
+      <div class="opt-c"></div>
+    </button>
+    <button class="opt" data-v="brewery" onclick="pickType(this)">
+      <div class="opt-ico"><svg class="ic" viewBox="0 0 24 24"><path d="M6 21V8h12v13M6 8V5a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v3M9 12v6M12 12v6M15 12v6"/></svg></div>
+      <div class="opt-b"><div class="opt-t">Brewery &middot; Winery</div><div class="opt-d">Production facility, taproom, or tasting room with event space.</div></div>
+      <div class="opt-c"></div>
+    </button>
+    <button class="opt" data-v="industrial" onclick="pickType(this)">
+      <div class="opt-ico"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21V11l5 4V11l5 4V11l5 4v6H3M6 8V3M14 8V3"/></svg></div>
+      <div class="opt-b"><div class="opt-t">Industrial &middot; Warehouse</div><div class="opt-d">Raw-finish event space, converted factory, or photo studio.</div></div>
+      <div class="opt-c"></div>
+    </button>
+    <button class="opt" data-v="loft" onclick="pickType(this)">
+      <div class="opt-ico"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12L12 4l9 8M5 11v10h14V11M9 21v-6h6v6"/></svg></div>
+      <div class="opt-b"><div class="opt-t">Loft &middot; Blank canvas</div><div class="opt-d">Open-plan urban space designed to be transformed per event.</div></div>
+      <div class="opt-c"></div>
+    </button>
+    <button class="opt" data-v="mixed" onclick="pickType(this)">
+      <div class="opt-ico"><svg class="ic" viewBox="0 0 24 24"><circle cx="8" cy="8" r="4"/><circle cx="16" cy="16" r="4"/><path d="M8 16h.01M16 8h.01"/></svg></div>
+      <div class="opt-b"><div class="opt-t">Mixed-use &middot; Unique</div><div class="opt-d">Boat, plane hangar, observatory, theater &mdash; the one of one.</div></div>
+      <div class="opt-c"></div>
+    </button>
+  </div>
+
+  <div class="market-card" id="mkt">
+    <div class="mk-l">DFW market signal</div>
+    <span id="mktTxt"></span>
+  </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- STAGE 2 — YOUR VENUE (profile + first Atmosphere Board) -->
+<!-- ============================================================ -->
+<div class="stage" data-stage="2">
+  <div class="dots">
+    <span class="dot done"></span><span class="dot act"></span><span class="dot"></span><span class="dot"></span><span class="dot"></span>
+  </div>
+
+  <div class="q-h">
+    <div class="ey">Step 2 of 5 &middot; Tell us about your venue</div>
+    <h2>Tell us about <em>your venue.</em></h2>
+    <div class="sub">The basics first &mdash; the part that goes on contracts and shows up at the loading dock. Spaces and pricing come next.</div>
+  </div>
+
+  <div class="field">
+    <label class="field-l">Venue name <b>*</b></label>
+    <input type="text" class="inp" id="vName" placeholder="Hotel Drover">
+  </div>
+
+  <div class="row2">
+    <div class="field">
+      <label class="field-l">Primary contact <b>*</b></label>
+      <input type="text" class="inp" placeholder="Sarah Chen">
+    </div>
+    <div class="field">
+      <label class="field-l">Role</label>
+      <input type="text" class="inp" placeholder="Director of Events">
+    </div>
+  </div>
+
+  <div class="row2">
+    <div class="field">
+      <label class="field-l">Email <b>*</b></label>
+      <input type="email" class="inp" placeholder="sarah@hoteldrover.com">
+    </div>
+    <div class="field">
+      <label class="field-l">Phone <b>*</b></label>
+      <input type="tel" class="inp" placeholder="(817) 555-0140">
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="field-l">Business entity</label>
+    <div class="sel-pills" id="entityPills">
+      <span class="pill-opt" onclick="pickEntity(this)" data-entity="llc">LLC</span>
+      <span class="pill-opt" onclick="pickEntity(this)" data-entity="scorp">S-Corp</span>
+      <span class="pill-opt" onclick="pickEntity(this)" data-entity="ccorp">C-Corp</span>
+      <span class="pill-opt" onclick="pickEntity(this)" data-entity="sole">Sole prop</span>
+      <span class="pill-opt" onclick="pickEntity(this)" data-entity="nonprofit">Non-profit</span>
+      <span class="pill-opt" onclick="pickEntity(this)" data-entity="government">Government &middot; Public</span>
+    </div>
+  </div>
+
+  <!-- Tax-exempt block: appears only when non-profit or government is selected -->
+  <div class="taxex" id="taxex">
+    <div class="taxex-h">
+      <span class="ey ey-rose" style="margin-bottom:0">Tax-exempt entity</span>
+    </div>
+    <div class="taxex-b">
+      <div class="taxex-tog" onclick="togTaxEx(this)">
+        <div class="taxex-c"></div>
+        <div class="taxex-l">
+          <div class="taxex-l-t"><em>This venue is tax-exempt.</em></div>
+          <div class="taxex-l-s">Surfaces on contracts and 1099s. Universities, churches, public museums, and government entities typically qualify.</div>
+        </div>
+      </div>
+      <div class="field" style="margin:14px 0 0">
+        <label class="field-l">EIN <span style="color:var(--txt3);font-weight:500;text-transform:none;letter-spacing:0;font-size:10px;font-family:var(--fc)">&middot; required for tax reporting</span></label>
+        <input type="text" class="inp" placeholder="XX-XXXXXXX">
+      </div>
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="field-l">Street address <b>*</b></label>
+    <input type="text" class="inp" placeholder="200 Mule Alley Dr, Fort Worth, TX 76164">
+    <div style="font-size:10px;color:var(--txt3);margin-top:6px;font-family:var(--fc);font-weight:500;letter-spacing:.04em">Used for the geotag check on your Atmosphere Board photos.</div>
+  </div>
+
+  <div class="row2">
+    <div class="field">
+      <label class="field-l">Total capacity (seated)</label>
+      <input type="number" class="inp" placeholder="320">
+    </div>
+    <div class="field">
+      <label class="field-l">Total capacity (standing)</label>
+      <input type="number" class="inp" placeholder="500">
+    </div>
+  </div>
+
+  <div class="field">
+    <label class="field-l">Founding story</label>
+    <textarea class="inp" placeholder="A 1909 livery stable on the National Register, restored to host weddings and corporate retreats with the Stockyards just outside the door."></textarea>
+    <div style="font-size:10px;color:var(--txt3);margin-top:6px;font-family:var(--fc);font-weight:500;letter-spacing:.04em">Cue uses this when drafting your inquiry responses. Be specific.</div>
+  </div>
+
+  <!-- ATMOSPHERE BOARD -->
+  <div class="atmo" id="atmoBoard">
+    <div class="atmo-h">
+      <div>
+        <div class="ey">Atmosphere board</div>
+        <h3 class="h3"><em>How it feels</em> here.</h3>
+      </div>
+      <button class="atmo-edit" id="atmoEdit" onclick="atmoExpand()" type="button">Edit board</button>
+    </div>
+    <div class="atmo-c" id="atmoIntro">Six to twelve photos of your venue at different times of day, at different events, with different layouts. Cue reads these to find Orgnzs whose <em>mood boards feel like your space.</em></div>
+
+    <div class="atmo-grid" id="atmoGrid">
+      <div class="atmo-cell" onclick="atmoUp(this)" data-i="0">+</div>
+      <div class="atmo-cell" onclick="atmoUp(this)" data-i="1">+</div>
+      <div class="atmo-cell" onclick="atmoUp(this)" data-i="2">+</div>
+      <div class="atmo-cell" onclick="atmoUp(this)" data-i="3">+</div>
+      <div class="atmo-cell" onclick="atmoUp(this)" data-i="4">+</div>
+      <div class="atmo-cell" onclick="atmoUp(this)" data-i="5">+</div>
+      <div class="atmo-cell" onclick="atmoUp(this)" data-i="6">+</div>
+      <div class="atmo-cell" onclick="atmoUp(this)" data-i="7">+</div>
+      <div class="atmo-cell" onclick="atmoUp(this)" data-i="8">+</div>
+    </div>
+
+    <!-- Collapsed-state thumbnail strip — only shown when board is collapsed -->
+    <div class="atmo-strip" id="atmoStrip"></div>
+
+    <div class="atte" id="atte">
+      <div class="atte-c" id="atteC" onclick="this.classList.toggle('on');checkStage2()"></div>
+      <div class="atte-t">
+        <em>I am authorized to represent this venue,</em> and these photos are of this venue&rsquo;s spaces. EvntCue does not allow stock images, Pinterest finds, or photos of other venues on Atmosphere Boards.
+      </div>
+    </div>
+
+    <!-- four-dimension readout -->
+    <div class="read" id="read">
+      <div class="read-h">
+        <span class="read-h-l">Cue&rsquo;s read on your atmosphere</span>
+        <span class="read-h-r">v1 heuristic &middot; vision API soon</span>
+      </div>
+      <div class="read-row"><span class="read-l">Color DNA</span><span class="read-v">warm &middot; saturated &middot; honey-cream</span></div>
+      <div class="read-row"><span class="read-l">Atmosphere</span><span class="read-v">historic &middot; refined &middot; western-luxe</span></div>
+      <div class="read-row"><span class="read-l">Light &middot; scale</span><span class="read-v">golden-hour &middot; intimate &middot; layered</span></div>
+      <div class="read-row"><span class="read-l">Texture</span><span class="read-v">brick &middot; reclaimed wood &middot; iron</span></div>
+      <div class="read-fix">Cue got it wrong? Tell us what is true &rarr;</div>
+    </div>
+  </div>
+
+  <div class="cue mt16">
+    <span class="cue-mk">&#10022;</span>
+    <div class="cue-b">
+      <div class="cue-l">Cue</div>
+      <div class="cue-t">Your Atmosphere Board does double duty. Orgnzs see it on your public page. Cue reads it to match your space to <em>mood boards that feel like home here.</em></div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- STAGE 3 — SPACES & PRICING (the divergent stage) -->
+<!-- ============================================================ -->
+<div class="stage" data-stage="3">
+  <div class="dots">
+    <span class="dot done"></span><span class="dot done"></span><span class="dot act"></span><span class="dot"></span><span class="dot"></span>
+  </div>
+
+  <div class="q-h">
+    <div class="ey">Step 3 of 5 &middot; Spaces &amp; pricing</div>
+    <h2>Define <em>at least one space.</em></h2>
+    <div class="sub">A space is a bookable room or area &mdash; Grand Ballroom, Garden Terrace, the Library. Most venues add three to eight. Each gets its own rate, layouts, and rules.</div>
+  </div>
+
+  <div id="spacesList">
+    <!-- one space card by default -->
+    <div class="space-card" data-sp="0">
+      <div class="sc-head">
+        <div>
+          <div class="sc-name">Space 1</div>
+          <div class="sc-num">First space &middot; required</div>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-l">Space name <b>*</b></label>
+        <input type="text" class="inp" placeholder="Grand Ballroom">
+      </div>
+
+      <div class="row3">
+        <div class="field">
+          <label class="field-l">Seated</label>
+          <input type="number" class="inp" placeholder="220">
+        </div>
+        <div class="field">
+          <label class="field-l">Standing</label>
+          <input type="number" class="inp" placeholder="320">
+        </div>
+        <div class="field">
+          <label class="field-l">Cocktail</label>
+          <input type="number" class="inp" placeholder="280">
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-l">Square footage</label>
+        <input type="number" class="inp" placeholder="4,200">
+      </div>
+
+      <!-- LOG-SCALE RENTAL SLIDER -->
+      <div class="rate-w">
+        <div class="rate-h">
+          <span class="rate-l">Starting rental rate</span>
+          <span class="rate-v" id="rateV-0">$5,500</span>
+        </div>
+        <input type="range" class="rateR" data-i="0" min="0" max="100" value="50" oninput="rateChange(this)">
+        <div class="rate-ticks">
+          <span class="rate-tick">$500</span>
+          <span class="rate-tick">$2.5K</span>
+          <span class="rate-tick">$8K</span>
+          <span class="rate-tick">$25K+</span>
+        </div>
+        <div class="rate-bench on" id="rateB-0">
+          DFW market: outdoor venues with similar capacity book at <em>$4,200 average rental fee</em>. Your weekend bookings tend to clear $1K above the weekday baseline.
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-l">Layouts available (multi-select)</label>
+        <div class="sel-pills">
+          <span class="pill-opt on" onclick="togPill(this)">Theater</span>
+          <span class="pill-opt on" onclick="togPill(this)">Banquet</span>
+          <span class="pill-opt" onclick="togPill(this)">U-shape</span>
+          <span class="pill-opt" onclick="togPill(this)">Cabaret</span>
+          <span class="pill-opt on" onclick="togPill(this)">Reception</span>
+          <span class="pill-opt" onclick="togPill(this)">Classroom</span>
+          <span class="pill-opt" onclick="togPill(this)">Custom</span>
+        </div>
+      </div>
+
+      <!-- FLOOR PLAN UPLOAD -->
+      <div class="field">
+        <label class="field-l">Floor plans <span style="color:var(--txt3);font-weight:500;text-transform:none;letter-spacing:0;font-size:10px;font-family:var(--fc)">&middot; optional but powerful</span></label>
+        <div class="fp-grid">
+          <div class="fp-cell" onclick="fpUp(this)">
+            <div class="fp-cell-i"><svg class="ic" viewBox="0 0 24 24"><path d="M3 3h18v18H3zM3 9h18M9 3v18M15 9v12"/></svg></div>
+            <div class="fp-cell-l">Theater</div>
+            <div class="fp-cell-h">PDF or image</div>
+          </div>
+          <div class="fp-cell" onclick="fpUp(this)">
+            <div class="fp-cell-i"><svg class="ic" viewBox="0 0 24 24"><circle cx="6" cy="8" r="2"/><circle cx="12" cy="8" r="2"/><circle cx="18" cy="8" r="2"/><circle cx="6" cy="16" r="2"/><circle cx="12" cy="16" r="2"/><circle cx="18" cy="16" r="2"/></svg></div>
+            <div class="fp-cell-l">Banquet</div>
+            <div class="fp-cell-h">PDF or image</div>
+          </div>
+          <div class="fp-cell" onclick="fpUp(this)">
+            <div class="fp-cell-i"><svg class="ic" viewBox="0 0 24 24"><path d="M3 5h18M3 12h18M3 19h18M7 5v14M11 5v14M15 5v14M19 5v14"/></svg></div>
+            <div class="fp-cell-l">Reception</div>
+            <div class="fp-cell-h">PDF or image</div>
+          </div>
+        </div>
+        <div class="fp-foot">Upload what you already have. Cue surfaces the right one to Orgnzs based on their event type. <em>Drag-drop builder coming Phase 2.</em></div>
+      </div>
+
+      <div class="field">
+        <label class="field-l">Inclusions</label>
+        <div class="pillrow" data-kind="inclusions">
+          <span class="pill-opt on" data-name="Tables">Tables<span class="px" onclick="pillX(event,this)">&times;</span></span>
+          <span class="pill-opt on" data-name="Chairs">Chairs<span class="px" onclick="pillX(event,this)">&times;</span></span>
+          <span class="pill-opt" data-name="Linens">Linens<span class="px" onclick="pillX(event,this)">&times;</span></span>
+          <span class="pill-opt" data-name="AV">AV<span class="px" onclick="pillX(event,this)">&times;</span></span>
+          <span class="pill-opt on" data-name="Parking">Parking<span class="px" onclick="pillX(event,this)">&times;</span></span>
+          <span class="pill-opt" data-name="Valet">Valet<span class="px" onclick="pillX(event,this)">&times;</span></span>
+          <span class="pill-opt" data-name="Kitchen access">Kitchen access<span class="px" onclick="pillX(event,this)">&times;</span></span>
+          <span class="pill-opt" data-name="Bar service">Bar service<span class="px" onclick="pillX(event,this)">&times;</span></span>
+          <span class="pill-add" onclick="pillAdd(this)">+ Add your own</span>
+        </div>
+      </div>
+
+      <div class="field">
+        <label class="field-l">Restrictions</label>
+        <div class="pillrow" data-kind="restrictions">
+          <span class="pill-opt" data-name="10pm noise curfew">10pm noise curfew<span class="px" onclick="pillX(event,this)">&times;</span></span>
+          <span class="pill-opt" data-name="No open flame">No open flame<span class="px" onclick="pillX(event,this)">&times;</span></span>
+          <span class="pill-opt" data-name="No rice or confetti">No rice or confetti<span class="px" onclick="pillX(event,this)">&times;</span></span>
+          <span class="pill-opt" data-name="No outside alcohol">No outside alcohol<span class="px" onclick="pillX(event,this)">&times;</span></span>
+          <span class="pill-add" onclick="pillAdd(this)">+ Add your own</span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ADD ANOTHER -->
+  <div class="space-card add" onclick="addSpace()">
+    <div class="ey">Most venues have 3 to 8</div>
+    <div class="h3" style="margin-top:6px">+ Add another space</div>
+    <div style="font-size:11px;color:var(--txt2);margin-top:8px">Each space carries its own rate and rules. The Grand Ballroom and the Garden Terrace book differently.</div>
+  </div>
+
+  <div class="cue mt16">
+    <span class="cue-mk">&#10022;</span>
+    <div class="cue-b">
+      <div class="cue-l">Cue</div>
+      <div class="cue-t">Each space also gets <em>its own Atmosphere Board.</em> You will set those up in your dashboard once you go live &mdash; the Step 2 board is the venue overview.</div>
+    </div>
+  </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- STAGE 4 — MONEY FLOWS & VERIFICATION -->
+<!-- (schema codes: venue_in_house, venue_fb_surcharge, venue_kickback, venue_referral — kept in code only, not surfaced to user) -->
+<!-- ============================================================ -->
+<div class="stage" data-stage="4">
+  <div class="dots">
+    <span class="dot done"></span><span class="dot done"></span><span class="dot done"></span><span class="dot act"></span><span class="dot"></span>
+  </div>
+
+  <div class="q-h">
+    <div class="ey">Step 4 of 5 &middot; How money moves</div>
+    <h2>Pick the <em>fees and passes</em> you want active.</h2>
+    <div class="sub">Four ways money moves at your venue. Default is all off. Toggle the ones you actually run &mdash; you can fine-tune the details after you go live. These are first-class objects in the portal, never buried in settings.</div>
+  </div>
+
+  <button class="flow-card" onclick="togFlow(this)">
+    <div class="flow-h">
+      <div class="flow-h-l">
+        <div class="flow-t">In-house fees</div>
+        <div class="flow-c">Charged to the Orgnz</div>
+      </div>
+      <div class="tog"></div>
+    </div>
+    <div class="flow-d">Cake cutting, corkage, security deposit, valet, coat check. Each as flat or per-guest. <em>Visible</em> to Orgnz on the contract &mdash; not hidden.</div>
+  </button>
+
+  <button class="flow-card" onclick="togFlow(this)">
+    <div class="flow-h">
+      <div class="flow-h-l">
+        <div class="flow-t">F&amp;B surcharge</div>
+        <div class="flow-c">Charged to outside Catr</div>
+      </div>
+      <div class="tog"></div>
+    </div>
+    <div class="flow-d">If outside catering is allowed, charge a 0&ndash;25% surcharge on F&amp;B revenue (not labor). The Catr sees the rate at booking inquiry &mdash; no surprises.</div>
+  </button>
+
+  <button class="flow-card" onclick="togFlow(this)">
+    <div class="flow-h">
+      <div class="flow-h-l">
+        <div class="flow-t">Preferred vendor pass</div>
+        <div class="flow-c">Received from Vndr</div>
+      </div>
+      <div class="tog"></div>
+    </div>
+    <div class="flow-d">Annual flat or per-event % from vendors who want preferred-list placement on your venue page. <em>Inside</em> &mdash; never visible to Orgnzs.</div>
+  </button>
+
+  <button class="flow-card" onclick="togFlow(this)">
+    <div class="flow-h">
+      <div class="flow-h-l">
+        <div class="flow-t">Planner sourcing fee</div>
+        <div class="flow-c">Paid to the Plnr</div>
+      </div>
+      <div class="tog"></div>
+    </div>
+    <div class="flow-d">Pay 0&ndash;20% of your booking fee to Plnrs who source events to you. 48-hour post-event escrow. Earns you a sourcing badge in the Plnr marketplace.</div>
+  </button>
+
+  <!-- VERIFICATION -->
+  <!-- ADMIN NOTE: each gate's `data-gate-mode` is admin-controlled (soft|required).
+       In production, admin toggles soft<>required on a per-gate, per-region basis.
+       Soft = upload optional, contributes to badge + Trust Score.
+       Required = upload mandatory, blocks Stage 4 Continue.
+       Defaults shown here are v1 launch defaults; see §21 for full policy. -->
+  <div style="margin-top:30px">
+    <div class="ey ey-d mb12" style="display:block">Verification &middot; earn your Trust Badge</div>
+
+    <div class="gate done" data-gate="coi" data-gate-mode="soft">
+      <div class="gate-i"><svg class="ic" viewBox="0 0 24 24"><path d="M3 12l5 5L20 5"/></svg></div>
+      <div class="gate-b">
+        <div class="gate-t">General liability COI <span class="gate-mode soft">Soft</span></div>
+        <div class="gate-d"><em>+15% to Trust Score.</em> Required for the Verified badge tier. Most venues have $1M/$2M aggregate.</div>
+      </div>
+      <button class="gate-a">Uploaded</button>
+    </div>
+
+    <div class="gate" data-gate="business" data-gate-mode="soft">
+      <div class="gate-i"><svg class="ic" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6M9 13l2 2 4-4"/></svg></div>
+      <div class="gate-b">
+        <div class="gate-t">Business license <span class="gate-mode soft">Soft</span></div>
+        <div class="gate-d"><em>+10% to Trust Score.</em> Most venues have this on file already &mdash; takes 30 seconds to upload.</div>
+      </div>
+      <button class="gate-a">Upload</button>
+    </div>
+
+    <div class="gate" data-gate="food_handler" data-gate-mode="soft">
+      <div class="gate-i"><svg class="ic" viewBox="0 0 24 24"><path d="M5 21V8h14v13M9 21v-7h6v7M3 8l9-5 9 5"/><path d="M9 11h.01M12 11h.01M15 11h.01"/></svg></div>
+      <div class="gate-b">
+        <div class="gate-t">Food handler certificate <span class="gate-mode soft">Soft</span></div>
+        <div class="gate-d"><em>+10% to Trust Score</em> if you serve in-house F&amp;B. Outdoor venues with no kitchen can skip without penalty.</div>
+      </div>
+      <button class="gate-a">Upload</button>
+    </div>
+
+    <div class="gate" data-gate="liquor" data-gate-mode="conditional">
+      <div class="gate-i"><svg class="ic" viewBox="0 0 24 24"><path d="M3 21V8l9-5 9 5v13M9 21v-7h6v7"/><circle cx="12" cy="12" r="1.4"/></svg></div>
+      <div class="gate-b">
+        <div class="gate-t">Liquor license <span class="gate-mode cond">Conditional</span></div>
+        <div class="gate-d"><em>Required only if you serve alcohol on-site.</em> Connects to SafeTab for documented reasonable-care records.</div>
+      </div>
+      <button class="gate-a">Upload</button>
+    </div>
+  </div>
+
+  <!-- STRIPE CONNECT -->
+  <div class="stripe">
+    <div class="stripe-h">
+      <div>
+        <div class="ey">Get paid</div>
+        <h3 class="h3"><em>Connect your bank.</em></h3>
+      </div>
+      <div class="stripe-l">via Stripe</div>
+    </div>
+    <div class="stripe-d">EvntCue&rsquo;s escrow holds the Orgnz deposit until your contract is signed, then releases your rental fee to your account. <em>No card on file, no monthly charge.</em> The platform fee on transactions covers Stripe processing and EvntCue facilitation.</div>
+    <button class="stripe-btn">Connect Stripe &mdash; takes 3 minutes</button>
+    <div style="font-size:10px;color:var(--txt3);text-align:center;margin-top:10px;font-family:var(--fc);letter-spacing:.04em">You can also do this later from your dashboard.</div>
+  </div>
+</div>
+
+
+<!-- ============================================================ -->
+<!-- STAGE 5 — WELCOME / DASHBOARD PREVIEW -->
+<!-- ============================================================ -->
+<div class="stage" data-stage="5">
+  <div class="wel-h">
+    <span class="ey">Step 5 of 5 &middot; You are live</span>
+    <h1 class="h1" style="margin-top:14px">Welcome to your <em>dashboard.</em></h1>
+    <div class="sub">This is your venue&rsquo;s home base, ready for the first inquiry. Everything here is yours, free, the moment your profile goes live.</div>
+  </div>
+
+  <!-- HERO METRIC -->
+  <div class="heroM" id="heroM">
+    <div class="heroM-bg"></div>
+    <div class="heroM-fade"></div>
+    <div class="heroM-c">
+      <div class="heroM-l" id="heroLive"><span class="pp-dot"></span><span>Listing live</span></div>
+      <div class="heroM-n"><em>Hotel Drover</em></div>
+      <div class="heroM-s">3 spaces published &middot; Atmosphere Board scored at first read &middot; 0 inquiries yet</div>
+      <!-- TRUST BADGE — earned mark -->
+      <div class="badge-wrap" title="Verified Venue \u2014 65/100 Trust Score. Top Venue tier unlocks at 85.">
+        <svg class="badge-svg" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <radialGradient id="bgGlow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stop-color="#7EB3F5" stop-opacity="0.45"/>
+              <stop offset="60%" stop-color="#2A6BDB" stop-opacity="0.18"/>
+              <stop offset="100%" stop-color="#0B1220" stop-opacity="0"/>
+            </radialGradient>
+            <linearGradient id="rimGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#B8D8F8"/>
+              <stop offset="50%" stop-color="#2A6BDB"/>
+              <stop offset="100%" stop-color="#7EB3F5"/>
+            </linearGradient>
+            <path id="textArc" d="M 50,50 m -36,0 a 36,36 0 1,1 72,0 a 36,36 0 1,1 -72,0"/>
+          </defs>
+
+          <!-- outer glow -->
+          <circle cx="50" cy="50" r="48" fill="url(#bgGlow)"/>
+          <!-- outer rim -->
+          <circle cx="50" cy="50" r="42" fill="none" stroke="url(#rimGrad)" stroke-width="1.5"/>
+          <!-- inscription ring -->
+          <circle cx="50" cy="50" r="36" fill="none" stroke="rgba(126,179,245,0.18)" stroke-width="0.5"/>
+          <!-- inscription text — wraps the perimeter -->
+          <text font-family="var(--fc)" font-size="6.2" font-weight="600" letter-spacing="2" fill="#7EB3F5">
+            <textPath href="#textArc" startOffset="50%" text-anchor="middle">EVNTCUE  &#8226;  VERIFIED VENUE  &#8226;</textPath>
+          </text>
+          <!-- inner disk -->
+          <circle cx="50" cy="50" r="28" fill="rgba(11,18,32,0.6)" stroke="rgba(126,179,245,0.4)" stroke-width="0.5"/>
+          <!-- 4-point star — the cue moment -->
+          <path d="M50 28 L53.2 45.2 L70.4 48.4 L53.2 51.6 L50 68.8 L46.8 51.6 L29.6 48.4 L46.8 45.2 Z"
+                fill="#7EB3F5" filter="drop-shadow(0 0 4px rgba(126,179,245,0.7))"/>
+          <!-- center bright dot -->
+          <circle cx="50" cy="48.4" r="1.6" fill="#fff"/>
+        </svg>
+        <div class="badge-tier">Verified</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- DRAFT FOOT to suggest the dashboard's next move -->
+  <div class="draft-foot">
+    <span><em>One thing left.</em> Connect Stripe to take your first deposit.</span>
+    <span style="cursor:pointer;text-decoration:underline">Connect &rarr;</span>
+  </div>
+
+  <!-- SAMPLE INQUIRY (using the qualification taxonomy) -->
+  <div class="wel-card">
+    <div class="wel-c-h">
+      <div class="wel-c-t"><em>Sample inquiry</em></div>
+      <div class="wel-c-l">How real ones will look</div>
+    </div>
+    <div class="in-card">
+      <div class="in-r1">
+        <div>
+          <div class="in-name">Marisol &amp; Diego</div>
+          <div class="in-meta">Garden Terrace &middot; Sat Sep 12, 2026 &middot; 140 guests</div>
+        </div>
+        <div class="in-amt">$18,400</div>
+      </div>
+      <div class="fl gap8" style="flex-wrap:wrap">
+        <span class="in-tag q3">Confirmed &middot; Date locked</span>
+        <span class="in-tag q2" style="opacity:.55">Quote sent &middot; Awaiting deposit</span>
+      </div>
+    </div>
+    <div class="in-card" style="opacity:.7">
+      <div class="in-r1">
+        <div>
+          <div class="in-name">Henley corporate retreat</div>
+          <div class="in-meta">Loft &middot; Thu Oct 23, 2026 &middot; 60 guests</div>
+        </div>
+      </div>
+      <div class="fl gap8">
+        <span class="in-tag q1">Browsing only &middot; No escrow</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- 7-DAY MULTI-SPACE CALENDAR -->
+  <div class="wel-card">
+    <div class="wel-c-h">
+      <div class="wel-c-t"><em>This week</em></div>
+      <div class="wel-c-l">Multi-space &middot; sample preview</div>
+    </div>
+    <div class="cal cal-7">
+      <div class="cal-h lab">Space</div>
+      <div class="cal-h">Mon</div>
+      <div class="cal-h">Tue</div>
+      <div class="cal-h">Wed</div>
+      <div class="cal-h">Thu</div>
+      <div class="cal-h">Fri</div>
+      <div class="cal-h">Sat</div>
+      <div class="cal-h">Sun</div>
+
+      <div class="cal-rl">Grand Ballroom</div>
+      <div class="cal-c"></div>
+      <div class="cal-c h">H</div>
+      <div class="cal-c"></div>
+      <div class="cal-c i">I</div>
+      <div class="cal-c b">B</div>
+      <div class="cal-c b">B</div>
+      <div class="cal-c h">H</div>
+
+      <div class="cal-rl">Garden Terrace</div>
+      <div class="cal-c"></div>
+      <div class="cal-c"></div>
+      <div class="cal-c i">I</div>
+      <div class="cal-c"></div>
+      <div class="cal-c i">I</div>
+      <div class="cal-c"></div>
+      <div class="cal-c b">B</div>
+
+      <div class="cal-rl">Library</div>
+      <div class="cal-c"></div>
+      <div class="cal-c b">B</div>
+      <div class="cal-c"></div>
+      <div class="cal-c b">B</div>
+      <div class="cal-c"></div>
+      <div class="cal-c h">H</div>
+      <div class="cal-c"></div>
+    </div>
+    <div class="cal-leg">
+      <span class="lb">Confirmed booking</span>
+      <span class="lh">Hold</span>
+      <span class="li">Inquiry</span>
+    </div>
+    <div class="prv-foot">A representative week. Your real calendar populates as bookings come in.</div>
+  </div>
+
+  <!-- ATMOSPHERE BOARD MINI -->
+  <div class="wel-card">
+    <div class="wel-c-h">
+      <div class="wel-c-t"><em>Atmosphere board</em></div>
+      <div class="wel-c-l">8 photos read</div>
+    </div>
+    <div class="atmo-mini">
+      <div class="atmo-mini-c"></div>
+      <div class="atmo-mini-c"></div>
+      <div class="atmo-mini-c"></div>
+      <div class="atmo-mini-c"></div>
+      <div class="atmo-mini-c"></div>
+      <div class="atmo-mini-c"></div>
+      <div class="atmo-mini-c"></div>
+      <div class="atmo-mini-c"></div>
+    </div>
+    <div style="margin-top:12px;display:grid;grid-template-columns:auto 1fr;gap:8px 12px;font-size:11px;color:var(--txt2)">
+      <span class="lab" style="margin-bottom:0">Color DNA</span><span style="font-family:var(--fd);font-style:italic;color:#fff;font-size:13px">warm &middot; saturated &middot; honey-cream</span>
+      <span class="lab" style="margin-bottom:0">Atmosphere</span><span style="font-family:var(--fd);font-style:italic;color:#fff;font-size:13px">historic &middot; refined &middot; western-luxe</span>
+    </div>
+  </div>
+
+  <!-- FINANCIAL METRICS — sample preview -->
+  <div class="wel-card metrics-card">
+    <div class="wel-c-h">
+      <div class="wel-c-t"><em>Financial metrics</em></div>
+      <div class="wel-c-l">Sample &middot; what a busy month looks like</div>
+    </div>
+
+    <!-- top metric: booked revenue -->
+    <div class="met-hero">
+      <div class="met-hero-l">Booked revenue, this month</div>
+      <div class="met-hero-n"><em>$84,200</em></div>
+      <div class="met-hero-d">7 confirmed events &middot; up 22% from last month</div>
+    </div>
+
+    <!-- secondary metrics -->
+    <div class="met-grid">
+      <div class="met-c">
+        <div class="met-c-l">Pipeline</div>
+        <div class="met-c-n">$36,400</div>
+        <div class="met-c-s">12 inquiries open</div>
+      </div>
+      <div class="met-c">
+        <div class="met-c-l">Avg take-home</div>
+        <div class="met-c-n">$11,180</div>
+        <div class="met-c-s">per event, after fees</div>
+      </div>
+      <div class="met-c met-c-trust">
+        <div class="met-c-l">Trust score</div>
+        <div class="met-c-trust-r">
+          <div class="met-c-n">65<small>/100</small></div>
+          <svg class="badge-mini" viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <circle cx="50" cy="50" r="42" fill="none" stroke="#2A6BDB" stroke-width="3"/>
+            <circle cx="50" cy="50" r="34" fill="rgba(11,18,32,0.6)"/>
+            <path d="M50 28 L53.2 45.2 L70.4 48.4 L53.2 51.6 L50 68.8 L46.8 51.6 L29.6 48.4 L46.8 45.2 Z" fill="#7EB3F5"/>
+          </svg>
+        </div>
+        <div class="met-c-s">Verified &middot; Top Venue at 85</div>
+      </div>
+      <div class="met-c">
+        <div class="met-c-l">Next payout</div>
+        <div class="met-c-n">$6,420</div>
+        <div class="met-c-s">Fri, May 15</div>
+      </div>
+    </div>
+
+    <!-- fee flow contribution -->
+    <div class="met-flow">
+      <div class="met-flow-h">
+        <span class="met-flow-l">Fee flow contribution</span>
+        <span class="met-flow-r">this quarter</span>
+      </div>
+      <div class="met-flow-bar">
+        <div class="met-bar-seg seg-rental" style="width:64%"></div>
+        <div class="met-bar-seg seg-inhouse" style="width:18%"></div>
+        <div class="met-bar-seg seg-fb" style="width:11%"></div>
+        <div class="met-bar-seg seg-vendor" style="width:7%"></div>
+      </div>
+      <div class="met-flow-leg">
+        <span><span class="leg-dot seg-rental"></span>Rental fees<b>$54K</b></span>
+        <span><span class="leg-dot seg-inhouse"></span>In-house fees<b>$15K</b></span>
+        <span><span class="leg-dot seg-fb"></span>F&amp;B surcharge<b>$9K</b></span>
+        <span><span class="leg-dot seg-vendor"></span>Vendor passes<b>$6K</b></span>
+      </div>
+    </div>
+
+    <div class="prv-foot">A representative month for a 3-space venue. Your real numbers populate as bookings come in &mdash; same metrics, your data.</div>
+  </div>
+
+  <!-- TRUST SCORE BREAKDOWN -->
+  <div class="wel-card trust-card">
+    <div class="wel-c-h">
+      <div class="wel-c-t"><em>Trust Score</em> &middot; how you earn it</div>
+      <div class="wel-c-l">65 / 100 &middot; Verified</div>
+    </div>
+    <div class="trust-rows">
+      <div class="trust-row">
+        <div class="trust-row-l">
+          <div class="trust-row-t">Verification</div>
+          <div class="trust-row-s">3 of 4 gates cleared &middot; weighted 25%</div>
+        </div>
+        <div class="trust-row-r">
+          <div class="trust-bar-w">
+            <div class="trust-bar-f" style="width:75%"></div>
+          </div>
+          <div class="trust-row-pts">19 / 25</div>
+        </div>
+      </div>
+      <div class="trust-row">
+        <div class="trust-row-l">
+          <div class="trust-row-t">Profile completeness</div>
+          <div class="trust-row-s">Atmosphere Board, spaces, contact &middot; 30%</div>
+        </div>
+        <div class="trust-row-r">
+          <div class="trust-bar-w">
+            <div class="trust-bar-f" style="width:90%"></div>
+          </div>
+          <div class="trust-row-pts">27 / 30</div>
+        </div>
+      </div>
+      <div class="trust-row">
+        <div class="trust-row-l">
+          <div class="trust-row-t">Response time</div>
+          <div class="trust-row-s">Reply within 1 hour &middot; weighted 20%</div>
+        </div>
+        <div class="trust-row-r">
+          <div class="trust-bar-w">
+            <div class="trust-bar-f tbf-zero" style="width:0%"></div>
+          </div>
+          <div class="trust-row-pts">&mdash; / 20</div>
+        </div>
+      </div>
+      <div class="trust-row">
+        <div class="trust-row-l">
+          <div class="trust-row-t">Booking completion</div>
+          <div class="trust-row-s">Inquiries that book &middot; weighted 15%</div>
+        </div>
+        <div class="trust-row-r">
+          <div class="trust-bar-w">
+            <div class="trust-bar-f tbf-zero" style="width:0%"></div>
+          </div>
+          <div class="trust-row-pts">&mdash; / 15</div>
+        </div>
+      </div>
+      <div class="trust-row">
+        <div class="trust-row-l">
+          <div class="trust-row-t">Reviews</div>
+          <div class="trust-row-s">Post-event Orgnz reviews &middot; weighted 10%</div>
+        </div>
+        <div class="trust-row-r">
+          <div class="trust-bar-w">
+            <div class="trust-bar-f tbf-zero" style="width:0%"></div>
+          </div>
+          <div class="trust-row-pts">&mdash; / 10</div>
+        </div>
+      </div>
+    </div>
+    <div class="trust-tier-track">
+      <div class="trust-tier"><span class="trust-tier-dot done"></span><span class="trust-tier-l">Verified</span><span class="trust-tier-v">50</span></div>
+      <div class="trust-tier act"><span class="trust-tier-dot pulse"></span><span class="trust-tier-l">You are here</span><span class="trust-tier-v">65</span></div>
+      <div class="trust-tier"><span class="trust-tier-dot"></span><span class="trust-tier-l">Top Venue</span><span class="trust-tier-v">85</span></div>
+      <div class="trust-tier"><span class="trust-tier-dot"></span><span class="trust-tier-l">Premier</span><span class="trust-tier-v">95</span></div>
+    </div>
+    <div class="prv-foot" style="font-style:normal;font-family:var(--fn);color:var(--txt2);font-size:11px">Top Venue badge unlocks at 85. Premier (gold) at 95 with one full year of bookings on EvntCue. <em style="font-family:var(--fd);font-style:italic;color:var(--rt);font-size:12px">Higher tier &middot; higher search rank.</em></div>
+  </div>
+
+  <!-- EARNINGS LEDGER — your actual zero state -->
+  <div class="wel-card">
+    <div class="wel-c-h">
+      <div class="wel-c-t"><em>Your earnings</em></div>
+      <div class="wel-c-l">Live &middot; your ledger</div>
+    </div>
+    <div class="yield-rows">
+      <div class="yield-r">
+        <div class="yield-l"><div class="yield-t">In-house fees</div><div class="yield-d">From Orgnz</div></div>
+        <div class="yield-v zero">$0</div>
+      </div>
+      <div class="yield-r">
+        <div class="yield-l"><div class="yield-t">F&amp;B surcharge captured</div><div class="yield-d">From outside Catr</div></div>
+        <div class="yield-v zero">$0</div>
+      </div>
+      <div class="yield-r">
+        <div class="yield-l"><div class="yield-t">Preferred vendor pass</div><div class="yield-d">From Vndr</div></div>
+        <div class="yield-v zero">$0</div>
+      </div>
+      <div class="yield-r">
+        <div class="yield-l"><div class="yield-t">Planner sourcing paid</div><div class="yield-d">To Plnr</div></div>
+        <div class="yield-v zero">$0</div>
+      </div>
+    </div>
+    <div class="prv-foot" style="font-style:normal;font-family:var(--fn);color:var(--txt3);font-size:10.5px;letter-spacing:.04em">Real revenue starts the moment your first deposit clears.</div>
+  </div>
+
+  <!-- CUE WELCOME -->
+  <div class="cue">
+    <span class="cue-mk">&#10022;</span>
+    <div class="cue-b">
+      <div class="cue-l">Cue</div>
+      <div class="cue-t">Welcome to EvntCue. <em>I&rsquo;ll be drafting your inquiry responses</em> based on each Orgnz&rsquo;s mood board, your venue, and your past wins. Tap me anytime &mdash; I am quietest when things are working.</div>
+    </div>
+  </div>
+
+  <div class="cta-wrap" style="margin-top:8px">
+    <button class="btn-cta" onclick="enterDashboard()">
+      <span>Enter your dashboard</span>
+      <svg class="ic arr" viewBox="0 0 24 24"><path d="M5 12h14M13 6l6 6-6 6"/></svg>
+    </button>
+  </div>
+</div>
+
+</div><!-- /app -->
+
+<!-- ============================================================ -->
+<!-- NAV BAR -->
+<!-- ============================================================ -->
+<div class="nav" id="nav">
+  <div class="nav-w">
+    <button class="btn btn-back" id="bb" onclick="back()">Back</button>
+    <button class="btn btn-next" id="bn" onclick="next()">Continue</button>
+  </div>
+</div>
+
+<script>
+/* ============ STATE ============ */
+let stage = 0;
+let venuType = null;
+let atmoCount = 0;
+let attested = false;
+let spaceCount = 1;
+
+const stageCount = 6; // 0-5
+
+const marketCopy = {
+  banquet: "Banquet halls in DFW typically book <em>22 events per quarter</em> at $7,800 average rental fee. Saturday is the locked-out day.",
+  hotel: "DFW hotels run <em>34 events per quarter</em> across ballroom and breakout space at $11,200 average. F&amp;B surcharge captured per event averages $4,800.",
+  restaurant: "Restaurant private rooms book <em>18 events per quarter</em> at $2,400 average. Most are corporate; weddings are the upside.",
+  outdoor: "Outdoor venues in DFW typically book <em>14 events per quarter</em> at $4,200 average rental fee. Weather-dependent &mdash; April and October are the locked months.",
+  club: "Country clubs in DFW book <em>26 events per quarter</em> at $9,400 average. Member events are the floor; non-member weddings are the spike.",
+  museum: "Museums, cultural sites, and universities in DFW book <em>9 events per quarter</em> at $14,000 average. Lower volume, premium pricing. Universities skew alumni weddings and donor galas.",
+  brewery: "Breweries and wineries in DFW book <em>16 events per quarter</em> at $3,800 average. Buyouts are the killer app.",
+  industrial: "Industrial venues in DFW book <em>20 events per quarter</em> at $5,600 average. Style-forward weddings and brand activations split evenly.",
+  loft: "Lofts and blank-canvas spaces in DFW book <em>24 events per quarter</em> at $5,200 average. Highest variance &mdash; you are what your photos say you are.",
+  mixed: "Unique venues in DFW are a category of one. Booking volume varies wildly &mdash; from 4 events per quarter at $25K to 30 events at $1,800."
+};
+
+/* ============ STAGE TRANSITIONS ============ */
+function go(s){
+  // when entering Stage 3 (spaces), auto-populate for multi-space venue types
+  if(s === 3 && stage !== 3 && spaceCount === 1 && multiSpaceTypes.includes(venuType)){
+    addSpace();
+    addSpace();
+    // also relabel the first space card to reflect the venue type
+    relabelFirstSpace();
+  }
+  stage = s;
+  document.querySelectorAll('.stage').forEach(el => el.classList.remove('on'));
+  const target = document.querySelector('.stage[data-stage="'+s+'"]');
+  if(target) target.classList.add('on');
+  updateChrome();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+const multiSpaceTypes = ['hotel','club','mixed','museum'];
+function relabelFirstSpace(){
+  const first = document.querySelector('.space-card[data-sp="0"] .sc-name');
+  if(!first) return;
+  const labelMap = {
+    hotel: 'Main ballroom',
+    club: 'Main ballroom',
+    museum: 'Main hall'   // covers museum, cultural site, and university
+  };
+  if(labelMap[venuType]) first.textContent = labelMap[venuType];
+}
+function next(){ if(stage < stageCount - 1) go(stage + 1); }
+function back(){ if(stage > 0) go(stage - 1); }
+
+function updateChrome(){
+  const tbStep = document.getElementById('tb-step');
+  const prog = document.getElementById('prog');
+  const nav = document.getElementById('nav');
+  const bb = document.getElementById('bb');
+
+  if(stage === 0){
+    tbStep.innerHTML = '';
+    prog.style.width = '0%';
+    nav.style.display = 'none';
+  } else if(stage === stageCount - 1){
+    tbStep.innerHTML = '<span class="tb-step">Live</span>';
+    prog.style.width = '100%';
+    nav.style.display = 'none';
+  } else {
+    tbStep.innerHTML = '<span class="tb-step">Step <b>'+stage+'</b> of '+(stageCount-1)+'</span>';
+    prog.style.width = ((stage)/(stageCount-1)*100)+'%';
+    nav.style.display = 'flex';
+    bb.style.visibility = stage === 1 ? 'hidden' : 'visible';
+  }
+}
+
+/* ============ STAGE 1 — TYPE PICKER ============ */
+function pickType(el){
+  document.querySelectorAll('#vtype .opt').forEach(o => o.classList.remove('sel'));
+  el.classList.add('sel');
+  venuType = el.dataset.v;
+  const mkt = document.getElementById('mkt');
+  const mktTxt = document.getElementById('mktTxt');
+  mktTxt.innerHTML = marketCopy[venuType];
+  mkt.classList.add('on');
+}
+
+/* ============ ATMOSPHERE BOARD ============ */
+function atmoUp(cell){
+  if(cell.classList.contains('has')) return;
+  cell.classList.add('has');
+  cell.textContent = '';
+  atmoCount++;
+  if(atmoCount >= 1){
+    document.getElementById('atte').classList.add('on');
+  }
+  if(atmoCount >= 6 && attested){
+    document.getElementById('read').classList.add('on');
+  }
+  checkStage2();
+}
+function checkStage2(){
+  attested = document.getElementById('atteC').classList.contains('on');
+  if(atmoCount >= 6 && attested){
+    document.getElementById('read').classList.add('on');
+    atmoCollapse();
+  }
+}
+function atmoCollapse(){
+  const board = document.getElementById('atmoBoard');
+  const strip = document.getElementById('atmoStrip');
+  if(board.classList.contains('collapsed')) return;
+  // Build the thumbnail strip from the filled cells
+  const filled = document.querySelectorAll('#atmoGrid .atmo-cell.has');
+  strip.innerHTML = '';
+  filled.forEach(() => {
+    const t = document.createElement('div');
+    t.className = 'atmo-thumb';
+    strip.appendChild(t);
+  });
+  board.classList.add('collapsed');
+}
+function atmoExpand(){
+  const board = document.getElementById('atmoBoard');
+  board.classList.remove('collapsed');
+}
+
+/* ============ FORM ============ */
+// Layout pills (and others not in editable rows) — simple toggle
+function togPill(el){ el.classList.toggle('on'); }
+
+// Single-select entity picker — surfaces tax-exempt block when nonprofit or government
+function pickEntity(el){
+  document.querySelectorAll('#entityPills .pill-opt').forEach(p => p.classList.remove('on'));
+  el.classList.add('on');
+  const entity = el.dataset.entity;
+  const tx = document.getElementById('taxex');
+  if(entity === 'nonprofit' || entity === 'government'){
+    tx.classList.add('on');
+    // Auto-tick the tax-exempt checkbox for government entities; user can untick if needed
+    if(entity === 'government'){
+      tx.querySelector('.taxex-c').classList.add('on');
+    }
+  } else {
+    tx.classList.remove('on');
+    tx.querySelector('.taxex-c').classList.remove('on');
+  }
+}
+function togTaxEx(row){
+  const c = row.querySelector('.taxex-c');
+  c.classList.toggle('on');
+}
+
+// Editable pill rows (inclusions / restrictions / custom)
+function togPillBody(pill, e){
+  // Don't toggle if click was on the × glyph
+  if(e && e.target && e.target.classList.contains('px')) return;
+  pill.classList.toggle('on');
+}
+function pillX(e, x){
+  e.stopPropagation();
+  const pill = x.parentElement;
+  // Soft confirm only for custom pills with state, otherwise just remove
+  pill.style.transition = 'opacity .2s, transform .2s';
+  pill.style.opacity = '0';
+  pill.style.transform = 'scale(.8)';
+  setTimeout(() => pill.remove(), 200);
+}
+function pillAdd(addBtn){
+  const row = addBtn.parentElement;
+  const kind = row.dataset.kind;
+  // If a draft form already open, focus its input
+  const existing = row.querySelector('.pill-draft');
+  if(existing){ existing.querySelector('input[name="pname"]').focus(); return; }
+  // Build the inline draft form
+  const draft = document.createElement('span');
+  draft.className = 'pill-draft';
+  if(kind === 'inclusions'){
+    draft.innerHTML = `
+      <input type="text" name="pname" placeholder="Item name" autofocus>
+      <span class="draft-sep">$</span>
+      <input type="number" name="pprice" placeholder="0" min="0">
+      <button type="button" class="draft-ok" onclick="pillSave(this,'inclusions')">Add</button>
+      <button type="button" class="draft-x" onclick="this.parentElement.remove()" title="Cancel">&times;</button>
+    `;
+  } else {
+    draft.innerHTML = `
+      <input type="text" name="pname" placeholder="e.g. No glitter, no sparklers" autofocus>
+      <button type="button" class="draft-ok" onclick="pillSave(this,'restrictions')">Add</button>
+      <button type="button" class="draft-x" onclick="this.parentElement.remove()" title="Cancel">&times;</button>
+    `;
+  }
+  row.insertBefore(draft, addBtn);
+  setTimeout(() => {
+    const f = draft.querySelector('input[name="pname"]');
+    if(f) f.focus();
+  }, 30);
+  // Submit on Enter
+  draft.querySelector('input[name="pname"]').addEventListener('keydown', (e) => {
+    if(e.key === 'Enter'){ e.preventDefault(); pillSave(draft.querySelector('.draft-ok'), kind); }
+    if(e.key === 'Escape'){ draft.remove(); }
+  });
+}
+function pillSave(btn, kind){
+  const draft = btn.parentElement;
+  const row = draft.parentElement;
+  const name = draft.querySelector('input[name="pname"]').value.trim();
+  if(!name){ draft.querySelector('input[name="pname"]').focus(); return; }
+  const pill = document.createElement('span');
+  pill.className = 'pill-opt on custom';
+  pill.dataset.name = name;
+  pill.dataset.kind = kind;
+  if(kind === 'inclusions'){
+    const priceVal = draft.querySelector('input[name="pprice"]').value;
+    if(priceVal){
+      pill.dataset.price = priceVal;
+      pill.innerHTML = `${name}<span class="pill-price">$${parseInt(priceVal,10).toLocaleString()}</span><span class="px" onclick="pillX(event,this)">&times;</span>`;
+      pill.title = 'Custom inclusion — price will tie into future booking quotes';
+    } else {
+      pill.innerHTML = `${name}<span class="px" onclick="pillX(event,this)">&times;</span>`;
+    }
+  } else {
+    pill.innerHTML = `${name}<span class="px" onclick="pillX(event,this)">&times;</span>`;
+  }
+  row.insertBefore(pill, draft);
+  draft.remove();
+}
+
+// Bind body clicks on editable pills (delegate so dynamic pills work)
+document.addEventListener('click', (e) => {
+  const pill = e.target.closest('.pillrow .pill-opt');
+  if(pill && !e.target.classList.contains('px')) togPillBody(pill, e);
+});
+function togFlow(card){ card.classList.toggle('on'); }
+
+/* ============ SPACE CARDS ============ */
+function addSpace(){
+  spaceCount++;
+  const list = document.getElementById('spacesList');
+  const i = spaceCount - 1;
+  // Smarter placeholders by venue type
+  const phMap = {
+    hotel: ['Junior ballroom', 'Boardroom', 'Patio', 'Library lounge', 'Pre-function foyer'],
+    club: ['Garden terrace', 'Library', 'Pro shop deck', 'Patio'],
+    museum: ['Sculpture garden', 'Atrium', 'Rotunda', 'Lecture hall', 'Alumni hall', 'Quad lawn'],
+    mixed: ['Outdoor terrace', 'Studio', 'Loft', 'Mezzanine'],
+    outdoor: ['Garden terrace', 'Pavilion', 'Pergola', 'Riverside lawn'],
+    banquet: ['Garden terrace', 'Foyer', 'VIP suite'],
+    restaurant: ['Patio', 'Wine cellar', "Chef\u2019s table"],
+    brewery: ['Tasting room', 'Patio', 'Barrel room'],
+    industrial: ['Mezzanine', 'Loading dock terrace', 'Cold storage gallery'],
+    loft: ['Rooftop', 'Mezzanine', 'Studio annex']
+  };
+  const list_ph = phMap[venuType] || ['Garden terrace', 'Library', 'Patio'];
+  const ph = list_ph[(spaceCount - 2) % list_ph.length];
+  const card = document.createElement('div');
+  card.className = 'space-card';
+  card.dataset.sp = i;
+  card.innerHTML = `
+    <div class="sc-head">
+      <div>
+        <div class="sc-name">Space ${spaceCount}</div>
+        <div class="sc-num">Optional &middot; you can add more after launch</div>
+      </div>
+      <button class="sc-rm" onclick="rmSpace(this)">Remove</button>
+    </div>
+    <div class="field">
+      <label class="field-l">Space name</label>
+      <input type="text" class="inp" placeholder="${ph}">
+    </div>
+    <div class="row3">
+      <div class="field"><label class="field-l">Seated</label><input type="number" class="inp" placeholder="120"></div>
+      <div class="field"><label class="field-l">Standing</label><input type="number" class="inp" placeholder="180"></div>
+      <div class="field"><label class="field-l">Cocktail</label><input type="number" class="inp" placeholder="150"></div>
+    </div>
+    <div class="rate-w">
+      <div class="rate-h">
+        <span class="rate-l">Starting rental rate</span>
+        <span class="rate-v" id="rateV-${i}">$3,200</span>
+      </div>
+      <input type="range" class="rateR" data-i="${i}" min="0" max="100" value="40" oninput="rateChange(this)">
+      <div class="rate-ticks">
+        <span class="rate-tick">$500</span><span class="rate-tick">$2.5K</span><span class="rate-tick">$8K</span><span class="rate-tick">$25K+</span>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-l">Layouts</label>
+      <div class="sel-pills">
+        <span class="pill-opt" onclick="togPill(this)">Theater</span>
+        <span class="pill-opt on" onclick="togPill(this)">Banquet</span>
+        <span class="pill-opt" onclick="togPill(this)">Cabaret</span>
+        <span class="pill-opt on" onclick="togPill(this)">Reception</span>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-l">Inclusions</label>
+      <div class="pillrow" data-kind="inclusions">
+        <span class="pill-opt on" data-name="Tables">Tables<span class="px" onclick="pillX(event,this)">&times;</span></span>
+        <span class="pill-opt on" data-name="Chairs">Chairs<span class="px" onclick="pillX(event,this)">&times;</span></span>
+        <span class="pill-opt" data-name="Linens">Linens<span class="px" onclick="pillX(event,this)">&times;</span></span>
+        <span class="pill-opt" data-name="AV">AV<span class="px" onclick="pillX(event,this)">&times;</span></span>
+        <span class="pill-add" onclick="pillAdd(this)">+ Add your own</span>
+      </div>
+    </div>
+    <div class="field">
+      <label class="field-l">Restrictions</label>
+      <div class="pillrow" data-kind="restrictions">
+        <span class="pill-opt" data-name="10pm noise curfew">10pm noise curfew<span class="px" onclick="pillX(event,this)">&times;</span></span>
+        <span class="pill-opt" data-name="No open flame">No open flame<span class="px" onclick="pillX(event,this)">&times;</span></span>
+        <span class="pill-add" onclick="pillAdd(this)">+ Add your own</span>
+      </div>
+    </div>
+  `;
+  list.appendChild(card);
+  // initialize the new slider
+  const newR = card.querySelector('.rateR');
+  rateChange(newR);
+  card.scrollIntoView({behavior:'smooth',block:'center'});
+}
+function rmSpace(btn){
+  const card = btn.closest('.space-card');
+  card.remove();
+}
+
+/* ============ LOG-SCALE RATE SLIDER (per-space) ============ */
+function logScaleRate(v){
+  // 0..100 maps to $500..$25,000+ on a log scale
+  const min = 500, max = 25000;
+  const lmin = Math.log(min), lmax = Math.log(max);
+  const val = Math.round(Math.exp(lmin + (lmax - lmin) * (v/100)) / 100) * 100;
+  return val;
+}
+function fmt(n){
+  if(n >= 1000) return '$' + (n/1000).toFixed(n >= 10000 ? 0 : 1) + 'K';
+  return '$' + n.toLocaleString();
+}
+function fmtFull(n){ return '$' + Math.round(n).toLocaleString(); }
+function rateChange(slider){
+  const i = slider.dataset.i;
+  const v = parseFloat(slider.value);
+  slider.style.backgroundSize = v + '% 100%';
+  const val = logScaleRate(v);
+  const out = document.getElementById('rateV-' + i);
+  if(out) out.textContent = fmtFull(val);
+}
+
+/* ============ FLOOR PLAN UPLOAD ============ */
+function fpUp(cell){
+  cell.classList.toggle('has');
+  const hint = cell.querySelector('.fp-cell-h');
+  if(hint){
+    hint.textContent = cell.classList.contains('has') ? 'Uploaded' : 'PDF or image';
+  }
+}
+
+/* ============ ENTER DASHBOARD (Stage 5 CTA) ============ */
+function enterDashboard(){
+  // Fade the "Listing live" pip
+  const live = document.getElementById('heroLive');
+  if(live) live.classList.add('gone');
+  // Fade the step indicator at top of welcome
+  const welH = document.querySelector('.wel-h');
+  if(welH){
+    welH.style.transition = 'opacity .6s ease, max-height .6s ease, margin .6s ease, padding .6s ease';
+    welH.style.opacity = '0';
+    welH.style.maxHeight = '0';
+    welH.style.margin = '0';
+    welH.style.padding = '0';
+    welH.style.overflow = 'hidden';
+  }
+  // Hide the CTA itself
+  const cta = document.querySelector('.stage[data-stage="5"] .cta-wrap');
+  if(cta){
+    cta.style.transition = 'opacity .4s ease';
+    cta.style.opacity = '0';
+    setTimeout(() => cta.style.display = 'none', 400);
+  }
+  // Update topbar to read like a permanent dashboard
+  document.getElementById('tb-step').innerHTML = '<span class="tb-step" style="color:var(--txt2)">Hotel Drover &middot; <span style="color:var(--bt)">Dashboard</span></span>';
+  // Smooth scroll to top
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+/* ============ INIT ============ */
+// init the per-space rental sliders
+document.querySelectorAll('.rateR').forEach(s => rateChange(s));
+updateChrome();
+</script>
+
+</body>
+</html>

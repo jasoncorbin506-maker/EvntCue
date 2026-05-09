@@ -1,0 +1,473 @@
+
+<h2 class="sr-only">EvntCue transaction flow calculator — three scenarios with $25,000 budget and 8 vendors: Orgnz books directly, Plnr books everything, and a combination split. Shows every dollar at every layer.</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0a0f1a;--bg2:#0f1621;--bg3:#141c2a;
+  --bdr:rgba(255,255,255,0.08);--bdr2:rgba(255,255,255,0.14);
+  --txt:rgba(255,255,255,0.82);--txt2:rgba(255,255,255,0.46);--txt3:rgba(255,255,255,0.24);
+  --rose:#D4778A;--rl:rgba(212,119,138,0.13);--rb:rgba(212,119,138,0.3);--rt:#E8A0B0;
+  --teal:#14b8a6;--tl:rgba(20,184,166,0.11);--tb:rgba(20,184,166,0.28);--tt:#5eead4;
+  --amb:#f59e0b;--al:rgba(245,158,11,0.11);--ab:rgba(245,158,11,0.28);--at:#fde68a;
+  --viol:rgba(139,92,246,0.14);--vt:#a78bfa;
+  --fn:system-ui,-apple-system,sans-serif;--mono:monospace;
+}
+.wrap{background:var(--bg2);border-radius:13px;overflow:hidden;font-family:var(--fn);color:var(--txt)}
+.topbar{background:#0b1220;padding:11px 14px;border-bottom:1px solid var(--bdr)}
+.tb-title{font-size:13px;font-weight:500;color:#fff}
+.tb-sub{font-size:9px;color:var(--txt3);margin-top:2px;font-family:var(--mono)}
+.scenario-tabs{display:flex;background:var(--bg);border-bottom:1px solid var(--bdr)}
+.stab{flex:1;padding:10px 8px;font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--txt3);cursor:pointer;border-bottom:2px solid transparent;text-align:center;transition:all .15s;line-height:1.3}
+.stab:hover{color:var(--txt)}.stab.active{color:#fff;border-bottom-color:var(--rose)}
+.spanel{display:none;padding:14px}.spanel.active{display:block}
+
+.budget-bar{background:var(--rl);border:1px solid var(--rb);border-radius:9px;padding:10px 14px;margin-bottom:14px;display:flex;align-items:center;justify-content:space-between}
+.bb-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--rt);margin-bottom:2px;font-family:var(--mono)}
+.bb-amount{font-size:22px;font-weight:500;color:#fff;font-family:var(--mono)}
+.bb-sub{font-size:9px;color:var(--rt);margin-top:1px}
+.bb-chips{display:flex;gap:6px;flex-wrap:wrap}
+.bb-chip{font-size:9px;padding:3px 9px;border-radius:100px;font-weight:600}
+.c-stripe{background:rgba(99,91,255,0.15);border:1px solid rgba(99,91,255,0.3);color:#a5b4fc}
+.c-evnt{background:var(--rl);border:1px solid var(--rb);color:var(--rt)}
+.c-plnr{background:var(--tl);border:1px solid var(--tb);color:var(--tt)}
+.c-vndr{background:var(--al);border:1px solid var(--ab);color:var(--at)}
+
+.vendor-table{margin-bottom:14px}
+.vt-head{display:grid;gap:5px;padding:6px 10px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--txt3);font-family:var(--mono);border-bottom:1px solid var(--bdr)}
+.vt-row{display:grid;gap:5px;padding:7px 10px;border-bottom:1px solid var(--bdr);font-size:11px;align-items:center;transition:background .13s;cursor:pointer}
+.vt-row:hover{background:rgba(255,255,255,0.03)}.vt-row:last-child{border-bottom:none}
+.vt-name{font-weight:500;color:var(--txt)}
+.vt-cat{font-size:9px;color:var(--txt3)}
+.vt-amount{font-family:var(--mono);font-weight:500;color:var(--txt);text-align:right}
+.vt-dial{font-size:9px;text-align:center}
+.vt-stripe{font-size:10px;font-family:var(--mono);color:rgba(165,180,252,0.8);text-align:right}
+.vt-evnt{font-size:10px;font-family:var(--mono);color:var(--rt);text-align:right}
+.vt-plnr{font-size:10px;font-family:var(--mono);color:var(--tt);text-align:right}
+.vt-vndr{font-size:10px;font-family:var(--mono);color:var(--at);text-align:right}
+.vt-tag{font-size:8px;padding:2px 6px;border-radius:100px;font-weight:700;white-space:nowrap}
+.tag-pre{background:var(--al);color:var(--at);border:1px solid var(--ab)}
+.tag-post{background:var(--tl);color:var(--tt);border:1px solid var(--tb)}
+.tag-direct{background:var(--rl);color:var(--rt);border:1px solid var(--rb)}
+
+.section-label{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--txt3);margin-bottom:8px;font-family:var(--mono)}
+
+.totals-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:14px}
+.total-card{border-radius:9px;padding:12px 14px;border:1px solid}
+.tc-label{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.07em;margin-bottom:4px;font-family:var(--mono)}
+.tc-amount{font-size:20px;font-weight:500;font-family:var(--mono);line-height:1}
+.tc-sub{font-size:9px;margin-top:4px;opacity:.7}
+.tc-stripe{background:rgba(99,91,255,0.1);border-color:rgba(99,91,255,0.25);color:#a5b4fc}
+.tc-evnt{background:var(--rl);border-color:var(--rb);color:var(--rt)}
+.tc-plnr{background:var(--tl);border-color:var(--tb);color:var(--tt)}
+.tc-vndr{background:var(--al);border-color:var(--ab);color:var(--at)}
+
+.flow-diagram{background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:9px;padding:12px 14px;margin-bottom:14px}
+.fd-row{display:flex;align-items:center;gap:8px;padding:5px 0;font-size:11px;border-bottom:1px solid var(--bdr)}
+.fd-row:last-child{border-bottom:none}
+.fd-from{flex:1;font-weight:500;color:var(--txt)}
+.fd-arrow{font-size:10px;color:var(--txt3)}
+.fd-to{flex:1;color:var(--txt2)}
+.fd-amount{font-family:var(--mono);font-weight:500;min-width:64px;text-align:right}
+.fd-note{font-size:9px;color:var(--txt3);min-width:80px;text-align:right}
+
+.plnr-fee-card{background:var(--tl);border:1px solid var(--tb);border-radius:9px;padding:11px 14px;margin-bottom:14px}
+.pfc-title{font-size:11px;font-weight:500;color:var(--tt);margin-bottom:8px}
+.pfc-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid rgba(20,184,166,0.1)}
+.pfc-row:last-child{border-bottom:none}
+.pfc-key{color:rgba(94,234,212,0.7)}.pfc-val{font-family:var(--mono);font-weight:500;color:var(--tt)}
+
+.insight{background:rgba(139,92,246,0.1);border:1px solid rgba(139,92,246,0.22);border-radius:8px;padding:10px 12px;margin-bottom:8px;font-size:11px;color:var(--vt);line-height:1.55}
+.insight b{font-weight:600;color:#c4b5fd}
+</style>
+
+<div class="wrap">
+<div class="topbar">
+  <div class="tb-title">Transaction flow — $25,000 event · 8 vendors</div>
+  <div class="tb-sub">EVERY DOLLAR TRACKED AT EVERY LAYER · THREE SCENARIOS</div>
+</div>
+
+<div class="scenario-tabs">
+  <div class="stab active" onclick="setScenario('orgnz')">Scenario A<br><span style="font-size:8px;font-weight:400;letter-spacing:0;text-transform:none">Orgnz books direct</span></div>
+  <div class="stab" onclick="setScenario('plnr')">Scenario B<br><span style="font-size:8px;font-weight:400;letter-spacing:0;text-transform:none">Plnr books all</span></div>
+  <div class="stab" onclick="setScenario('combo')">Scenario C<br><span style="font-size:8px;font-weight:400;letter-spacing:0;text-transform:none">Combo split</span></div>
+</div>
+
+<!-- SCENARIO A: ORGNZ DIRECT -->
+<div class="spanel active" id="sp-orgnz">
+  <div class="budget-bar">
+    <div>
+      <div class="bb-label">Total budget</div>
+      <div class="bb-amount">$25,000</div>
+      <div class="bb-sub">Orgnz books all 8 vendors directly — no Plnr assigned</div>
+    </div>
+    <div class="bb-chips">
+      <div class="bb-chip c-stripe">Stripe: $746</div>
+      <div class="bb-chip c-evnt">EvntCue: $625</div>
+      <div class="bb-chip c-vndr">Vendors net: $23,629</div>
+    </div>
+  </div>
+
+  <div class="section-label">Vendor breakdown — Orgnz pays, no Plnr commission flows</div>
+  <div class="vendor-table">
+    <div style="background:rgba(255,255,255,0.02);border:1px solid var(--bdr);border-radius:9px;overflow:hidden">
+      <div class="vt-head" style="grid-template-columns:1fr 80px 70px 70px 70px 70px 50px">
+        <span>Vendor</span><span style="text-align:right">Charge</span><span style="text-align:right">Stripe</span><span style="text-align:right">EvntCue</span><span style="text-align:right">Dial %</span><span style="text-align:right">Vndr nets</span><span>Type</span>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 80px 70px 70px 70px 70px 50px">
+        <div><div class="vt-name">The Pearl Venue</div><div class="vt-cat">Venue</div></div>
+        <div class="vt-amount">$6,000</div>
+        <div class="vt-stripe">$174</div>
+        <div class="vt-evnt">$150</div>
+        <div class="vt-dial" style="color:var(--txt3)">—</div>
+        <div class="vt-vndr">$5,676</div>
+        <div><span class="vt-tag tag-direct">Direct</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 80px 70px 70px 70px 70px 50px">
+        <div><div class="vt-name">Savor DFW</div><div class="vt-cat">Catr</div></div>
+        <div class="vt-amount">$5,500</div>
+        <div class="vt-stripe">$160</div>
+        <div class="vt-evnt">$138</div>
+        <div class="vt-dial" style="color:var(--txt3)">—</div>
+        <div class="vt-vndr">$5,202</div>
+        <div><span class="vt-tag tag-direct">Direct</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 80px 70px 70px 70px 70px 50px">
+        <div><div class="vt-name">Marcus Lee Photo</div><div class="vt-cat">Photography</div></div>
+        <div class="vt-amount">$3,500</div>
+        <div class="vt-stripe">$102</div>
+        <div class="vt-evnt">$88</div>
+        <div class="vt-dial" style="color:var(--txt3)">—</div>
+        <div class="vt-vndr">$3,310</div>
+        <div><span class="vt-tag tag-direct">Direct</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 80px 70px 70px 70px 70px 50px">
+        <div><div class="vt-name">DJ Neon</div><div class="vt-cat">Entertainment</div></div>
+        <div class="vt-amount">$2,800</div>
+        <div class="vt-stripe">$81</div>
+        <div class="vt-evnt">$70</div>
+        <div class="vt-dial" style="color:var(--txt3)">—</div>
+        <div class="vt-vndr">$2,649</div>
+        <div><span class="vt-tag tag-direct">Direct</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 80px 70px 70px 70px 70px 50px">
+        <div><div class="vt-name">Luxe Florals</div><div class="vt-cat">Florist</div></div>
+        <div class="vt-amount">$2,500</div>
+        <div class="vt-stripe">$73</div>
+        <div class="vt-evnt">$63</div>
+        <div class="vt-dial" style="color:var(--txt3)">—</div>
+        <div class="vt-vndr">$2,364</div>
+        <div><span class="vt-tag tag-direct">Direct</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 80px 70px 70px 70px 70px 50px">
+        <div><div class="vt-name">Video by Marco</div><div class="vt-cat">Videography</div></div>
+        <div class="vt-amount">$2,000</div>
+        <div class="vt-stripe">$58</div>
+        <div class="vt-evnt">$50</div>
+        <div class="vt-dial" style="color:var(--txt3)">—</div>
+        <div class="vt-vndr">$1,892</div>
+        <div><span class="vt-tag tag-direct">Direct</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 80px 70px 70px 70px 70px 50px">
+        <div><div class="vt-name">Sweet Layers Bakery</div><div class="vt-cat">Cake</div></div>
+        <div class="vt-amount">$1,500</div>
+        <div class="vt-stripe">$44</div>
+        <div class="vt-evnt">$38</div>
+        <div class="vt-dial" style="color:var(--txt3)">—</div>
+        <div class="vt-vndr">$1,418</div>
+        <div><span class="vt-tag tag-direct">Direct</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 80px 70px 70px 70px 70px 50px">
+        <div><div class="vt-name">Dallas String Quartet</div><div class="vt-cat">Music</div></div>
+        <div class="vt-amount">$1,200</div>
+        <div class="vt-stripe">$35</div>
+        <div class="vt-evnt">$30</div>
+        <div class="vt-dial" style="color:var(--txt3)">—</div>
+        <div class="vt-vndr">$1,135</div>
+        <div><span class="vt-tag tag-direct">Direct</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 80px 70px 70px 70px 70px 50px;background:rgba(255,255,255,0.04);font-weight:600">
+        <div style="font-size:11px;color:var(--txt);font-weight:600">Totals</div>
+        <div class="vt-amount" style="color:#fff">$25,000</div>
+        <div class="vt-stripe" style="font-size:11px;font-weight:600">$727</div>
+        <div class="vt-evnt" style="font-size:11px;font-weight:600">$625</div>
+        <div></div>
+        <div class="vt-vndr" style="font-size:11px;font-weight:600">$23,648</div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Money flow — Scenario A</div>
+  <div class="flow-diagram">
+    <div class="fd-row"><div class="fd-from">Orgnz pays</div><div class="fd-arrow">→</div><div class="fd-to">Stripe holds</div><div class="fd-amount" style="color:#fff">$25,000</div><div class="fd-note">Full event budget</div></div>
+    <div class="fd-row"><div class="fd-from">Stripe takes</div><div class="fd-arrow">→</div><div class="fd-to">Stripe keeps</div><div class="fd-amount" style="color:#a5b4fc">$727</div><div class="fd-note">2.9% + $0.30 ×8</div></div>
+    <div class="fd-row"><div class="fd-from">EvntCue takes</div><div class="fd-arrow">→</div><div class="fd-to">EvntCue keeps</div><div class="fd-amount" style="color:var(--rt)">$625</div><div class="fd-note">2.5% of $25,000</div></div>
+    <div class="fd-row"><div class="fd-from">Vendors receive</div><div class="fd-arrow">→</div><div class="fd-to">After 48hr escrow</div><div class="fd-amount" style="color:var(--at)">$23,648</div><div class="fd-note">Net after all fees</div></div>
+    <div class="fd-row"><div class="fd-from">Plnr commission</div><div class="fd-arrow">→</div><div class="fd-to">Nobody</div><div class="fd-amount" style="color:var(--txt3)">$0</div><div class="fd-note">No Plnr assigned</div></div>
+    <div class="fd-row"><div class="fd-from">Plnr service fee</div><div class="fd-arrow">→</div><div class="fd-to">Nobody</div><div class="fd-amount" style="color:var(--txt3)">$0</div><div class="fd-note">No Plnr assigned</div></div>
+  </div>
+
+  <div class="insight"><b>Scenario A insight:</b> The Orgnz keeps full control and pays nobody beyond the platform. EvntCue earns $625 on $25,000 — clean, simple, lowest-cost path for the client. No commission flows generated. This is the free-tier Orgnz experience. The vendor dial is irrelevant because there is no Plnr to receive referral income.</div>
+</div>
+
+<!-- SCENARIO B: PLNR BOOKS ALL -->
+<div class="spanel" id="sp-plnr">
+  <div class="budget-bar">
+    <div>
+      <div class="bb-label">Total budget</div>
+      <div class="bb-amount">$25,000</div>
+      <div class="bb-sub">Plnr hired first · books all 8 vendors · all post-hire · vendors set dial</div>
+    </div>
+    <div class="bb-chips">
+      <div class="bb-chip c-stripe">Stripe: $1,028</div>
+      <div class="bb-chip c-evnt">EvntCue: $1,281</div>
+      <div class="bb-chip c-plnr">Plnr earns: $4,950</div>
+      <div class="bb-chip c-vndr">Vendors net: $17,741</div>
+    </div>
+  </div>
+
+  <div class="plnr-fee-card">
+    <div class="pfc-title">Plnr service fee — charged to Orgnz (separate from vendor bookings)</div>
+    <div class="pfc-row"><span class="pfc-key">Planning fee (flat)</span><span class="pfc-val">$3,000</span></div>
+    <div class="pfc-row"><span class="pfc-key">Stripe fee on service charge</span><span class="pfc-val">- $87</span></div>
+    <div class="pfc-row"><span class="pfc-key">EvntCue 2.5% on service fee</span><span class="pfc-val">- $75</span></div>
+    <div class="pfc-row"><span class="pfc-key">Plnr nets from service fee</span><span class="pfc-val">$2,838</span></div>
+    <div style="height:6px"></div>
+    <div style="font-size:9px;color:rgba(94,234,212,0.5)">Total Orgnz pays: $25,000 vendors + $3,000 service fee = $28,000</div>
+  </div>
+
+  <div class="section-label">Vendor breakdown — all post-hire · Plnr keeps 100% of dial commission</div>
+  <div class="vendor-table">
+    <div style="background:rgba(255,255,255,0.02);border:1px solid var(--bdr);border-radius:9px;overflow:hidden">
+      <div class="vt-head" style="grid-template-columns:1fr 70px 60px 60px 50px 65px 65px 50px">
+        <span>Vendor</span><span style="text-align:right">Charge</span><span style="text-align:right">Stripe</span><span style="text-align:right">Evnt 2.5%</span><span style="text-align:center">Dial</span><span style="text-align:right">Plnr comm</span><span style="text-align:right">Vndr nets</span><span>Status</span>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 60px 60px 50px 65px 65px 50px">
+        <div><div class="vt-name">The Pearl Venue</div><div class="vt-cat">Venue · 10% sourcing</div></div>
+        <div class="vt-amount">$6,000</div><div class="vt-stripe">$174</div><div class="vt-evnt">$150</div>
+        <div class="vt-dial"><span style="color:var(--tt)">10%</span></div>
+        <div class="vt-plnr">$600</div><div class="vt-vndr">$5,076</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 60px 60px 50px 65px 65px 50px">
+        <div><div class="vt-name">Savor DFW</div><div class="vt-cat">Catr · 12% dial</div></div>
+        <div class="vt-amount">$5,500</div><div class="vt-stripe">$160</div><div class="vt-evnt">$138</div>
+        <div class="vt-dial"><span style="color:var(--tt)">12%</span></div>
+        <div class="vt-plnr">$660</div><div class="vt-vndr">$4,542</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 60px 60px 50px 65px 65px 50px">
+        <div><div class="vt-name">Marcus Lee Photo</div><div class="vt-cat">Photography · 15% dial</div></div>
+        <div class="vt-amount">$3,500</div><div class="vt-stripe">$102</div><div class="vt-evnt">$88</div>
+        <div class="vt-dial"><span style="color:var(--tt)">15%</span></div>
+        <div class="vt-plnr">$525</div><div class="vt-vndr">$2,785</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 60px 60px 50px 65px 65px 50px">
+        <div><div class="vt-name">DJ Neon</div><div class="vt-cat">Entertainment · 15% dial</div></div>
+        <div class="vt-amount">$2,800</div><div class="vt-stripe">$81</div><div class="vt-evnt">$70</div>
+        <div class="vt-dial"><span style="color:var(--tt)">15%</span></div>
+        <div class="vt-plnr">$420</div><div class="vt-vndr">$2,229</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 60px 60px 50px 65px 65px 50px">
+        <div><div class="vt-name">Luxe Florals</div><div class="vt-cat">Florist · 12% dial</div></div>
+        <div class="vt-amount">$2,500</div><div class="vt-stripe">$73</div><div class="vt-evnt">$63</div>
+        <div class="vt-dial"><span style="color:var(--tt)">12%</span></div>
+        <div class="vt-plnr">$300</div><div class="vt-vndr">$2,064</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 60px 60px 50px 65px 65px 50px">
+        <div><div class="vt-name">Video by Marco</div><div class="vt-cat">Videography · 10% dial</div></div>
+        <div class="vt-amount">$2,000</div><div class="vt-stripe">$58</div><div class="vt-evnt">$50</div>
+        <div class="vt-dial"><span style="color:var(--tt)">10%</span></div>
+        <div class="vt-plnr">$200</div><div class="vt-vndr">$1,692</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 60px 60px 50px 65px 65px 50px">
+        <div><div class="vt-name">Sweet Layers Bakery</div><div class="vt-cat">Cake · 8% dial</div></div>
+        <div class="vt-amount">$1,500</div><div class="vt-stripe">$44</div><div class="vt-evnt">$38</div>
+        <div class="vt-dial"><span style="color:var(--tt)">8%</span></div>
+        <div class="vt-plnr">$120</div><div class="vt-vndr">$1,298</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 60px 60px 50px 65px 65px 50px">
+        <div><div class="vt-name">Dallas String Quartet</div><div class="vt-cat">Music · 10% dial</div></div>
+        <div class="vt-amount">$1,200</div><div class="vt-stripe">$35</div><div class="vt-evnt">$30</div>
+        <div class="vt-dial"><span style="color:var(--tt)">10%</span></div>
+        <div class="vt-plnr">$120</div><div class="vt-vndr">$1,015</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 60px 60px 50px 65px 65px 50px;background:rgba(255,255,255,0.04);font-weight:600">
+        <div style="font-size:11px;color:var(--txt);font-weight:600">Vendor totals</div>
+        <div class="vt-amount" style="color:#fff">$25,000</div>
+        <div class="vt-stripe" style="font-size:11px">$727</div>
+        <div class="vt-evnt" style="font-size:11px">$625</div>
+        <div></div>
+        <div class="vt-plnr" style="font-size:11px;font-weight:600">$2,945</div>
+        <div class="vt-vndr" style="font-size:11px;font-weight:600">$20,703</div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Full money flow — Scenario B (Orgnz pays $28,000 total)</div>
+  <div class="flow-diagram">
+    <div class="fd-row"><div class="fd-from">Orgnz pays vendors</div><div class="fd-arrow">→</div><div class="fd-to">Stripe escrow</div><div class="fd-amount" style="color:#fff">$25,000</div><div class="fd-note">Vendor bookings</div></div>
+    <div class="fd-row"><div class="fd-from">Orgnz pays Plnr fee</div><div class="fd-arrow">→</div><div class="fd-to">Stripe escrow</div><div class="fd-amount" style="color:#fff">$3,000</div><div class="fd-note">Service fee</div></div>
+    <div class="fd-row"><div class="fd-from">Stripe takes (total)</div><div class="fd-arrow">→</div><div class="fd-to">Stripe keeps</div><div class="fd-amount" style="color:#a5b4fc">$941</div><div class="fd-note">2.9%+$0.30 ×9 charges</div></div>
+    <div class="fd-row"><div class="fd-from">EvntCue takes (total)</div><div class="fd-arrow">→</div><div class="fd-to">EvntCue keeps</div><div class="fd-amount" style="color:var(--rt)">$700</div><div class="fd-note">2.5% on $28,000</div></div>
+    <div class="fd-row"><div class="fd-from">Plnr comm (post-hire)</div><div class="fd-arrow">→</div><div class="fd-to">Plnr keeps 100%</div><div class="fd-amount" style="color:var(--tt)">$2,945</div><div class="fd-note">All 8 vendors</div></div>
+    <div class="fd-row"><div class="fd-from">Plnr service fee net</div><div class="fd-arrow">→</div><div class="fd-to">Plnr keeps</div><div class="fd-amount" style="color:var(--tt)">$2,838</div><div class="fd-note">After Stripe + 2.5%</div></div>
+    <div class="fd-row" style="border-top:1px solid var(--tb)"><div class="fd-from" style="color:var(--tt);font-weight:600">Plnr total earned</div><div class="fd-arrow">→</div><div class="fd-to" style="color:var(--tt)">Plnr account</div><div class="fd-amount" style="color:var(--tt);font-size:14px;font-weight:600">$5,783</div><div class="fd-note" style="color:var(--tt)">Comm + service fee</div></div>
+    <div class="fd-row"><div class="fd-from">Vendors receive (net)</div><div class="fd-arrow">→</div><div class="fd-to">48hr post-event</div><div class="fd-amount" style="color:var(--at)">$20,703</div><div class="fd-note">After dial + fees</div></div>
+  </div>
+
+  <div class="insight"><b>Scenario B insight:</b> The Plnr earns $5,783 on a $25K event — $2,945 in referral commissions (hidden from Orgnz) plus $2,838 net service fee (visible to Orgnz). EvntCue earns $700 total. This is the platform at full power. Every vendor voluntarily set their dial knowing exactly what they give up. The Plnr's referral income is funded entirely by the vendor side — the Orgnz's $25,000 goes exactly as far as it always did.</div>
+</div>
+
+<!-- SCENARIO C: COMBO SPLIT -->
+<div class="spanel" id="sp-combo">
+  <div class="budget-bar">
+    <div>
+      <div class="bb-label">Total budget</div>
+      <div class="bb-amount">$25,000</div>
+      <div class="bb-sub">Orgnz books 3 vendors before hiring Plnr · Plnr books remaining 5</div>
+    </div>
+    <div class="bb-chips">
+      <div class="bb-chip c-stripe">Stripe: $814</div>
+      <div class="bb-chip c-evnt">EvntCue: $944</div>
+      <div class="bb-chip c-plnr">Plnr earns: $3,489</div>
+      <div class="bb-chip c-vndr">Vendors net: $19,753</div>
+    </div>
+  </div>
+
+  <div class="plnr-fee-card">
+    <div class="pfc-title">Plnr service fee + hire timeline</div>
+    <div class="pfc-row"><span class="pfc-key">Plnr hired after venue, catr, photo already booked</span><span class="pfc-val">Hire timestamp locked</span></div>
+    <div class="pfc-row"><span class="pfc-key">Planning fee (flat)</span><span class="pfc-val">$2,500</span></div>
+    <div class="pfc-row"><span class="pfc-key">Stripe on service fee</span><span class="pfc-val">- $73</span></div>
+    <div class="pfc-row"><span class="pfc-key">EvntCue 2.5% on service fee</span><span class="pfc-val">- $63</span></div>
+    <div class="pfc-row"><span class="pfc-key">Plnr nets from service fee</span><span class="pfc-val">$2,364</span></div>
+  </div>
+
+  <div class="section-label">Vendor breakdown — pre-hire splits 50/50 · post-hire Plnr keeps 100%</div>
+  <div class="vendor-table">
+    <div style="background:rgba(255,255,255,0.02);border:1px solid var(--bdr);border-radius:9px;overflow:hidden">
+      <div class="vt-head" style="grid-template-columns:1fr 70px 55px 55px 45px 60px 60px 60px 45px">
+        <span>Vendor</span><span style="text-align:right">Charge</span><span style="text-align:right">Stripe</span><span style="text-align:right">Evnt</span><span style="text-align:center">Dial</span><span style="text-align:right">→Evnt</span><span style="text-align:right">→Plnr</span><span style="text-align:right">Vndr</span><span>Status</span>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 55px 55px 45px 60px 60px 60px 45px;opacity:.7">
+        <div><div class="vt-name">The Pearl Venue</div><div class="vt-cat">Pre-hire · 10% dial splits</div></div>
+        <div class="vt-amount">$6,000</div><div class="vt-stripe">$174</div><div class="vt-evnt">$150</div>
+        <div class="vt-dial"><span style="color:var(--at)">10%</span></div>
+        <div class="vt-evnt">$300</div>
+        <div class="vt-plnr">$300</div>
+        <div class="vt-vndr">$5,076</div>
+        <div><span class="vt-tag tag-pre">Pre</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 55px 55px 45px 60px 60px 60px 45px;opacity:.7">
+        <div><div class="vt-name">Savor DFW</div><div class="vt-cat">Pre-hire · 12% dial splits</div></div>
+        <div class="vt-amount">$5,500</div><div class="vt-stripe">$160</div><div class="vt-evnt">$138</div>
+        <div class="vt-dial"><span style="color:var(--at)">12%</span></div>
+        <div class="vt-evnt">$330</div>
+        <div class="vt-plnr">$330</div>
+        <div class="vt-vndr">$4,542</div>
+        <div><span class="vt-tag tag-pre">Pre</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 55px 55px 45px 60px 60px 60px 45px;opacity:.7">
+        <div><div class="vt-name">Marcus Lee Photo</div><div class="vt-cat">Pre-hire · 15% dial splits</div></div>
+        <div class="vt-amount">$3,500</div><div class="vt-stripe">$102</div><div class="vt-evnt">$88</div>
+        <div class="vt-dial"><span style="color:var(--at)">15%</span></div>
+        <div class="vt-evnt">$263</div>
+        <div class="vt-plnr">$263</div>
+        <div class="vt-vndr">$2,785</div>
+        <div><span class="vt-tag tag-pre">Pre</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 55px 55px 45px 60px 60px 60px 45px">
+        <div><div class="vt-name">DJ Neon</div><div class="vt-cat">Post-hire · Plnr keeps 100%</div></div>
+        <div class="vt-amount">$2,800</div><div class="vt-stripe">$81</div><div class="vt-evnt">$70</div>
+        <div class="vt-dial"><span style="color:var(--tt)">15%</span></div>
+        <div class="vt-evnt" style="color:var(--txt3)">$0</div>
+        <div class="vt-plnr">$420</div>
+        <div class="vt-vndr">$2,229</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 55px 55px 45px 60px 60px 60px 45px">
+        <div><div class="vt-name">Luxe Florals</div><div class="vt-cat">Post-hire · Plnr keeps 100%</div></div>
+        <div class="vt-amount">$2,500</div><div class="vt-stripe">$73</div><div class="vt-evnt">$63</div>
+        <div class="vt-dial"><span style="color:var(--tt)">12%</span></div>
+        <div class="vt-evnt" style="color:var(--txt3)">$0</div>
+        <div class="vt-plnr">$300</div>
+        <div class="vt-vndr">$2,064</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 55px 55px 45px 60px 60px 60px 45px">
+        <div><div class="vt-name">Video by Marco</div><div class="vt-cat">Post-hire · Plnr keeps 100%</div></div>
+        <div class="vt-amount">$2,000</div><div class="vt-stripe">$58</div><div class="vt-evnt">$50</div>
+        <div class="vt-dial"><span style="color:var(--tt)">10%</span></div>
+        <div class="vt-evnt" style="color:var(--txt3)">$0</div>
+        <div class="vt-plnr">$200</div>
+        <div class="vt-vndr">$1,692</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 55px 55px 45px 60px 60px 60px 45px">
+        <div><div class="vt-name">Sweet Layers Bakery</div><div class="vt-cat">Post-hire · Plnr keeps 100%</div></div>
+        <div class="vt-amount">$1,500</div><div class="vt-stripe">$44</div><div class="vt-evnt">$38</div>
+        <div class="vt-dial"><span style="color:var(--tt)">8%</span></div>
+        <div class="vt-evnt" style="color:var(--txt3)">$0</div>
+        <div class="vt-plnr">$120</div>
+        <div class="vt-vndr">$1,298</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 55px 55px 45px 60px 60px 60px 45px">
+        <div><div class="vt-name">Dallas String Quartet</div><div class="vt-cat">Post-hire · Plnr keeps 100%</div></div>
+        <div class="vt-amount">$1,200</div><div class="vt-stripe">$35</div><div class="vt-evnt">$30</div>
+        <div class="vt-dial"><span style="color:var(--tt)">10%</span></div>
+        <div class="vt-evnt" style="color:var(--txt3)">$0</div>
+        <div class="vt-plnr">$120</div>
+        <div class="vt-vndr">$1,015</div>
+        <div><span class="vt-tag tag-post">Post</span></div>
+      </div>
+      <div class="vt-row" style="grid-template-columns:1fr 70px 55px 55px 45px 60px 60px 60px 45px;background:rgba(255,255,255,0.04);font-weight:600">
+        <div style="font-size:11px;color:var(--txt)">Vendor totals</div>
+        <div class="vt-amount" style="color:#fff">$25,000</div>
+        <div class="vt-stripe" style="font-size:11px">$727</div>
+        <div class="vt-evnt" style="font-size:11px">$625</div>
+        <div></div>
+        <div class="vt-evnt" style="font-size:11px;font-weight:600">$893</div>
+        <div class="vt-plnr" style="font-size:11px;font-weight:600">$2,053</div>
+        <div class="vt-vndr" style="font-size:11px;font-weight:600">$20,701</div>
+        <div></div>
+      </div>
+    </div>
+  </div>
+
+  <div class="section-label">Full money flow — Scenario C (Orgnz pays $27,500 total)</div>
+  <div class="flow-diagram">
+    <div class="fd-row"><div class="fd-from">Orgnz pays vendors</div><div class="fd-arrow">→</div><div class="fd-to">Stripe escrow</div><div class="fd-amount" style="color:#fff">$25,000</div><div class="fd-note">All 8 vendors</div></div>
+    <div class="fd-row"><div class="fd-from">Orgnz pays Plnr fee</div><div class="fd-arrow">→</div><div class="fd-to">Stripe escrow</div><div class="fd-amount" style="color:#fff">$2,500</div><div class="fd-note">Service fee</div></div>
+    <div class="fd-row"><div class="fd-from">Stripe takes (total)</div><div class="fd-arrow">→</div><div class="fd-to">Stripe keeps</div><div class="fd-amount" style="color:#a5b4fc">$800</div><div class="fd-note">2.9%+$0.30 ×9</div></div>
+    <div class="fd-row"><div class="fd-from">EvntCue — platform fee</div><div class="fd-arrow">→</div><div class="fd-to">EvntCue keeps</div><div class="fd-amount" style="color:var(--rt)">$688</div><div class="fd-note">2.5% on $27,500</div></div>
+    <div class="fd-row"><div class="fd-from">EvntCue — pre-hire split</div><div class="fd-arrow">→</div><div class="fd-to">EvntCue keeps</div><div class="fd-amount" style="color:var(--rt)">$893</div><div class="fd-note">50% of pre-hire dial</div></div>
+    <div class="fd-row"><div class="fd-from">Plnr — pre-hire split</div><div class="fd-arrow">→</div><div class="fd-to">Plnr gets 50%</div><div class="fd-amount" style="color:var(--tt)">$893</div><div class="fd-note">Venue + Catr + Photo</div></div>
+    <div class="fd-row"><div class="fd-from">Plnr — post-hire comm</div><div class="fd-arrow">→</div><div class="fd-to">Plnr keeps 100%</div><div class="fd-amount" style="color:var(--tt)">$1,160</div><div class="fd-note">DJ + Florals + Video + Cake + Quartet</div></div>
+    <div class="fd-row"><div class="fd-from">Plnr service fee net</div><div class="fd-arrow">→</div><div class="fd-to">Plnr keeps</div><div class="fd-amount" style="color:var(--tt)">$2,364</div><div class="fd-note">After fees</div></div>
+    <div class="fd-row" style="border-top:1px solid var(--tb)"><div class="fd-from" style="color:var(--tt);font-weight:600">Plnr total earned</div><div class="fd-arrow">→</div><div class="fd-to" style="color:var(--tt)">Plnr account</div><div class="fd-amount" style="color:var(--tt);font-size:14px;font-weight:600">$4,417</div><div class="fd-note" style="color:var(--tt)">All streams</div></div>
+    <div class="fd-row" style="border-top:1px solid var(--rb)"><div class="fd-from" style="color:var(--rt);font-weight:600">EvntCue total earned</div><div class="fd-arrow">→</div><div class="fd-to" style="color:var(--rt)">Platform revenue</div><div class="fd-amount" style="color:var(--rt);font-size:14px;font-weight:600">$1,581</div><div class="fd-note" style="color:var(--rt)">Platform fee + split</div></div>
+    <div class="fd-row"><div class="fd-from">Vendors net (total)</div><div class="fd-arrow">→</div><div class="fd-to">48hr post-event</div><div class="fd-amount" style="color:var(--at)">$20,701</div><div class="fd-note">After all deductions</div></div>
+  </div>
+
+  <div class="insight"><b>Scenario C insight — the most interesting case:</b> The hire timestamp is the hard line. Three vendors booked before the Plnr joined — their dial commission splits 50/50 between EvntCue and the Plnr. Five vendors booked after — Plnr keeps everything. EvntCue earns $1,581 total on this event vs $625 in Scenario A — the pre-hire split is the mechanism that rewards early platform adoption without punishing the Plnr. <b>The Orgnz never sees any commission flows.</b> Their invoice shows vendor costs + Plnr service fee. That's it.</div>
+</div>
+
+</div>
+
+<script>
+function setScenario(id){
+  document.querySelectorAll('.stab').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.spanel').forEach(p=>p.classList.remove('active'));
+  document.querySelector(`[onclick="setScenario('${id}')"]`).classList.add('active');
+  document.getElementById('sp-'+id).classList.add('active');
+}
+</script>

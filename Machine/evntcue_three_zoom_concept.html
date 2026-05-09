@@ -1,0 +1,402 @@
+
+<h2 class="sr-only">EvntCue three-zoom event timeline — Orbit shows the full year as milestone rings, Approach shows month and week task lists, On the Ground shows the live day-of cockpit. Switch between all three.</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#0E1628;--rose:#D4778A;--rl:rgba(212,119,138,0.14);--rb:rgba(212,119,138,0.32);--rt:#E8A0B0;
+  --teal:#14b8a6;--tl:rgba(20,184,166,0.12);--tb:rgba(20,184,166,0.3);--tt:#5eead4;
+  --amb:#f59e0b;--al:rgba(245,158,11,0.12);--ab:rgba(245,158,11,0.3);--at:#fde68a;
+  --cor:#f97316;--cl:rgba(249,115,22,0.12);--cb:rgba(249,115,22,0.3);--ct:#fdba74;
+  --viol:rgba(139,92,246,0.15);--vt:#a78bfa;
+  --bdr:rgba(255,255,255,0.09);--bdr2:rgba(255,255,255,0.16);
+  --txt:rgba(255,255,255,0.82);--txt2:rgba(255,255,255,0.46);--txt3:rgba(255,255,255,0.24);
+  --fn:system-ui,-apple-system,sans-serif;--mono:monospace;
+}
+.shell{background:#0f1621;border-radius:14px;overflow:hidden;font-family:var(--fn);color:var(--txt)}
+
+.topbar{background:#0b1220;padding:11px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr)}
+.ev-name{font-size:13px;font-weight:500;color:#fff;display:flex;align-items:center;gap:9px}
+.ev-meta{font-size:9px;color:var(--txt3);margin-top:2px;font-family:var(--mono);letter-spacing:.04em}
+.days-out{font-size:11px;color:var(--rt);font-weight:500;font-family:var(--mono)}
+
+.zoom-bar{display:flex;gap:6px;padding:10px 16px;background:#0a0f1a;border-bottom:1px solid var(--bdr)}
+.zb{flex:1;padding:9px 8px;border-radius:9px;border:1px solid var(--bdr2);cursor:pointer;text-align:center;transition:all .2s;font-family:var(--fn);background:transparent}
+.zb:hover{border-color:var(--rb);background:var(--rl)}
+.zb.active{background:var(--rl);border-color:var(--rb)}
+.zb-name{font-size:10px;font-weight:700;color:var(--txt2);display:block;margin-top:5px}
+.zb.active .zb-name{color:var(--rt)}
+.zb-sub{font-size:8px;color:var(--txt3);display:block;margin-top:2px}
+
+.view{display:none;padding:16px}.view.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(4px)}to{opacity:1;transform:translateY(0)}}
+.view.active{animation:fadein .2s ease}
+
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.25}}
+@keyframes nowpulse{0%,100%{box-shadow:0 0 0 0 rgba(212,119,138,0.4)}70%{box-shadow:0 0 0 6px rgba(212,119,138,0)}}
+
+.sh{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;color:var(--txt3);margin-bottom:10px;font-family:var(--mono)}
+
+/* ---- ORBIT ---- */
+.orbit-container{display:flex;flex-direction:column;align-items:center}
+.orbit-svg-outer{position:relative;width:100%;max-width:340px;margin:0 auto 16px}
+.orbit-tooltip{position:absolute;bottom:-8px;left:50%;transform:translateX(-50%);background:#0b1220;border:1px solid var(--rb);border-radius:7px;padding:5px 12px;font-size:10px;color:var(--rt);white-space:nowrap;font-family:var(--mono);opacity:0;transition:opacity .2s;pointer-events:none;z-index:10}
+.orbit-tooltip.show{opacity:1}
+.orbit-legend{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-bottom:14px}
+.ol{display:flex;align-items:center;gap:5px;font-size:10px;color:var(--txt2)}
+.ol-dot{width:9px;height:9px;border-radius:50%}
+.milestone-list{width:100%;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:10px;overflow:hidden}
+.ml-row{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--bdr);cursor:pointer;transition:background .13s}
+.ml-row:hover{background:rgba(255,255,255,0.04)}.ml-row:last-child{border-bottom:none}
+.ml-dot{width:9px;height:9px;border-radius:50%;flex-shrink:0}
+.ml-name{flex:1;font-size:11px;font-weight:500;color:var(--txt)}
+.ml-date{font-size:10px;color:var(--txt3);font-family:var(--mono)}
+.ml-badge{font-size:8px;padding:2px 7px;border-radius:100px;font-weight:700}
+.b-done{background:var(--tl);color:var(--tt)}.b-prog{background:var(--al);color:var(--at)}.b-not{background:rgba(255,255,255,0.05);color:var(--txt3);border:1px solid var(--bdr2)}
+
+/* ---- APPROACH ---- */
+.month-block{margin-bottom:16px}
+.month-header{font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--txt3);font-family:var(--mono);margin-bottom:8px;display:flex;align-items:center;justify-content:space-between}
+.month-count{font-size:9px;color:var(--txt3);font-weight:400;text-transform:none;letter-spacing:0}
+.week-block{margin-bottom:8px}
+.week-label{font-size:9px;color:var(--txt3);margin-bottom:4px;padding-left:12px}
+.task{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;background:rgba(255,255,255,0.03);border:1px solid var(--bdr);margin-bottom:3px;cursor:pointer;transition:all .15s}
+.task:hover{border-color:var(--bdr2)}.task.done{opacity:.45}
+.task.overdue{border-color:rgba(249,115,22,0.3);background:rgba(249,115,22,0.06)}
+.task.active-task{border-color:var(--rb);background:var(--rl)}
+.tchk{width:16px;height:16px;border-radius:3px;border:1.5px solid var(--bdr2);flex-shrink:0;display:flex;align-items:center;justify-content:center;font-size:9px;transition:all .15s}
+.task.done .tchk{background:var(--teal);border-color:var(--teal);color:#fff}
+.tcat{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+.tname{flex:1;font-size:11px;color:var(--txt)}.task.done .tname{text-decoration:line-through;color:var(--txt3)}
+.tdate{font-size:10px;color:var(--txt3);font-family:var(--mono)}
+.tbadge{font-size:8px;padding:2px 7px;border-radius:100px;font-weight:700;white-space:nowrap}
+.more-hint{text-align:center;padding:10px 0 2px;font-size:10px;color:var(--txt3)}
+
+/* ---- GROUND ---- */
+.now-hero{background:var(--rl);border:1px solid var(--rb);border-radius:12px;padding:14px 15px;margin-bottom:12px;position:relative;overflow:hidden}
+.now-pulse{position:absolute;top:13px;right:13px;width:9px;height:9px;border-radius:50%;background:var(--rose);animation:pulse 1.3s infinite}
+.now-eye{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--rt);margin-bottom:6px;font-family:var(--mono)}
+.now-time{font-size:30px;font-weight:500;color:#fff;font-family:var(--mono);line-height:1;margin-bottom:3px}
+.now-title{font-size:15px;font-weight:500;color:#fff;margin-bottom:3px}
+.now-who{font-size:10px;color:var(--rt);margin-bottom:10px}
+.now-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:11px}
+.ntag{font-size:8px;font-weight:700;padding:2px 7px;border-radius:100px}
+.t-now{background:var(--rose);color:#fff}
+.t-av{background:var(--tl);color:var(--tt)}
+.t-photo{background:var(--viol);color:var(--vt)}
+.t-late{background:var(--cl);color:var(--ct);border:1px solid var(--cb)}
+.t-catr{background:rgba(201,169,110,0.2);color:var(--at)}
+.client-flag{font-size:10px;color:var(--rt);background:rgba(212,119,138,0.08);border:1px solid var(--rb);border-radius:6px;padding:6px 10px;margin-bottom:11px;line-height:1.5}
+.client-flag::before{content:"★ Client: ";font-weight:700}
+.now-acts{display:flex;gap:6px}
+.na{font-size:10px;padding:6px 13px;border-radius:7px;border:1px solid;cursor:pointer;font-family:var(--fn);font-weight:600;transition:opacity .15s}
+.na:hover{opacity:.8}
+.na-delay{background:var(--al);border-color:var(--ab);color:var(--at)}
+.na-done{background:var(--tl);border-color:var(--tb);color:var(--tt)}
+.na-note{background:rgba(255,255,255,0.05);border-color:var(--bdr2);color:var(--txt2)}
+
+.upcoming-block{background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.ub-header{padding:9px 12px;font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--txt3);border-bottom:1px solid var(--bdr);font-family:var(--mono)}
+.ni{display:flex;align-items:center;gap:10px;padding:8px 12px;border-bottom:1px solid var(--bdr);cursor:pointer;transition:background .13s}
+.ni:hover{background:rgba(255,255,255,0.03)}.ni:last-child{border-bottom:none}
+.ni-time{font-size:10px;font-family:var(--mono);color:var(--txt3);min-width:38px;flex-shrink:0}
+.ni-title{font-size:12px;font-weight:500;color:var(--txt);flex:1}
+.ni-tags{display:flex;gap:3px}
+.ni-ch{font-size:10px;color:var(--txt3)}
+
+.past-block{opacity:.45}
+.past-header{font-size:8px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--txt3);margin-bottom:6px;font-family:var(--mono)}
+.pi{display:flex;align-items:center;gap:10px;padding:5px 8px;border-radius:6px;cursor:pointer}
+.pi:hover{opacity:.8;background:rgba(255,255,255,0.03)}
+.pi-time{font-size:10px;font-family:var(--mono);color:rgba(255,255,255,.2);min-width:38px}
+.pi-title{font-size:11px;color:rgba(255,255,255,.32);text-decoration:line-through;flex:1}
+.pi-ok{font-size:9px;color:var(--tt)}
+
+.ripple-bar{background:var(--cl);border:1px solid var(--cb);border-radius:9px;padding:10px 13px;margin-bottom:12px}
+.rb-title{font-size:11px;font-weight:600;color:var(--ct);margin-bottom:2px}
+.rb-body{font-size:10px;color:var(--txt2);line-height:1.55;margin-bottom:8px}
+.rb-actions{display:flex;gap:6px}
+.rb-btn{font-size:10px;padding:4px 12px;border-radius:5px;border:none;cursor:pointer;font-family:var(--fn);font-weight:700}
+.rb-confirm{background:var(--cor);color:#fff}
+.rb-cancel{background:rgba(255,255,255,0.07);color:var(--txt2)}
+</style>
+
+<div class="shell">
+
+<div class="topbar">
+  <div>
+    <div class="ev-name">
+      <svg viewBox="0 0 22 22" width="18" height="18"><rect width="22" height="22" rx="5" fill="#180F28"/><line x1="8" y1="4" x2="15" y2="7" stroke="#D4778A" stroke-width="1.1" stroke-opacity=".7"/><line x1="15" y1="7" x2="15" y2="15" stroke="#D4778A" stroke-width="1.1" stroke-opacity=".7"/><line x1="15" y1="15" x2="8" y2="18" stroke="#D4778A" stroke-width="1.1" stroke-opacity=".7"/><line x1="8" y1="18" x2="4" y2="11" stroke="#D4778A" stroke-width="1.1" stroke-opacity=".7"/><line x1="4" y1="11" x2="8" y2="4" stroke="#D4778A" stroke-width="1.1" stroke-opacity=".7"/><circle cx="8" cy="4" r="2" fill="#E8A0B0"/><circle cx="8" cy="4" r=".9" fill="#F9E4EA"/></svg>
+      Garza Wedding
+    </div>
+    <div class="ev-meta">SAT APR 19, 2026 · 247 GUESTS · THE PEARL AT STONELEIGH</div>
+  </div>
+  <div class="days-out" id="daysOut">312 days out</div>
+</div>
+
+<div class="zoom-bar">
+  <div class="zb active" id="zb-orbit" onclick="setZoom('orbit')">
+    <svg width="28" height="28" viewBox="0 0 28 28" style="display:block;margin:0 auto">
+      <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(212,119,138,0.35)" stroke-width="1.2"/>
+      <circle cx="14" cy="14" r="6.5" fill="none" stroke="rgba(212,119,138,0.2)" stroke-width="1"/>
+      <circle cx="14" cy="14" r="3" fill="#D4778A" opacity=".8"/>
+      <circle cx="14" cy="3.5" r="2.5" fill="#14b8a6"/>
+      <circle cx="24.5" cy="14" r="2" fill="#f59e0b"/>
+      <circle cx="14" cy="24.5" r="2" fill="#8b5cf6"/>
+      <circle cx="3.5" cy="14" r="1.8" fill="rgba(255,255,255,0.3)"/>
+    </svg>
+    <span class="zb-name">Orbit</span>
+    <span class="zb-sub">Year view</span>
+  </div>
+  <div class="zb" id="zb-approach" onclick="setZoom('approach')">
+    <svg width="28" height="28" viewBox="0 0 28 28" style="display:block;margin:0 auto">
+      <rect x="3" y="5" width="22" height="2.5" rx="1.2" fill="rgba(255,255,255,0.35)"/>
+      <rect x="3" y="11" width="16" height="2.5" rx="1.2" fill="rgba(255,255,255,0.25)"/>
+      <rect x="3" y="17" width="19" height="2.5" rx="1.2" fill="rgba(255,255,255,0.2)"/>
+      <rect x="3" y="23" width="12" height="2.5" rx="1.2" fill="rgba(255,255,255,0.12)"/>
+      <circle cx="3" cy="6.2" r="1.2" fill="#14b8a6"/>
+      <circle cx="3" cy="12.2" r="1.2" fill="#f97316"/>
+      <circle cx="3" cy="18.2" r="1.2" fill="rgba(255,255,255,0.4)"/>
+      <circle cx="3" cy="24.2" r="1.2" fill="rgba(255,255,255,0.2)"/>
+    </svg>
+    <span class="zb-name">Approach</span>
+    <span class="zb-sub">Week / month</span>
+  </div>
+  <div class="zb" id="zb-ground" onclick="setZoom('ground')">
+    <svg width="28" height="28" viewBox="0 0 28 28" style="display:block;margin:0 auto">
+      <circle cx="14" cy="14" r="4" fill="#D4778A" opacity=".9"/>
+      <circle cx="14" cy="14" r="7.5" fill="none" stroke="rgba(212,119,138,0.4)" stroke-width="1.3"/>
+      <circle cx="14" cy="14" r="11" fill="none" stroke="rgba(212,119,138,0.18)" stroke-width="1"/>
+      <circle cx="14" cy="4" r="1.5" fill="rgba(255,255,255,0.5)"/>
+      <circle cx="24" cy="14" r="1.5" fill="rgba(255,255,255,0.4)"/>
+      <circle cx="14" cy="24" r="1.5" fill="rgba(255,255,255,0.3)"/>
+    </svg>
+    <span class="zb-name">On the ground</span>
+    <span class="zb-sub">Day-of live</span>
+  </div>
+</div>
+
+<!-- ===== ORBIT ===== -->
+<div class="view active" id="view-orbit">
+  <div class="orbit-container">
+    <div class="orbit-svg-outer">
+      <svg id="orbitSvg" viewBox="0 0 320 300" xmlns="http://www.w3.org/2000/svg" style="width:100%;height:auto;display:block">
+        <circle cx="160" cy="150" r="125" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+        <circle cx="160" cy="150" r="85" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        <circle cx="160" cy="150" r="45" fill="none" stroke="rgba(255,255,255,0.04)" stroke-width="1"/>
+        <circle cx="160" cy="150" r="18" fill="#180F28" stroke="rgba(212,119,138,0.35)" stroke-width="1.5"/>
+        <circle cx="160" cy="150" r="7" fill="#D4778A" opacity=".9"/>
+        <text x="160" y="182" text-anchor="middle" font-size="9" fill="rgba(255,255,255,0.3)" font-family="monospace">APR 19</text>
+
+        <line x1="160" y1="150" x2="160" y2="30" stroke="rgba(20,184,166,0.15)" stroke-width="1"/>
+        <circle cx="160" cy="27" r="12" fill="#14b8a6" opacity=".9" style="cursor:pointer" onclick="orbitTip('Venue confirmed — The Pearl at Stoneleigh · Jun 2025 · Deposit paid')"/>
+        <text x="160" y="31" text-anchor="middle" font-size="8" fill="#fff" font-weight="600" font-family="system-ui">Venue</text>
+
+        <line x1="160" y1="150" x2="275" y2="82" stroke="rgba(245,158,11,0.12)" stroke-width="1"/>
+        <circle cx="277" cy="79" r="11" fill="#f59e0b" opacity=".85" style="cursor:pointer" onclick="orbitTip('Vendors: 3 of 8 confirmed · Photo, AV, Florals done · DJ, Catr, Quartet pending')"/>
+        <text x="277" y="83" text-anchor="middle" font-size="7.5" fill="#fff" font-weight="600" font-family="system-ui">Vndrs</text>
+
+        <line x1="160" y1="150" x2="285" y2="195" stroke="rgba(245,158,11,0.1)" stroke-width="1"/>
+        <circle cx="289" cy="197" r="10" fill="#f59e0b" opacity=".7" style="cursor:pointer" onclick="orbitTip('Catr: tasting scheduled Oct 10 · BEO draft in progress · not yet confirmed')"/>
+        <text x="289" y="201" text-anchor="middle" font-size="7" fill="#fff" font-weight="600" font-family="system-ui">Catr</text>
+
+        <line x1="160" y1="150" x2="220" y2="268" stroke="rgba(139,92,246,0.12)" stroke-width="1"/>
+        <circle cx="222" cy="272" r="10" fill="#8b5cf6" opacity=".8" style="cursor:pointer" onclick="orbitTip('Plnr hired — Marisol Vega · Jul 2025 · Pro subscription active · $69/mo')"/>
+        <text x="222" y="276" text-anchor="middle" font-size="7" fill="#fff" font-weight="600" font-family="system-ui">Plnr</text>
+
+        <line x1="160" y1="150" x2="100" y2="268" stroke="rgba(212,119,138,0.1)" stroke-width="1"/>
+        <circle cx="98" cy="272" r="10" fill="rgba(212,119,138,0.55)" opacity=".85" style="cursor:pointer" onclick="orbitTip('Final packet: locks 48h before event · offline bundle download reminder fires Apr 17')"/>
+        <text x="98" y="276" text-anchor="middle" font-size="7" fill="#fff" font-weight="600" font-family="system-ui">Packet</text>
+
+        <line x1="160" y1="150" x2="37" y2="197" stroke="rgba(255,255,255,0.08)" stroke-width="1"/>
+        <circle cx="33" cy="197" r="9" fill="rgba(255,255,255,0.2)" opacity=".8" style="cursor:pointer" onclick="orbitTip('Mood board: not started · unlocks after Plnr hired · Cue vision analysis ready')"/>
+        <text x="33" y="201" text-anchor="middle" font-size="7" fill="#fff" font-weight="600" font-family="system-ui">Board</text>
+
+        <line x1="160" y1="150" x2="45" y2="82" stroke="rgba(255,255,255,0.07)" stroke-width="1"/>
+        <circle cx="43" cy="79" r="9" fill="rgba(255,255,255,0.15)" opacity=".75" style="cursor:pointer" onclick="orbitTip('Guest list: 247 confirmed · 14 dietary flags · finalization due Jan 2026')"/>
+        <text x="43" y="83" text-anchor="middle" font-size="7" fill="#fff" font-weight="600" font-family="system-ui">Guest</text>
+
+        <circle cx="160" cy="27" r="14" fill="none" stroke="#14b8a6" stroke-width="1.5" stroke-dasharray="0" opacity=".6"/>
+      </svg>
+      <div class="orbit-tooltip" id="orbitTip"></div>
+    </div>
+
+    <div class="orbit-legend">
+      <div class="ol"><div class="ol-dot" style="background:#14b8a6"></div>Confirmed</div>
+      <div class="ol"><div class="ol-dot" style="background:#f59e0b"></div>In progress</div>
+      <div class="ol"><div class="ol-dot" style="background:rgba(255,255,255,0.25)"></div>Not started</div>
+    </div>
+
+    <div class="milestone-list">
+      <div class="ml-row"><div class="ml-dot" style="background:#14b8a6"></div><div class="ml-name">Venue confirmed — The Pearl</div><div class="ml-date">Jun 2025</div><div class="ml-badge b-done">Done</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:#14b8a6"></div><div class="ml-name">Plnr hired — Marisol Vega</div><div class="ml-date">Jul 2025</div><div class="ml-badge b-done">Done</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:#f59e0b"></div><div class="ml-name">Core vendors booked (3 of 8)</div><div class="ml-date">Sep 2025</div><div class="ml-badge b-prog">3/8</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:#f59e0b"></div><div class="ml-name">Catr selection + BEO draft</div><div class="ml-date">Nov 2025</div><div class="ml-badge b-prog">In progress</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:rgba(255,255,255,0.25)"></div><div class="ml-name">Mood board finalized</div><div class="ml-date">Dec 2025</div><div class="ml-badge b-not">Not started</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:rgba(255,255,255,0.25)"></div><div class="ml-name">Guest list locked</div><div class="ml-date">Jan 2026</div><div class="ml-badge b-not">Not started</div></div>
+      <div class="ml-row"><div class="ml-dot" style="background:rgba(255,255,255,0.2)"></div><div class="ml-name">Final packet + offline bundle</div><div class="ml-date">Apr 17</div><div class="ml-badge b-not">Locked</div></div>
+    </div>
+  </div>
+  <div style="text-align:center;font-size:10px;color:var(--txt3);padding:12px 0 2px">Tap any orbit dot for detail — or switch to Approach to manage tasks</div>
+</div>
+
+<!-- ===== APPROACH ===== -->
+<div class="view" id="view-approach">
+
+  <div class="month-block">
+    <div class="month-header">September 2025 <span class="month-count">4 tasks · 2 overdue</span></div>
+    <div class="week-block">
+      <div class="week-label">Week of Sep 1</div>
+      <div class="task done" onclick="tTask(this)"><div class="tchk">✓</div><div class="tcat" style="background:#14b8a6"></div><div class="tname">Florist shortlist — send 3 inquiries</div><div class="tdate">Sep 3</div><div class="tbadge" style="background:var(--tl);color:var(--tt)">Vendor</div></div>
+      <div class="task done" onclick="tTask(this)"><div class="tchk">✓</div><div class="tcat" style="background:#14b8a6"></div><div class="tname">Photographer contract signed + deposit paid</div><div class="tdate">Sep 5</div><div class="tbadge" style="background:var(--tl);color:var(--tt)">Vendor</div></div>
+    </div>
+    <div class="week-block">
+      <div class="week-label">Week of Sep 8</div>
+      <div class="task overdue" onclick="tTask(this)"><div class="tchk"></div><div class="tcat" style="background:#f97316"></div><div class="tname">Catr tastings — schedule with top 2</div><div class="tdate">Sep 12</div><div class="tbadge" style="background:var(--cl);color:var(--ct);border:1px solid var(--cb)">Overdue</div></div>
+      <div class="task overdue" onclick="tTask(this)"><div class="tchk"></div><div class="tcat" style="background:#f97316"></div><div class="tname">DJ audition — confirm shortlist from Cue</div><div class="tdate">Sep 15</div><div class="tbadge" style="background:var(--cl);color:var(--ct);border:1px solid var(--cb)">Overdue</div></div>
+    </div>
+  </div>
+
+  <div class="month-block">
+    <div class="month-header">October 2025 <span class="month-count">5 tasks · upcoming</span></div>
+    <div class="week-block">
+      <div class="week-label">Week of Oct 6</div>
+      <div class="task" onclick="tTask(this)"><div class="tchk"></div><div class="tcat" style="background:#8b5cf6"></div><div class="tname">Mood board session with Marisol — finalize palette</div><div class="tdate">Oct 8</div><div class="tbadge" style="background:var(--viol);color:var(--vt)">Planning</div></div>
+      <div class="task" onclick="tTask(this)"><div class="tchk"></div><div class="tcat" style="background:#f59e0b"></div><div class="tname">BEO draft — menu selections to Catr</div><div class="tdate">Oct 10</div><div class="tbadge" style="background:var(--al);color:var(--at)">BEO</div></div>
+      <div class="task" onclick="tTask(this)"><div class="tchk"></div><div class="tcat" style="background:#14b8a6"></div><div class="tname">Florist confirmed — send deposit</div><div class="tdate">Oct 14</div><div class="tbadge" style="background:var(--tl);color:var(--tt)">Vendor</div></div>
+    </div>
+    <div class="week-block">
+      <div class="week-label">Week of Oct 20</div>
+      <div class="task" onclick="tTask(this)"><div class="tchk"></div><div class="tcat" style="background:#f59e0b"></div><div class="tname">Catr tasting complete — select menu</div><div class="tdate">Oct 22</div><div class="tbadge" style="background:var(--al);color:var(--at)">Catr</div></div>
+      <div class="task" onclick="tTask(this)"><div class="tchk"></div><div class="tcat" style="background:#14b8a6"></div><div class="tname">DJ Neon — contract + deposit</div><div class="tdate">Oct 25</div><div class="tbadge" style="background:var(--tl);color:var(--tt)">Vendor</div></div>
+    </div>
+  </div>
+
+  <div class="more-hint">+ 6 more months · 38 tasks remaining · tap any task to check off</div>
+</div>
+
+<!-- ===== GROUND ===== -->
+<div class="view" id="view-ground">
+
+  <div class="ripple-bar" id="rippleBar" style="display:none">
+    <div class="rb-title">Running 12 min behind — ripple to all vendors?</div>
+    <div class="rb-body">Ceremony 5:42P · Cocktail 6:27P · Grand entrance 7:12P · Dinner 7:32P · All cascade. Vendors auto-notified.</div>
+    <div class="rb-actions"><button class="rb-btn rb-confirm" onclick="confirmRipple()">Confirm ripple</button><button class="rb-btn rb-cancel" onclick="document.getElementById('rippleBar').style.display='none'">Cancel</button></div>
+  </div>
+
+  <div class="now-hero" id="nowHero">
+    <div class="now-pulse"></div>
+    <div class="now-eye">Now · 5:42 PM</div>
+    <div class="now-time">5:42 PM</div>
+    <div class="now-title">Ceremony begins</div>
+    <div class="now-who">Officiant Rev. James · Dallas String Quartet · Marcus Lee Photography</div>
+    <div class="now-tags">
+      <span class="ntag t-now">Now</span>
+      <span class="ntag t-av">AV</span>
+      <span class="ntag t-photo">Photo</span>
+      <span class="ntag t-late">12 min late</span>
+    </div>
+    <div class="client-flag">String Quartet plays Ave Maria — not the originally scheduled piece</div>
+    <div class="now-acts">
+      <button class="na na-delay" onclick="document.getElementById('rippleBar').style.display='block'">Delay · ripple</button>
+      <button class="na na-done" onclick="markNowDone()">Mark complete</button>
+      <button class="na na-note">Add note</button>
+    </div>
+  </div>
+
+  <div class="upcoming-block">
+    <div class="ub-header">Up next — tap to expand</div>
+    <div class="ni" onclick="tNi(this)">
+      <div class="ni-time">6:27P</div>
+      <div class="ni-title">Cocktail hour · Savor DFW</div>
+      <div class="ni-tags"><span class="ntag t-catr">Catr</span></div>
+      <div class="ni-ch">▾</div>
+    </div>
+    <div class="ni" onclick="tNi(this)">
+      <div class="ni-time">7:12P</div>
+      <div class="ni-title">Grand entrance · DJ cued · groom's parents first</div>
+      <div class="ni-tags"><span class="ntag t-av">AV</span><span class="ntag t-photo">Photo</span></div>
+      <div class="ni-ch">▾</div>
+    </div>
+    <div class="ni" onclick="tNi(this)">
+      <div class="ni-time">8:05P</div>
+      <div class="ni-title">Entrée service · 247 covers · head table filet only</div>
+      <div class="ni-tags"><span class="ntag t-catr">Catr</span></div>
+      <div class="ni-ch">▾</div>
+    </div>
+    <div class="ni" onclick="tNi(this)">
+      <div class="ni-time">8:55P</div>
+      <div class="ni-title">Bouquet toss · moved before cake cutting</div>
+      <div class="ni-tags"><span class="ntag t-photo">Photo</span></div>
+      <div class="ni-ch">▾</div>
+    </div>
+    <div class="ni" onclick="tNi(this)">
+      <div class="ni-time">10:45P</div>
+      <div class="ni-title">Sparkler briefing · send-off · hard out 11:30P</div>
+      <div class="ni-ch">▾</div>
+    </div>
+  </div>
+
+  <div class="past-block">
+    <div class="past-header">Completed</div>
+    <div class="pi"><div class="pi-time">9:00A</div><div class="pi-title">Vendor load-in</div><div class="pi-ok">✓</div></div>
+    <div class="pi"><div class="pi-time">12:00P</div><div class="pi-title">Room set phases 1–3</div><div class="pi-ok">✓</div></div>
+    <div class="pi"><div class="pi-time">3:30P</div><div class="pi-title">Florals placed · safety walkthrough</div><div class="pi-ok">✓</div></div>
+    <div class="pi"><div class="pi-time">4:30P</div><div class="pi-title">Walkthrough confirmation sent to Garza family</div><div class="pi-ok">✓</div></div>
+    <div class="pi"><div class="pi-time">5:00P</div><div class="pi-title">Doors open · guests arriving</div><div class="pi-ok">✓</div></div>
+  </div>
+
+</div>
+
+</div>
+
+<script>
+function setZoom(id){
+  document.querySelectorAll('.zb').forEach(b=>b.classList.remove('active'));
+  document.querySelectorAll('.view').forEach(v=>v.classList.remove('active'));
+  document.getElementById('zb-'+id).classList.add('active');
+  document.getElementById('view-'+id).classList.add('active');
+  if(id==='ground'){
+    const d=new Date();
+    const event=new Date('2026-04-19');
+    const diff=Math.round((event-d)/(1000*60*60*24));
+    document.getElementById('daysOut').textContent=diff>0?diff+' days out':'Day of event';
+  }
+}
+
+let tipTimer;
+function orbitTip(msg){
+  const el=document.getElementById('orbitTip');
+  el.textContent=msg;
+  el.classList.add('show');
+  clearTimeout(tipTimer);
+  tipTimer=setTimeout(()=>el.classList.remove('show'),3500);
+}
+
+function tTask(el){
+  if(el.classList.contains('overdue'))return;
+  el.classList.toggle('done');
+  const box=el.querySelector('.tchk');
+  if(box)box.textContent=el.classList.contains('done')?'✓':'';
+}
+
+function tNi(el){
+  const was=el.classList.contains('open');
+  document.querySelectorAll('.ni').forEach(n=>{n.classList.remove('open');n.querySelector('.ni-ch').textContent='▾';});
+  if(!was){el.classList.add('open');el.querySelector('.ni-ch').textContent='▴';}
+}
+
+function markNowDone(){
+  const hero=document.getElementById('nowHero');
+  hero.style.opacity='.35';
+  hero.style.pointerEvents='none';
+}
+
+function confirmRipple(){
+  document.getElementById('rippleBar').innerHTML='<div class="rb-title" style="color:var(--tt)">✓ Ripple sent — all vendors notified</div><div class="rb-body">Ceremony 5:42P · Cocktail 6:27P · Grand entrance 7:12P · Dinner 7:32P · Updated automatically.</div>';
+}
+
+const now=new Date();
+const event=new Date('2026-04-19');
+const diff=Math.round((event-now)/(1000*60*60*24));
+document.getElementById('daysOut').textContent=diff>0?diff+' days out':'Day of event';
+</script>

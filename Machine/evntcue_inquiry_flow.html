@@ -1,0 +1,416 @@
+
+<h2 class="sr-only">EvntCue venue inquiry flow — 8 steps from event creation through deposit confirmation, showing how the platform pre-qualifies matches and prevents inquiry spam.</h2>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#0f1621;--bg2:#141c2a;--bg3:#0a0f1a;
+  --bdr:rgba(255,255,255,0.09);--bdr2:rgba(255,255,255,0.16);
+  --txt:rgba(255,255,255,0.82);--txt2:rgba(255,255,255,0.48);--txt3:rgba(255,255,255,0.25);
+  --rose:#D4778A;--rl:rgba(212,119,138,0.14);--rb:rgba(212,119,138,0.32);--rt:#E8A0B0;
+  --teal:#14b8a6;--tl:rgba(20,184,166,0.12);--tb:rgba(20,184,166,0.3);--tt:#5eead4;
+  --amb:#f59e0b;--al:rgba(245,158,11,0.12);--ab:rgba(245,158,11,0.3);--at:#fde68a;
+  --cor:#f97316;--cl:rgba(249,115,22,0.12);--cb:rgba(249,115,22,0.3);--ct:#fdba74;
+  --viol:rgba(139,92,246,0.14);--vt:#a78bfa;
+  --fn:system-ui,-apple-system,sans-serif;--mono:monospace;
+}
+.shell{background:var(--bg);border-radius:13px;overflow:hidden;font-family:var(--fn);color:var(--txt)}
+.topbar{background:var(--bg3);padding:11px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bdr)}
+.tb-left{display:flex;align-items:center;gap:9px}
+.tb-title{font-size:13px;font-weight:500;color:#fff}
+.tb-sub{font-size:9px;color:var(--txt3);margin-top:1px;font-family:var(--mono)}
+.step-nav{display:flex;gap:0;padding:10px 14px;background:var(--bg3);border-bottom:1px solid var(--bdr);overflow-x:auto;scrollbar-width:none}
+.step-nav::-webkit-scrollbar{display:none}
+.sn-item{flex-shrink:0;display:flex;align-items:center;gap:0;cursor:pointer}
+.sn-dot{width:24px;height:24px;border-radius:50%;border:1.5px solid var(--bdr2);display:flex;align-items:center;justify-content:center;font-size:9px;font-weight:700;color:var(--txt3);transition:all .18s;flex-shrink:0;font-family:var(--mono)}
+.sn-item.active .sn-dot{background:var(--rose);border-color:var(--rose);color:#fff}
+.sn-item.done .sn-dot{background:var(--teal);border-color:var(--teal);color:#fff}
+.sn-item.alert-step .sn-dot{background:var(--cor);border-color:var(--cor);color:#fff}
+.sn-line{width:18px;height:1px;background:var(--bdr2);flex-shrink:0}
+.sn-item:last-child .sn-line{display:none}
+
+.panels{padding:0}
+.panel{display:none;padding:16px}.panel.active{display:block}
+@keyframes fadein{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+.panel.active{animation:fadein .22s ease}
+
+.step-header{display:flex;align-items:flex-start;gap:12px;margin-bottom:14px}
+.sh-num{width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;font-family:var(--mono)}
+.sh-title{font-size:15px;font-weight:500;color:#fff;line-height:1.2;margin-bottom:3px}
+.sh-sub{font-size:11px;color:var(--txt2);line-height:1.5}
+
+.ui-mock{background:var(--bg2);border:1px solid var(--bdr);border-radius:10px;overflow:hidden;margin-bottom:12px}
+.um-bar{background:var(--bg3);padding:8px 12px;border-bottom:1px solid var(--bdr);font-size:9px;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--txt3);font-family:var(--mono);display:flex;align-items:center;justify-content:space-between}
+.um-body{padding:12px}
+
+.field-row{display:flex;align-items:center;gap:8px;padding:8px 10px;border-radius:7px;background:rgba(255,255,255,0.04);border:1px solid var(--bdr);margin-bottom:6px}
+.fr-label{font-size:10px;color:var(--txt3);min-width:90px;flex-shrink:0}
+.fr-val{font-size:11px;font-weight:500;color:var(--txt);flex:1}
+.fr-icon{font-size:12px;flex-shrink:0}
+.fr-complete{width:16px;height:16px;border-radius:50%;background:var(--teal);display:flex;align-items:center;justify-content:center;font-size:8px;color:#fff;flex-shrink:0}
+.fr-missing{width:16px;height:16px;border-radius:50%;background:var(--cl);border:1px solid var(--cb);display:flex;align-items:center;justify-content:center;font-size:8px;color:var(--ct);flex-shrink:0}
+
+.cue-bar{background:var(--rl);border:1px solid var(--rb);border-radius:8px;padding:9px 12px;display:flex;gap:9px;align-items:flex-start;margin-bottom:10px}
+.cue-dot{width:18px;height:18px;border-radius:50%;background:var(--rose);display:flex;align-items:center;justify-content:center;flex-shrink:0;margin-top:1px}
+.cue-txt{font-size:11px;color:var(--rt);line-height:1.5}.cue-txt b{font-weight:600}
+
+.venue-card{background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:9px;padding:11px 13px;margin-bottom:6px;cursor:pointer;transition:border-color .15s}
+.venue-card:hover{border-color:var(--bdr2)}
+.venue-card.selected{border-color:var(--rose);background:var(--rl)}
+.venue-card.filtered{opacity:.3;border-style:dashed;cursor:not-allowed}
+.vc-top{display:flex;align-items:flex-start;gap:10px;margin-bottom:6px}
+.vc-av{width:36px;height:36px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;flex-shrink:0}
+.vc-name{font-size:12px;font-weight:500;color:var(--txt)}
+.vc-meta{font-size:10px;color:var(--txt2);margin-top:1px}
+.vc-badges{display:flex;gap:4px;flex-wrap:wrap;margin-top:4px}
+.vcb{font-size:8px;padding:2px 6px;border-radius:100px;font-weight:700}
+.vcb-match{background:var(--tl);color:var(--tt)}.vcb-no{background:var(--cl);color:var(--ct)}.vcb-avail{background:var(--al);color:var(--at)}
+.vc-reason{font-size:9px;color:var(--ct);margin-top:4px;font-style:italic}
+
+.filter-legend{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px}
+.fl-item{display:flex;align-items:center;gap:4px;font-size:9px;color:var(--txt2)}
+.fl-dot{width:7px;height:7px;border-radius:50%}
+
+.inquiry-limit{background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:9px;padding:10px 13px;margin-bottom:10px}
+.il-title{font-size:11px;font-weight:500;color:var(--txt);margin-bottom:8px}
+.il-slots{display:flex;gap:6px;margin-bottom:8px}
+.il-slot{flex:1;height:36px;border-radius:7px;border:1px solid var(--bdr2);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:600}
+.il-slot.filled{background:var(--rl);border-color:var(--rb);color:var(--rt)}
+.il-slot.filled2{background:var(--al);border-color:var(--ab);color:var(--at)}
+.il-slot.empty{background:rgba(255,255,255,0.03);color:var(--txt3)}
+.il-note{font-size:9px;color:var(--txt3)}
+
+.inq-card{background:var(--bg3);border:1px solid var(--bdr);border-radius:9px;overflow:hidden;margin-bottom:10px}
+.inq-header{background:rgba(255,255,255,0.03);padding:10px 12px;border-bottom:1px solid var(--bdr)}
+.inq-title{font-size:12px;font-weight:500;color:var(--txt);margin-bottom:2px}
+.inq-meta{font-size:9px;color:var(--txt3)}
+.inq-body{padding:10px 12px}
+.inq-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid var(--bdr)}
+.inq-row:last-child{border-bottom:none}
+.inq-key{color:var(--txt2)}.inq-val{font-weight:500;color:var(--txt)}
+.inq-note{font-size:10px;color:var(--txt2);font-style:italic;margin-top:6px;padding:6px 9px;background:rgba(255,255,255,0.04);border-radius:5px}
+
+.timer-card{background:var(--al);border:1px solid var(--ab);border-radius:9px;padding:12px 14px;margin-bottom:10px;display:flex;align-items:center;gap:14px}
+.tc-num{font-size:32px;font-weight:500;color:var(--at);font-family:var(--mono);line-height:1}
+.tc-info{}
+.tc-label{font-size:11px;color:var(--at);font-weight:500}
+.tc-sub{font-size:10px;color:rgba(253,186,74,0.65);margin-top:2px}
+.tc-bar{height:5px;background:rgba(245,158,11,0.2);border-radius:3px;overflow:hidden;margin-top:6px}
+.tc-fill{height:100%;background:var(--amb);border-radius:3px}
+
+.response-cards{display:flex;flex-direction:column;gap:6px;margin-bottom:10px}
+.rc{border-radius:9px;border:1px solid var(--bdr);padding:10px 13px;display:flex;align-items:center;gap:10px;cursor:pointer;transition:all .15s}
+.rc:hover{border-color:var(--bdr2)}
+.rc.accept{border-color:var(--tb);background:var(--tl)}
+.rc.decline{border-color:var(--cb);background:var(--cl)}
+.rc.info{border-color:var(--rb);background:var(--rl)}
+.rc-icon{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;flex-shrink:0}
+.rc-body{flex:1}
+.rc-title{font-size:12px;font-weight:500}
+.rc-sub{font-size:10px;margin-top:1px}
+
+.hold-card{background:var(--al);border:1px solid var(--ab);border-radius:9px;padding:12px 14px;margin-bottom:10px}
+.hc-title{font-size:12px;font-weight:500;color:var(--at);margin-bottom:6px}
+.hc-row{display:flex;justify-content:space-between;font-size:11px;padding:3px 0;border-bottom:1px solid rgba(245,158,11,0.15)}
+.hc-row:last-child{border-bottom:none}
+.hc-key{color:rgba(253,186,74,0.65)}.hc-val{color:var(--at);font-weight:500}
+
+.deposit-card{background:var(--tl);border:1px solid var(--tb);border-radius:9px;padding:13px 15px;margin-bottom:10px}
+.dc-title{font-size:12px;font-weight:500;color:var(--tt);margin-bottom:10px}
+.dc-row{display:flex;justify-content:space-between;font-size:11px;padding:4px 0;border-bottom:1px solid rgba(20,184,166,0.12)}
+.dc-row:last-child{border-bottom:none}
+.dc-key{color:rgba(94,234,212,0.65)}.dc-val{color:var(--tt);font-weight:500;font-family:var(--mono)}
+.dc-btn{width:100%;background:var(--teal);color:#fff;border:none;padding:10px;border-radius:7px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--fn);margin-top:10px}
+.dc-btn:hover{opacity:.85}
+
+.unlock-card{background:var(--bg2);border:1px solid var(--bdr);border-radius:9px;padding:12px 14px;margin-bottom:10px}
+.uc-title{font-size:12px;font-weight:500;color:var(--txt);margin-bottom:10px}
+.vendor-cats{display:grid;grid-template-columns:1fr 1fr;gap:5px}
+.vcat{display:flex;align-items:center;gap:7px;padding:7px 9px;border-radius:7px;border:1px solid;font-size:11px}
+.vcat.locked{background:rgba(255,255,255,0.02);border-color:var(--bdr);color:var(--txt3)}
+.vcat.unlocked{background:var(--tl);border-color:var(--tb);color:var(--tt)}
+.vcat-dot{width:7px;height:7px;border-radius:50%;flex-shrink:0}
+
+.score-card{background:rgba(255,255,255,0.03);border:1px solid var(--bdr);border-radius:9px;padding:11px 14px;margin-bottom:10px}
+.sc-title{font-size:11px;font-weight:500;color:var(--txt);margin-bottom:9px}
+.sc-bar-row{display:flex;align-items:center;gap:8px;margin-bottom:6px;font-size:10px}
+.sc-label{min-width:110px;color:var(--txt2)}
+.sc-track{flex:1;height:6px;background:rgba(255,255,255,0.07);border-radius:3px;overflow:hidden}
+.sc-fill{height:100%;border-radius:3px}
+.sc-val{min-width:32px;text-align:right;color:var(--txt2);font-family:var(--mono)}
+
+.insight{background:var(--viol);border:1px solid rgba(139,92,246,0.25);border-radius:8px;padding:9px 12px;font-size:11px;color:var(--vt);line-height:1.55;margin-bottom:10px}
+.insight b{font-weight:600;color:#c4b5fd}
+
+.nav-row{display:flex;gap:6px;margin-top:4px}
+.nav-btn{flex:1;padding:8px;border-radius:7px;border:1px solid var(--bdr2);font-size:11px;font-weight:600;cursor:pointer;font-family:var(--fn);color:var(--txt2);background:rgba(255,255,255,0.04);transition:all .15s;text-align:center}
+.nav-btn:hover{border-color:var(--rb);color:var(--rt)}
+.nav-btn.primary{background:var(--rose);border-color:var(--rose);color:#fff}
+.nav-btn.primary:hover{opacity:.9}
+</style>
+
+<div class="shell">
+
+<div class="topbar">
+  <div class="tb-left">
+    <svg viewBox="0 0 22 22" width="18" height="18"><rect width="22" height="22" rx="5" fill="#180F28"/><line x1="8" y1="4" x2="15" y2="7" stroke="#D4778A" stroke-width="1.1" stroke-opacity=".7"/><line x1="15" y1="7" x2="15" y2="15" stroke="#D4778A" stroke-width="1.1" stroke-opacity=".7"/><line x1="15" y1="15" x2="8" y2="18" stroke="#D4778A" stroke-width="1.1" stroke-opacity=".7"/><line x1="8" y1="18" x2="4" y2="11" stroke="#D4778A" stroke-width="1.1" stroke-opacity=".7"/><line x1="4" y1="11" x2="8" y2="4" stroke="#D4778A" stroke-width="1.1" stroke-opacity=".7"/><circle cx="8" cy="4" r="2" fill="#E8A0B0"/><circle cx="8" cy="4" r=".9" fill="#F9E4EA"/></svg>
+    <div>
+      <div class="tb-title">Venue inquiry flow</div>
+      <div class="tb-sub">8 STEPS · ORGNZ → VENUE → BOOKING CONFIRMED</div>
+    </div>
+  </div>
+  <div style="font-size:9px;color:var(--txt3);font-family:var(--mono)">Tap steps to navigate</div>
+</div>
+
+<div class="step-nav" id="stepNav">
+  <div class="sn-item done" onclick="goStep(1)"><div class="sn-dot">1</div><div class="sn-line"></div></div>
+  <div class="sn-item done" onclick="goStep(2)"><div class="sn-dot">2</div><div class="sn-line"></div></div>
+  <div class="sn-item active" onclick="goStep(3)"><div class="sn-dot">3</div><div class="sn-line"></div></div>
+  <div class="sn-item" onclick="goStep(4)"><div class="sn-dot">4</div><div class="sn-line"></div></div>
+  <div class="sn-item" onclick="goStep(5)"><div class="sn-dot">5</div><div class="sn-line"></div></div>
+  <div class="sn-item" onclick="goStep(6)"><div class="sn-dot">6</div><div class="sn-line"></div></div>
+  <div class="sn-item" onclick="goStep(7)"><div class="sn-dot">7</div><div class="sn-line"></div></div>
+  <div class="sn-item" onclick="goStep(8)"><div class="sn-dot">8</div><div class="sn-line"></div></div>
+</div>
+
+<div class="panels">
+
+<!-- STEP 1 -->
+<div class="panel" id="p1">
+  <div class="step-header">
+    <div class="sh-num" style="background:var(--tl);border:1px solid var(--tb);color:var(--tt)">1</div>
+    <div><div class="sh-title">Orgnz creates event — required fields enforced</div><div class="sh-sub">No inquiry can be sent until all four core fields are complete. Cue holds the gate.</div></div>
+  </div>
+  <div class="ui-mock">
+    <div class="um-bar"><span>New event — Garza Wedding</span><span style="color:var(--ct)">2 required fields missing</span></div>
+    <div class="um-body">
+      <div class="field-row"><div class="fr-label">Event date</div><div class="fr-val">Apr 19, 2026</div><div class="fr-complete">✓</div></div>
+      <div class="field-row"><div class="fr-label">Guest count</div><div class="fr-val">247 guests</div><div class="fr-complete">✓</div></div>
+      <div class="field-row" style="border-color:var(--cb);background:var(--cl)"><div class="fr-label" style="color:var(--ct)">Budget range</div><div class="fr-val" style="color:var(--txt3)">Not set</div><div class="fr-missing">!</div></div>
+      <div class="field-row" style="border-color:var(--cb);background:var(--cl)"><div class="fr-label" style="color:var(--ct)">Event type</div><div class="fr-val" style="color:var(--txt3)">Not selected</div><div class="fr-missing">!</div></div>
+    </div>
+  </div>
+  <div class="cue-bar">
+    <div class="cue-dot"><svg viewBox="0 0 8 8" width="8" height="8" style="width:8px;height:8px"><circle cx="4" cy="4" r="3" fill="#D4778A"/><circle cx="4" cy="4" r="1.5" fill="#F9E4EA"/><circle cx="4" cy="4" r=".5" fill="#fff"/></svg></div>
+    <div class="cue-txt"><b>Cue —</b> Set your budget and event type to unlock venue search. Venues need this to confirm they're the right fit before you reach out.</div>
+  </div>
+  <div class="insight"><b>Why this matters:</b> 60% of junk inquiries industry-wide come from incomplete or mismatched requests. By making these fields required before search even opens, the platform protects venue time before a single message is sent.</div>
+  <div class="nav-row"><div class="nav-btn primary" onclick="goStep(2)">Next — Cue pre-qualifies &rsaquo;</div></div>
+</div>
+
+<!-- STEP 2 -->
+<div class="panel" id="p2">
+  <div class="step-header">
+    <div class="sh-num" style="background:var(--tl);border:1px solid var(--tb);color:var(--tt)">2</div>
+    <div><div class="sh-title">Cue pre-qualifies silently — bad matches never appear</div><div class="sh-sub">Before the Orgnz sees any results, Cue runs hard filters. Venues that fail don't appear at all.</div></div>
+  </div>
+  <div class="filter-legend">
+    <div class="fl-item"><div class="fl-dot" style="background:var(--teal)"></div>Passes all filters</div>
+    <div class="fl-item"><div class="fl-dot" style="background:var(--cor)"></div>Filtered out — not shown</div>
+  </div>
+  <div class="ui-mock">
+    <div class="um-bar">Venue results — 247 guests · Apr 19, 2026 · Wedding · $25K</div>
+    <div class="um-body">
+      <div class="venue-card selected">
+        <div class="vc-top">
+          <div class="vc-av" style="background:var(--tl);color:var(--tt)">TP</div>
+          <div><div class="vc-name">The Pearl at Stoneleigh</div><div class="vc-meta">280 capacity · $5,000–$8,000 · Deep Ellum</div></div>
+        </div>
+        <div class="vc-badges"><span class="vcb vcb-match">Capacity match</span><span class="vcb vcb-match">Budget match</span><span class="vcb vcb-avail">Apr 19 available</span></div>
+      </div>
+      <div class="venue-card">
+        <div class="vc-top">
+          <div class="vc-av" style="background:var(--tl);color:var(--tt)">KH</div>
+          <div><div class="vc-name">Knotting Hill Place</div><div class="vc-meta">300 capacity · $4,500–$7,500 · Little Elm</div></div>
+        </div>
+        <div class="vc-badges"><span class="vcb vcb-match">Capacity match</span><span class="vcb vcb-match">Budget match</span><span class="vcb vcb-avail">Apr 19 available</span></div>
+      </div>
+      <div class="venue-card filtered">
+        <div class="vc-top">
+          <div class="vc-av" style="background:rgba(255,255,255,0.08);color:var(--txt3)">SR</div>
+          <div><div class="vc-name">Stoneleigh Rose</div><div class="vc-meta">120 capacity · $3,000–$5,000 · Uptown</div></div>
+        </div>
+        <div class="vc-reason">Filtered — capacity 120 is below your guest count of 247</div>
+      </div>
+      <div class="venue-card filtered">
+        <div class="vc-top">
+          <div class="vc-av" style="background:rgba(255,255,255,0.08);color:var(--txt3)">DB</div>
+          <div><div class="vc-name">The Dallas Ballroom</div><div class="vc-meta">400 capacity · $12,000–$18,000 · Downtown</div></div>
+        </div>
+        <div class="vc-reason">Filtered — minimum spend exceeds your $25K budget</div>
+      </div>
+    </div>
+  </div>
+  <div class="insight"><b>Hard filters applied silently:</b> guest count vs capacity · budget vs pricing tier · date vs availability calendar · event type vs venue restrictions. Venues that fail any hard filter are invisible to the Orgnz. They never know they were filtered — no awkward declines on obvious mismatches.</div>
+  <div class="nav-row"><div class="nav-btn" onclick="goStep(1)">&lsaquo; Back</div><div class="nav-btn primary" onclick="goStep(3)">Next — shortlist cap &rsaquo;</div></div>
+</div>
+
+<!-- STEP 3 -->
+<div class="panel active" id="p3">
+  <div class="step-header">
+    <div class="sh-num" style="background:var(--rl);border:1px solid var(--rb);color:var(--rt)">3</div>
+    <div><div class="sh-title">Orgnz shortlists — maximum 3 simultaneous inquiries</div><div class="sh-sub">Can't blast 15 venues at once. Max 3 active inquiries per event. Want a 4th? One must be withdrawn first.</div></div>
+  </div>
+  <div class="inquiry-limit">
+    <div class="il-title">Active inquiry slots — Garza Wedding</div>
+    <div class="il-slots">
+      <div class="il-slot filled">The Pearl</div>
+      <div class="il-slot filled2">Knotting Hill</div>
+      <div class="il-slot empty">+ Add venue</div>
+    </div>
+    <div class="il-note">2 of 3 slots used · 1 remaining · Withdraw an inquiry to free a slot</div>
+  </div>
+  <div class="cue-bar">
+    <div class="cue-dot"><svg viewBox="0 0 8 8" width="8" height="8" style="width:8px;height:8px"><circle cx="4" cy="4" r="3" fill="#D4778A"/><circle cx="4" cy="4" r="1.5" fill="#F9E4EA"/><circle cx="4" cy="4" r=".5" fill="#fff"/></svg></div>
+    <div class="cue-txt"><b>Cue —</b> You have one slot left. Based on your mood board and budget, Venue at Knotting Hill Place ranks highest for your style. Want to add them?</div>
+  </div>
+  <div class="insight"><b>Why the cap exists:</b> Venues talk to each other. A venue that gets carpet-bombed by platform inquiries that never convert will leave the platform. The 3-inquiry cap forces intentional choices and keeps conversion rates high — which keeps venues happy to be listed.</div>
+  <div class="nav-row"><div class="nav-btn" onclick="goStep(2)">&lsaquo; Back</div><div class="nav-btn primary" onclick="goStep(4)">Next — structured inquiry &rsaquo;</div></div>
+</div>
+
+<!-- STEP 4 -->
+<div class="panel" id="p4">
+  <div class="step-header">
+    <div class="sh-num" style="background:var(--rl);border:1px solid var(--rb);color:var(--rt)">4</div>
+    <div><div class="sh-title">Inquiry is structured — not a blank message</div><div class="sh-sub">The venue receives a pre-populated card with everything needed to decide in under 2 minutes.</div></div>
+  </div>
+  <div class="inq-card">
+    <div class="inq-header">
+      <div class="inq-title">Inquiry received — Garza Wedding</div>
+      <div class="inq-meta">Sent via EvntCue · Apr 23, 2026 · 2:14 PM</div>
+    </div>
+    <div class="inq-body">
+      <div class="inq-row"><span class="inq-key">Event date</span><span class="inq-val">Saturday, Apr 19, 2026</span></div>
+      <div class="inq-row"><span class="inq-key">Event type</span><span class="inq-val">Wedding</span></div>
+      <div class="inq-row"><span class="inq-key">Guest count</span><span class="inq-val">247 confirmed</span></div>
+      <div class="inq-row"><span class="inq-key">Budget range</span><span class="inq-val">$20,000 – $28,000</span></div>
+      <div class="inq-row"><span class="inq-key">Plnr assigned</span><span class="inq-val">Yes — Marisol Vega (Pro)</span></div>
+      <div class="inq-row"><span class="inq-key">Mood board</span><span class="inq-val">Dusty rose · garden · candlelight</span></div>
+      <div class="inq-row"><span class="inq-key">Orgnz verified</span><span class="inq-val">Identity confirmed ✓</span></div>
+      <div class="inq-note">"We fell in love with your garden terrace. Looking for a venue that feels intimate even at scale."</div>
+    </div>
+  </div>
+  <div class="insight"><b>No blank messages:</b> Every field is auto-populated from the event record. The personal note is optional and capped at 280 characters. The venue knows exactly who is inquiring, what they need, and whether they can deliver — before typing a single word in response.</div>
+  <div class="nav-row"><div class="nav-btn" onclick="goStep(3)">&lsaquo; Back</div><div class="nav-btn primary" onclick="goStep(5)">Next — 24hr response window &rsaquo;</div></div>
+</div>
+
+<!-- STEP 5 -->
+<div class="panel" id="p5">
+  <div class="step-header">
+    <div class="sh-num" style="background:var(--al);border:1px solid var(--ab);color:var(--at)">5</div>
+    <div><div class="sh-title">Venue has 24 hours to respond</div><div class="sh-sub">Accept · Decline · Request more info. No response = auto-expire. Slow responders lose ranking.</div></div>
+  </div>
+  <div class="timer-card">
+    <div class="tc-num">18:42</div>
+    <div class="tc-info">
+      <div class="tc-label">Hours remaining to respond</div>
+      <div class="tc-sub">Auto-expires if no action taken · Orgnz notified · next match surfaced</div>
+      <div class="tc-bar"><div class="tc-fill" style="width:78%"></div></div>
+    </div>
+  </div>
+  <div class="response-cards">
+    <div class="rc accept">
+      <div class="rc-icon" style="background:var(--tb);color:var(--tt)">✓</div>
+      <div class="rc-body"><div class="rc-title" style="color:var(--tt)">Accept — creates soft hold</div><div class="rc-sub" style="color:rgba(94,234,212,0.65)">Date is held for 48 hours · Orgnz reviews proposal</div></div>
+    </div>
+    <div class="rc decline">
+      <div class="rc-icon" style="background:var(--cb);color:var(--ct)">✕</div>
+      <div class="rc-body"><div class="rc-title" style="color:var(--ct)">Decline — with reason</div><div class="rc-sub" style="color:rgba(253,186,74,0.65)">Cue learns the reason · improves future matching</div></div>
+    </div>
+    <div class="rc info">
+      <div class="rc-icon" style="background:var(--rb);color:var(--rt)">?</div>
+      <div class="rc-body"><div class="rc-title" style="color:var(--rt)">Request info — one follow-up allowed</div><div class="rc-sub" style="color:rgba(232,160,176,0.65)">Clock pauses for 4 hours · Orgnz responds in-platform</div></div>
+    </div>
+  </div>
+  <div class="insight"><b>Ranking consequence:</b> Venues with response rates below 70% within 24 hours see their search position drop automatically. No manual admin needed. The market enforces responsiveness.</div>
+  <div class="nav-row"><div class="nav-btn" onclick="goStep(4)">&lsaquo; Back</div><div class="nav-btn primary" onclick="goStep(6)">Next — soft hold &rsaquo;</div></div>
+</div>
+
+<!-- STEP 6 -->
+<div class="panel" id="p6">
+  <div class="step-header">
+    <div class="sh-num" style="background:var(--al);border:1px solid var(--ab);color:var(--at)">6</div>
+    <div><div class="sh-title">Acceptance creates soft hold — not a booking</div><div class="sh-sub">Date is protected for 48 hours while Orgnz reviews. If no deposit — hold releases automatically.</div></div>
+  </div>
+  <div class="hold-card">
+    <div class="hc-title">Soft hold — The Pearl at Stoneleigh</div>
+    <div class="hc-row"><span class="hc-key">Date held</span><span class="hc-val">Apr 19, 2026</span></div>
+    <div class="hc-row"><span class="hc-key">Hold expires</span><span class="hc-val">Apr 25, 2026 · 2:14 PM</span></div>
+    <div class="hc-row"><span class="hc-key">Status to other Orgnzs</span><span class="hc-val">Pending — not bookable</span></div>
+    <div class="hc-row"><span class="hc-key">Status on venue calendar</span><span class="hc-val">Pending (amber)</span></div>
+    <div class="hc-row"><span class="hc-key">If deposit paid</span><span class="hc-val">Converts to confirmed</span></div>
+    <div class="hc-row"><span class="hc-key">If 48hrs expire</span><span class="hc-val">Hold releases · next Orgnz can book</span></div>
+  </div>
+  <div class="insight"><b>What the venue sees:</b> A pending booking on their calendar in amber. They know it's real — the platform pre-qualified this Orgnz, and a deposit is coming or the hold releases. No chasing. No "just checking in" messages. The timer does the work.</div>
+  <div class="nav-row"><div class="nav-btn" onclick="goStep(5)">&lsaquo; Back</div><div class="nav-btn primary" onclick="goStep(7)">Next — deposit &rsaquo;</div></div>
+</div>
+
+<!-- STEP 7 -->
+<div class="panel" id="p7">
+  <div class="step-header">
+    <div class="sh-num" style="background:var(--tl);border:1px solid var(--tb);color:var(--tt)">7</div>
+    <div><div class="sh-title">Deposit confirms the booking — venue gate fires</div><div class="sh-sub">Money moves. Booking is confirmed. All other vendor categories unlock simultaneously.</div></div>
+  </div>
+  <div class="deposit-card">
+    <div class="dc-title">Deposit payment — The Pearl at Stoneleigh</div>
+    <div class="dc-row"><span class="dc-key">Venue rental</span><span class="dc-val">$6,000.00</span></div>
+    <div class="dc-row"><span class="dc-key">Deposit required (30%)</span><span class="dc-val">$1,800.00</span></div>
+    <div class="dc-row"><span class="dc-key">Stripe processing fee</span><span class="dc-val">$52.50</span></div>
+    <div class="dc-row"><span class="dc-key">EvntCue platform fee (2.5%)</span><span class="dc-val">$45.00</span></div>
+    <div class="dc-row"><span class="dc-key">Orgnz pays today</span><span class="dc-val">$1,852.50</span></div>
+    <div class="dc-row"><span class="dc-key">Venue receives</span><span class="dc-val">$1,702.50</span></div>
+    <div class="dc-row"><span class="dc-key">Remaining balance due</span><span class="dc-val">$4,200 · 30 days before event</span></div>
+    <button class="dc-btn" onclick="goStep(8)">Pay deposit and confirm venue →</button>
+  </div>
+  <div class="insight"><b>The venue gate:</b> The moment this deposit clears, every vendor category card on the Orgnz dashboard unlocks simultaneously. Photography, Catr, Florals, AV, Entertainment — all open for inquiry at once. The gate isn't a feature. It's the architecture. Nothing meaningful can happen until a venue is confirmed.</div>
+  <div class="nav-row"><div class="nav-btn" onclick="goStep(6)">&lsaquo; Back</div></div>
+</div>
+
+<!-- STEP 8 -->
+<div class="panel" id="p8">
+  <div class="step-header">
+    <div class="sh-num" style="background:var(--tl);border:1px solid var(--tb);color:var(--tt)">8</div>
+    <div><div class="sh-title">Booking confirmed — vendor categories unlock · quality score updates</div><div class="sh-sub">Everything fires at once. The venue's conversion rate goes up. The platform gets smarter.</div></div>
+  </div>
+  <div class="unlock-card">
+    <div class="uc-title">Vendor categories — now open for Garza Wedding</div>
+    <div class="vendor-cats">
+      <div class="vcat unlocked"><div class="vcat-dot" style="background:var(--teal)"></div>Venue ✓ confirmed</div>
+      <div class="vcat unlocked"><div class="vcat-dot" style="background:var(--teal)"></div>Catr — open</div>
+      <div class="vcat unlocked"><div class="vcat-dot" style="background:var(--teal)"></div>Photography — open</div>
+      <div class="vcat unlocked"><div class="vcat-dot" style="background:var(--teal)"></div>Entertainment — open</div>
+      <div class="vcat unlocked"><div class="vcat-dot" style="background:var(--teal)"></div>Florals — open</div>
+      <div class="vcat unlocked"><div class="vcat-dot" style="background:var(--teal)"></div>Videography — open</div>
+      <div class="vcat unlocked"><div class="vcat-dot" style="background:var(--teal)"></div>Cake — open</div>
+      <div class="vcat unlocked"><div class="vcat-dot" style="background:var(--teal)"></div>Music — open</div>
+    </div>
+  </div>
+  <div class="score-card">
+    <div class="sc-title">The Pearl — inquiry quality score (updates after this booking)</div>
+    <div class="sc-bar-row"><div class="sc-label">Response rate</div><div class="sc-track"><div class="sc-fill" style="width:92%;background:var(--teal)"></div></div><div class="sc-val">92%</div></div>
+    <div class="sc-bar-row"><div class="sc-label">Conversion rate</div><div class="sc-track"><div class="sc-fill" style="width:78%;background:var(--teal)"></div></div><div class="sc-val">78%</div></div>
+    <div class="sc-bar-row"><div class="sc-label">Avg response time</div><div class="sc-track"><div class="sc-fill" style="width:85%;background:var(--amb)"></div></div><div class="sc-val">4.2h</div></div>
+    <div class="sc-bar-row"><div class="sc-label">Guest satisfaction</div><div class="sc-track"><div class="sc-fill" style="width:96%;background:var(--teal)"></div></div><div class="sc-val">4.8★</div></div>
+  </div>
+  <div class="insight"><b>The flywheel:</b> Every confirmed booking improves the venue's quality score. High scores = better search placement. Better placement = more qualified inquiries. More qualified inquiries = higher conversion. The platform earns trust from venues by making their time valuable — not by flooding them with noise.</div>
+  <div class="nav-row"><div class="nav-btn" onclick="goStep(1)">Start over — Step 1</div><div class="nav-btn primary" onclick="goStep(1)">View from beginning &rsaquo;</div></div>
+</div>
+
+</div>
+</div>
+
+<script>
+let current=3;
+function goStep(n){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById('p'+n).classList.add('active');
+  const items=document.querySelectorAll('.sn-item');
+  items.forEach((item,i)=>{
+    item.classList.remove('active','done','alert-step');
+    const step=i+1;
+    if(step<n)item.classList.add('done');
+    else if(step===n)item.classList.add('active');
+  });
+  current=n;
+}
+goStep(3);
+</script>

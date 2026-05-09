@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>EvntCue</title>
+<link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300;400;500&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --ink:#010204;
+  --rose:#D4778A;--rose-l:rgba(212,119,138,0.13);--rose-b:rgba(212,119,138,0.42);
+  --teal:#1A9E82;--teal-l:rgba(26,158,130,0.12);--teal-b:rgba(26,158,130,0.42);
+  --amber:#C9A84C;--amber-l:rgba(201,168,76,0.12);--amber-b:rgba(201,168,76,0.42);
+  --violet:#9B7FE8;--violet-l:rgba(155,127,232,0.12);--violet-b:rgba(155,127,232,0.42);
+  --coral:#E8622A;--coral-l:rgba(232,98,42,0.12);--coral-b:rgba(232,98,42,0.42);
+  --blue:#378ADD;--blue-l:rgba(55,138,221,0.12);--blue-b:rgba(55,138,221,0.42);
+  --txt:rgba(255,255,255,0.85);--txt2:rgba(255,255,255,0.5);--txt3:rgba(255,255,255,0.25);
+  --fn:'DM Sans',sans-serif;--fd:'Cormorant Garamond',serif;--mono:'DM Mono',monospace;
+}
+html,body{width:100%;height:100%;background:var(--ink);font-family:var(--fn);color:var(--txt);overflow:hidden}
+
+/* ===== BACKGROUND — nearly pure black ===== */
+.bg{position:absolute;inset:0;z-index:0;overflow:hidden}
+.bg-grad{position:absolute;inset:0;background:radial-gradient(ellipse 55% 45% at 50% 50%,#070B14 0%,#010204 60%,#000103 100%)}
+.bg-grid{position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,0.01) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.01) 1px,transparent 1px);background-size:60px 60px;mask-image:radial-gradient(ellipse 55% 55% at 50% 50%,black 0%,transparent 100%)}
+.bg-glow-l{position:absolute;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,rgba(155,127,232,0.035),transparent 70%);left:-80px;top:50%;transform:translateY(-50%)}
+.bg-glow-r{position:absolute;width:380px;height:380px;border-radius:50%;background:radial-gradient(circle,rgba(26,158,130,0.03),transparent 70%);right:-80px;top:50%;transform:translateY(-50%)}
+.bg-glow-c{position:absolute;width:480px;height:480px;border-radius:50%;background:radial-gradient(circle,rgba(212,119,138,0.025),transparent 65%);left:50%;top:50%;transform:translate(-50%,-50%)}
+.bg-scan{position:absolute;left:0;right:0;height:1px;background:linear-gradient(to right,transparent,rgba(212,119,138,0.08),transparent);animation:scan 12s ease-in-out infinite}
+@keyframes scan{0%,100%{top:10%;opacity:0}20%{opacity:1}80%{opacity:1}to{top:90%;opacity:0}}
+
+/* ===== STARS — sparse, ~30 only ===== */
+.starfield{position:absolute;inset:0;pointer-events:none;z-index:1}
+.star{position:absolute;border-radius:50%;background:#fff;animation:tw var(--d) ease-in-out infinite var(--dl)}
+@keyframes tw{0%,100%{opacity:var(--lo)}50%{opacity:var(--hi)}}
+
+/* ===== RINGS ===== */
+.ring{position:absolute;border-radius:50%;border:0.5px solid;pointer-events:none;z-index:2;left:50%;top:50%;transform:translate(-50%,-50%)}
+.r1{width:120px;height:120px;border-color:rgba(255,255,255,0.045);animation:rp 5s ease-in-out infinite}
+.r2{width:220px;height:220px;border-color:rgba(255,255,255,0.025);animation:rp 5s ease-in-out infinite 1.4s}
+.r3{width:360px;height:360px;border-color:rgba(255,255,255,0.015);animation:rp 5s ease-in-out infinite 2.8s}
+@keyframes rp{0%,100%{transform:translate(-50%,-50%) scale(1);opacity:.5}50%{transform:translate(-50%,-50%) scale(1.025);opacity:.9}}
+
+/* ===== CENTER ===== */
+.scene{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;z-index:10}
+.center-block{display:flex;flex-direction:column;align-items:center;pointer-events:none;user-select:none}
+.logo-line{display:flex;align-items:center}
+.logo-evnt{font-family:var(--fd);font-size:clamp(44px,6vw,72px);font-weight:300;color:#E8A0B0;letter-spacing:.04em;line-height:1}
+.logo-cue{font-family:var(--fd);font-size:clamp(44px,6vw,72px);font-weight:300;color:#fff;letter-spacing:.04em;line-height:1}
+.tagline{font-family:var(--mono);font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--txt3);margin-top:10px}
+
+/* ===== PORTALS ===== */
+.portals{position:absolute;inset:0;z-index:20;pointer-events:none}
+.portal{position:absolute;transform:translate(-50%,-50%);pointer-events:all;cursor:pointer;display:flex;flex-direction:column;align-items:center}
+.pnode{width:62px;height:62px;border-radius:50%;border:1px solid;display:flex;align-items:center;justify-content:center;background:rgba(1,2,4,0.93);backdrop-filter:blur(14px);transition:all .35s cubic-bezier(.25,.8,.25,1);position:relative}
+.pnode::after{content:'';position:absolute;inset:-14px;border-radius:50%;opacity:0;transition:opacity .35s;pointer-events:none}
+.portal:hover .pnode{transform:scale(1.13)}
+.portal:hover .pnode::after{opacity:1}
+.portal:hover .pnode svg{transform:scale(1.08)}
+.pnode svg{transition:transform .35s}
+.plabel{font-family:var(--mono);font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;margin-top:9px;transition:all .3s}
+.psub{font-family:var(--fn);font-size:8.5px;color:var(--txt3);margin-top:3px;opacity:0;transition:all .3s;transform:translateY(4px);white-space:nowrap}
+.portal:hover .psub{opacity:1;transform:translateY(0)}
+
+/* ===== CLOCK POSITIONS — NOT a pentagram =====
+   Think of a clock face, offset so no point sits at top or bottom-symmetry.
+   1 o'clock  → Orgnz  (rose)
+   4 o'clock  → Vndr   (coral/orange)
+   6:30       → Venue  (blue)
+   9 o'clock  → Catr   (amber/gold)
+   11 o'clock → Plnr   (teal)
+   This gives an irregular, organic feel — no star shape readable.
+*/
+.p-orgnz{left:25%;top:22%}
+.p-vndr {left:83%;top:54%}
+.p-venue{left:57%;top:80%}
+.p-catr {left:20%;top:65%}
+.p-plnr {left:67%;top:19%}
+
+.p-orgnz .pnode{border-color:var(--rose-b)}.p-orgnz .pnode::after{background:radial-gradient(circle,var(--rose-l),transparent 60%)}.p-orgnz .plabel{color:var(--rose)}
+.p-plnr  .pnode{border-color:var(--teal-b)}.p-plnr  .pnode::after{background:radial-gradient(circle,var(--teal-l),transparent 60%)}.p-plnr  .plabel{color:var(--teal)}
+.p-vndr  .pnode{border-color:var(--coral-b)}.p-vndr  .pnode::after{background:radial-gradient(circle,var(--coral-l),transparent 60%)}.p-vndr  .plabel{color:var(--coral)}
+.p-catr  .pnode{border-color:var(--amber-b)}.p-catr  .pnode::after{background:radial-gradient(circle,var(--amber-l),transparent 60%)}.p-catr  .plabel{color:var(--amber)}
+.p-venue .pnode{border-color:var(--blue-b)}.p-venue .pnode::after{background:radial-gradient(circle,var(--blue-l),transparent 60%)}.p-venue .plabel{color:var(--blue)}
+
+.constellation{position:absolute;inset:0;pointer-events:none;z-index:5;overflow:visible}
+
+/* ===== CUE PILL ===== */
+.cue-pill{position:absolute;top:22px;right:24px;z-index:30;display:flex;align-items:center;gap:7px;padding:6px 16px;border-radius:100px;border:0.5px solid rgba(212,119,138,0.25);background:rgba(1,2,4,0.55);cursor:pointer;transition:all .25s;backdrop-filter:blur(14px)}
+.cue-pill:hover{border-color:rgba(212,119,138,0.5);background:rgba(212,119,138,0.08)}
+.cdot{width:6px;height:6px;border-radius:50%;background:var(--rose);animation:tw 1.6s ease-in-out infinite;--lo:.5;--hi:1;--d:1.6s;--dl:0s}
+.clbl{font-family:var(--mono);font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--rose)}
+
+/* ===== MODAL ===== */
+.modal-bg{position:fixed;inset:0;background:rgba(1,2,4,0.92);z-index:100;display:flex;align-items:center;justify-content:center;opacity:0;pointer-events:none;transition:opacity .3s;backdrop-filter:blur(20px)}
+.modal-bg.open{opacity:1;pointer-events:all}
+.modal{background:#080D18;border:1px solid;border-radius:18px;padding:36px;width:min(460px,92vw);transform:translateY(18px) scale(.97);transition:all .3s cubic-bezier(.25,.8,.25,1);position:relative;overflow:hidden}
+.modal::before{content:'';position:absolute;inset:0;background:linear-gradient(135deg,rgba(255,255,255,0.012),transparent 50%);pointer-events:none}
+.modal-bg.open .modal{transform:translateY(0) scale(1)}
+.modal-x{position:absolute;top:14px;right:16px;background:none;border:none;color:var(--txt3);font-size:20px;cursor:pointer;transition:color .2s;font-family:inherit}
+.modal-x:hover{color:var(--txt)}
+.m-icon-wrap{margin-bottom:14px}
+.m-title{font-family:var(--fd);font-size:34px;font-weight:400;color:#fff;margin-bottom:4px;line-height:1}
+.m-sub{font-family:var(--mono);font-size:10px;letter-spacing:.18em;text-transform:uppercase;margin-bottom:18px}
+.m-body{font-size:14px;color:var(--txt2);line-height:1.78;margin-bottom:20px}
+.m-features{display:flex;flex-direction:column;gap:9px;margin-bottom:26px}
+.mf{display:flex;gap:10px;font-size:13px;color:var(--txt2);align-items:flex-start}
+.mf-dot{width:5px;height:5px;border-radius:50%;flex-shrink:0;margin-top:5px}
+.m-cta{width:100%;padding:14px;border-radius:10px;border:1px solid;font-size:14px;font-weight:500;cursor:pointer;font-family:var(--fn);background:transparent;letter-spacing:.05em;transition:all .22s}
+.m-cta:hover{filter:brightness(1.15);transform:translateY(-1px)}
+
+@keyframes portalin{from{opacity:0;transform:translate(-50%,-50%) scale(.72)}to{opacity:1;transform:translate(-50%,-50%) scale(1)}}
+.portal{animation:portalin .75s cubic-bezier(.25,.8,.25,1) both}
+.p-orgnz{animation-delay:.28s}.p-plnr{animation-delay:.12s}.p-vndr{animation-delay:.22s}.p-catr{animation-delay:.38s}.p-venue{animation-delay:.32s}
+@keyframes fadein{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+@keyframes fadein2{from{opacity:0}to{opacity:1}}
+.center-block{animation:fadein .95s ease both .06s}
+.cue-pill{animation:fadein2 .95s ease both .55s}
+</style>
+</head>
+<body>
+<div style="position:relative;width:100%;height:100vh;overflow:hidden">
+
+<div class="bg">
+  <div class="bg-grad"></div><div class="bg-grid"></div>
+  <div class="bg-glow-l"></div><div class="bg-glow-r"></div><div class="bg-glow-c"></div>
+  <div class="bg-scan"></div>
+</div>
+
+<div class="starfield" id="sf"></div>
+<div class="ring r1"></div><div class="ring r2"></div><div class="ring r3"></div>
+<svg class="constellation" id="clines" xmlns="http://www.w3.org/2000/svg"></svg>
+
+<!-- CENTER LOGO -->
+<div class="scene">
+  <div class="center-block">
+    <div class="logo-line" style="margin-top:4px">
+      <span class="logo-evnt">Evnt</span><span class="logo-cue">Cue</span>
+    </div>
+    <div class="tagline">AI · Bringing people together</div>
+  </div>
+</div>
+
+<!-- PORTALS -->
+<div class="portals">
+
+  <!-- ORGNZ — rose — pentagon with inner web (same as logo mark, rose color) -->
+  <div class="portal p-orgnz" onclick="openModal('orgnz')">
+    <div class="pnode">
+      <svg viewBox="0 0 44 44" width="34" height="34" xmlns="http://www.w3.org/2000/svg">
+        <line x1="22" y1="5"  x2="38" y2="22" stroke="#D4778A" stroke-width="1" stroke-opacity=".55"/>
+        <line x1="38" y1="22" x2="22" y2="39" stroke="#D4778A" stroke-width="1" stroke-opacity=".55"/>
+        <line x1="22" y1="39" x2="6"  y2="22" stroke="#D4778A" stroke-width="1" stroke-opacity=".55"/>
+        <line x1="6"  y1="22" x2="22" y2="5"  stroke="#D4778A" stroke-width="1" stroke-opacity=".55"/>
+        <line x1="22" y1="5"  x2="22" y2="39" stroke="#D4778A" stroke-width=".5" stroke-opacity=".2"/>
+        <line x1="6"  y1="22" x2="38" y2="22" stroke="#D4778A" stroke-width=".5" stroke-opacity=".2"/>
+        <circle cx="38" cy="22" r="2"   fill="#D4778A" opacity=".75"/>
+        <circle cx="22" cy="39" r="2"   fill="#D4778A" opacity=".75"/>
+        <circle cx="6"  cy="22" r="2"   fill="#D4778A" opacity=".75"/>
+        <circle cx="22" cy="5"  r="4.5" fill="none" stroke="#E8A0B0" stroke-width=".9" opacity=".38"/>
+        <circle cx="22" cy="5"  r="2.8" fill="#E8A0B0"/>
+        <circle cx="22" cy="5"  r="1.5" fill="#F9E4EA"/>
+        <circle cx="22" cy="5"  r=".7"  fill="#fff"/>
+      </svg>
+    </div>
+    <div class="plabel">Orgnz</div>
+    <div class="psub">Plan your event</div>
+  </div>
+
+  <!-- PLNR — teal — pentagon (same shape, teal palette) -->
+  <div class="portal p-plnr" onclick="openModal('plnr')">
+    <div class="pnode">
+      <svg viewBox="0 0 44 44" width="34" height="34" xmlns="http://www.w3.org/2000/svg">
+        <!-- Compass rose: 4 long cardinal rays + 4 shorter diagonal rays -->
+        <!-- Center 22,22. Cardinals reach 22,5 / 39,22 / 22,39 / 5,22 -->
+        <!-- Diagonals reach 35,9 / 35,35 / 9,35 / 9,9 -->
+        <!-- Plus two inner ring dots at mid-radius on cardinals -->
+        <line x1="22" y1="22" x2="22" y2="5"  stroke="#1A9E82" stroke-width="1.1" stroke-opacity=".6"/>
+        <line x1="22" y1="22" x2="39" y2="22" stroke="#1A9E82" stroke-width="1.1" stroke-opacity=".55"/>
+        <line x1="22" y1="22" x2="22" y2="39" stroke="#1A9E82" stroke-width="1.1" stroke-opacity=".55"/>
+        <line x1="22" y1="22" x2="5"  y2="22" stroke="#1A9E82" stroke-width="1.1" stroke-opacity=".55"/>
+        <line x1="22" y1="22" x2="35" y2="9"  stroke="#1A9E82" stroke-width=".65" stroke-opacity=".3"/>
+        <line x1="22" y1="22" x2="35" y2="35" stroke="#1A9E82" stroke-width=".65" stroke-opacity=".3"/>
+        <line x1="22" y1="22" x2="9"  y2="35" stroke="#1A9E82" stroke-width=".65" stroke-opacity=".3"/>
+        <line x1="22" y1="22" x2="9"  y2="9"  stroke="#1A9E82" stroke-width=".65" stroke-opacity=".3"/>
+        <!-- Ring at mid-radius to give compass-circle feel -->
+        <circle cx="22" cy="22" r="10" fill="none" stroke="#1A9E82" stroke-width=".5" stroke-opacity=".2"/>
+        <!-- Cardinal mid-dots on the ring -->
+        <circle cx="22" cy="12" r="1.4" fill="#9FE1CB" opacity=".6"/>
+        <circle cx="32" cy="22" r="1.4" fill="#9FE1CB" opacity=".6"/>
+        <circle cx="22" cy="32" r="1.4" fill="#9FE1CB" opacity=".6"/>
+        <circle cx="12" cy="22" r="1.4" fill="#9FE1CB" opacity=".6"/>
+        <!-- Outer satellite dots at cardinal tips -->
+        <circle cx="39" cy="22" r="1.8" fill="#9FE1CB" opacity=".75"/>
+        <circle cx="22" cy="39" r="1.8" fill="#9FE1CB" opacity=".75"/>
+        <circle cx="5"  cy="22" r="1.8" fill="#9FE1CB" opacity=".75"/>
+        <!-- Lead dot triple-ring at top (N) -->
+        <circle cx="22" cy="5"  r="4.5" fill="none" stroke="#1A9E82" stroke-width=".9" opacity=".4"/>
+        <circle cx="22" cy="5"  r="2.8" fill="#1A9E82"/>
+        <circle cx="22" cy="5"  r="1.5" fill="#9FE1CB"/>
+        <circle cx="22" cy="5"  r=".7"  fill="#fff"/>
+      </svg>
+    </div>
+    <div class="plabel">Plnr</div>
+    <div class="psub">You run the whole show</div>
+  </div>
+
+  <!-- VNDR — coral/orange — fork shape: 3 prongs up, handle down -->
+  <div class="portal p-vndr" onclick="openModal('vndr')">
+    <div class="pnode">
+      <svg viewBox="0 0 44 44" width="34" height="34" xmlns="http://www.w3.org/2000/svg">
+        <line x1="22" y1="6"  x2="22" y2="22" stroke="#E8622A" stroke-width="1.2" stroke-opacity=".6"/>
+        <line x1="22" y1="22" x2="10" y2="38" stroke="#E8622A" stroke-width="1" stroke-opacity=".55"/>
+        <line x1="22" y1="22" x2="22" y2="38" stroke="#E8622A" stroke-width="1" stroke-opacity=".55"/>
+        <line x1="22" y1="22" x2="34" y2="38" stroke="#E8622A" stroke-width="1" stroke-opacity=".55"/>
+        <line x1="10" y1="28" x2="34" y2="28" stroke="#E8622A" stroke-width=".8" stroke-opacity=".3"/>
+        <circle cx="10" cy="38" r="2"   fill="#F5A882" opacity=".8"/>
+        <circle cx="22" cy="38" r="2"   fill="#F5A882" opacity=".75"/>
+        <circle cx="34" cy="38" r="2"   fill="#F5A882" opacity=".8"/>
+        <circle cx="22" cy="6"  r="4.5" fill="none" stroke="#E8622A" stroke-width=".9" opacity=".4"/>
+        <circle cx="22" cy="6"  r="2.8" fill="#E8622A"/>
+        <circle cx="22" cy="6"  r="1.5" fill="#F5A882"/>
+        <circle cx="22" cy="6"  r=".7"  fill="#fff"/>
+      </svg>
+    </div>
+    <div class="plabel">Vndr</div>
+    <div class="psub">Your craft · your bookings</div>
+  </div>
+
+  <!-- CATR — amber/gold — triangle with inner lines -->
+  <div class="portal p-catr" onclick="openModal('catr')">
+    <div class="pnode">
+      <svg viewBox="0 0 44 44" width="34" height="34" xmlns="http://www.w3.org/2000/svg">
+        <!-- Triangle outer -->
+        <line x1="22" y1="5"  x2="38" y2="37" stroke="#C9A84C" stroke-width="1" stroke-opacity=".55"/>
+        <line x1="38" y1="37" x2="6"  y2="37" stroke="#C9A84C" stroke-width="1" stroke-opacity=".55"/>
+        <line x1="6"  y1="37" x2="22" y2="5"  stroke="#C9A84C" stroke-width="1" stroke-opacity=".55"/>
+        <!-- Inner altitude lines -->
+        <line x1="22" y1="5"  x2="22" y2="37" stroke="#C9A84C" stroke-width=".5" stroke-opacity=".2"/>
+        <line x1="6"  y1="37" x2="30" y2="21" stroke="#C9A84C" stroke-width=".5" stroke-opacity=".14"/>
+        <line x1="38" y1="37" x2="14" y2="21" stroke="#C9A84C" stroke-width=".5" stroke-opacity=".14"/>
+        <!-- Corner dots -->
+        <circle cx="38" cy="37" r="2" fill="#F0D88A" opacity=".8"/>
+        <circle cx="6"  cy="37" r="2" fill="#F0D88A" opacity=".8"/>
+        <!-- Lead dot triple-ring at apex -->
+        <circle cx="22" cy="5" r="4.5" fill="none" stroke="#C9A84C" stroke-width=".9" opacity=".4"/>
+        <circle cx="22" cy="5" r="2.8" fill="#C9A84C"/>
+        <circle cx="22" cy="5" r="1.5" fill="#F0D88A"/>
+        <circle cx="22" cy="5" r=".7"  fill="#fff"/>
+      </svg>
+    </div>
+    <div class="plabel">Catr</div>
+    <div class="psub">Food · beverage · service</div>
+  </div>
+
+  <!-- VENUE — blue — arch shape: curved top, two pillars, crossbar -->
+  <div class="portal p-venue" onclick="openModal('venue')">
+    <div class="pnode">
+      <svg viewBox="0 0 44 44" width="34" height="34" xmlns="http://www.w3.org/2000/svg">
+        <!-- Left pillar -->
+        <line x1="10" y1="38" x2="10" y2="18" stroke="#378ADD" stroke-width="1" stroke-opacity=".55"/>
+        <!-- Right pillar -->
+        <line x1="34" y1="38" x2="34" y2="18" stroke="#378ADD" stroke-width="1" stroke-opacity=".55"/>
+        <!-- Arch top as polyline approximation -->
+        <polyline points="10,18 12,13 16,9 22,7 28,9 32,13 34,18" fill="none" stroke="#378ADD" stroke-width="1" stroke-opacity=".55"/>
+        <!-- Cross-bar -->
+        <line x1="10" y1="26" x2="34" y2="26" stroke="#378ADD" stroke-width=".8" stroke-opacity=".35"/>
+        <!-- Diagonal inner lines for constellation feel -->
+        <line x1="10" y1="18" x2="22" y2="7"  stroke="#378ADD" stroke-width=".5" stroke-opacity=".18"/>
+        <line x1="34" y1="18" x2="22" y2="7"  stroke="#378ADD" stroke-width=".5" stroke-opacity=".18"/>
+        <line x1="10" y1="38" x2="34" y2="26" stroke="#378ADD" stroke-width=".5" stroke-opacity=".14"/>
+        <line x1="34" y1="38" x2="10" y2="26" stroke="#378ADD" stroke-width=".5" stroke-opacity=".14"/>
+        <!-- Pillar base dots -->
+        <circle cx="10" cy="38" r="2" fill="#B5D4F4" opacity=".8"/>
+        <circle cx="34" cy="38" r="2" fill="#B5D4F4" opacity=".8"/>
+        <!-- Lead dot triple-ring at arch keystone -->
+        <circle cx="22" cy="7" r="4.5" fill="none" stroke="#378ADD" stroke-width=".9" opacity=".4"/>
+        <circle cx="22" cy="7" r="2.8" fill="#378ADD"/>
+        <circle cx="22" cy="7" r="1.5" fill="#B5D4F4"/>
+        <circle cx="22" cy="7" r=".7"  fill="#fff"/>
+      </svg>
+    </div>
+    <div class="plabel">Venue</div>
+    <div class="psub">Space · capacity · dates</div>
+  </div>
+
+</div>
+
+<!-- CUE PILL -->
+<div class="cue-pill" onclick="openModal('cue')">
+  <div class="cdot"></div>
+  <div class="clbl">Cue is ready</div>
+</div>
+
+</div><!-- wrapper -->
+
+<!-- MODAL -->
+<div class="modal-bg" id="mbg" onclick="bgClose(event)">
+  <div class="modal" id="mbox">
+    <button class="modal-x" onclick="closeModal()">✕</button>
+    <div class="m-icon-wrap" id="mi"></div>
+    <div class="m-title" id="mt"></div>
+    <div class="m-sub" id="ms"></div>
+    <div class="m-body" id="mb"></div>
+    <div class="m-features" id="mf"></div>
+    <button class="m-cta" id="mc"></button>
+  </div>
+</div>
+
+<script>
+// Sparse starfield — only 28 stars
+const sf=document.getElementById('sf');
+for(let i=0;i<28;i++){
+  const d=document.createElement('div');d.className='star';
+  const sz=(Math.random()*1.6+.5).toFixed(1);
+  const lo=(Math.random()*.08+.02).toFixed(2);
+  const hi=(Math.random()*.4+.15).toFixed(2);
+  d.style.cssText=`width:${sz}px;height:${sz}px;left:${(Math.random()*100).toFixed(1)}%;top:${(Math.random()*100).toFixed(1)}%;--d:${(3+Math.random()*6).toFixed(1)}s;--dl:${(Math.random()*7).toFixed(1)}s;--lo:${lo};--hi:${hi};opacity:${lo}`;
+  sf.appendChild(d);
+}
+
+// Constellation dashed lines from center to each portal
+function drawLines(){
+  const svg=document.getElementById('clines');
+  svg.innerHTML='';
+  const W=window.innerWidth,H=window.innerHeight;
+  const cx=W/2,cy=H/2;
+  const portals=[
+    {sel:'.p-orgnz',color:'rgba(212,119,138,0.22)'},
+    {sel:'.p-plnr', color:'rgba(26,158,130,0.22)'},
+    {sel:'.p-vndr', color:'rgba(232,98,42,0.22)'},
+    {sel:'.p-catr', color:'rgba(201,168,76,0.22)'},
+    {sel:'.p-venue',color:'rgba(55,138,221,0.22)'}
+  ];
+  portals.forEach(p=>{
+    const el=document.querySelector(p.sel);
+    if(!el)return;
+    const r=el.getBoundingClientRect();
+    const px=r.left+r.width/2,py=r.top+r.height/2;
+    const line=document.createElementNS('http://www.w3.org/2000/svg','line');
+    line.setAttribute('x1',cx);line.setAttribute('y1',cy);
+    line.setAttribute('x2',px);line.setAttribute('y2',py);
+    line.setAttribute('stroke',p.color);
+    line.setAttribute('stroke-width','0.8');
+    line.setAttribute('stroke-dasharray','4 7');
+    svg.appendChild(line);
+  });
+}
+window.addEventListener('load',()=>setTimeout(drawLines,200));
+window.addEventListener('resize',drawLines);
+
+const data={
+  orgnz:{title:'Orgnz',color:'#D4778A',border:'rgba(212,119,138,0.42)',sub:"I'm planning an event",body:"Your event. Your vision. EvntCue connects you to every venue, vendor, and planner — and Cue keeps everything on track from first inquiry to final send-off.",features:['Find and book venues, vendors, caterers in one place','Cue manages your timeline and surfaces what needs attention','Guest list with dietary flags, seating, and live check-in','Budget tracker — every dollar visible, every payment tracked'],cta:'Start planning →'},
+  plnr:{title:'Plnr',color:'#1A9E82',border:'rgba(26,158,130,0.42)',sub:"I'm a professional event planner",body:"Your practice, amplified. Manage every client, every event, every vendor relationship — and let Cue handle the details so you can do the work only you can do.",features:['CRM built specifically for event planners','Day-of cockpit with live timeline and ripple controls','Vendor relationship management and booking tools','Cue surfaces problems before they become yours to solve'],cta:'Enter Plnr portal →'},
+  vndr:{title:'Vndr',color:'#E8622A',border:'rgba(232,98,42,0.42)',sub:"I'm a vendor or service provider",body:"Get discovered by the right planners and clients. Set your packages, your capacity, your terms — handle as many events as your team can take, and let the right bookings find you.",features:['Verified vendor profile with media and reviews','Set your capacity — handle multiple events simultaneously, no overbooking','Instant book or inquiry-first — your choice','Booking management and payout tracking in one place'],cta:'Get discovered →'},
+  catr:{title:'Catr',color:'#C9A84C',border:'rgba(201,168,76,0.42)',sub:"I'm a catering professional",body:"The only portal built specifically for catering operations. BEO, allergen tracking, cover counts, and a day-of service timeline — all in one place.",features:['Live BEO with allergen flags per guest and per dish','Cover count synced to event in real time','Menu builder with full dietary management','Day-of service timeline and kitchen notes'],cta:'Enter Catr portal →'},
+  venue:{title:'Venue',color:'#378ADD',border:'rgba(55,138,221,0.42)',sub:"I manage an event venue",body:"Fill your calendar with qualified events. Every inquiry arrives pre-qualified — right guest count, right budget, right date. No wasted time.",features:['List multiple spaces with individual capacity and pricing','Structured inquiries — every detail you need in 2 minutes','Soft hold system protects your calendar — no double bookings','Preferred vendor relationships built directly into your profile'],cta:'List your venue →'},
+  cue:{title:'Cue',color:'#D4778A',border:'rgba(212,119,138,0.42)',sub:"Your AI event co-pilot",body:"Cue isn't here to replace anyone. The florist still arrives. The photographer still shoots. The planner still walks the room. Cue makes sure none of them ever gets lost.",features:['Watches every event in real time — surfaces what needs attention','Finds backup vendors, calculates delays, flags allergen risks','Gets smarter with every event it watches','Works even without internet — the platform stands on its own'],cta:'Learn about Cue →'}
+};
+
+// Modal icon SVGs (larger versions of the portal icons)
+const iconSVGs={
+  orgnz:`<svg viewBox="0 0 44 44" width="44" height="44"><line x1="22" y1="5" x2="38" y2="22" stroke="#D4778A" stroke-width="1.2" stroke-opacity=".6"/><line x1="38" y1="22" x2="22" y2="39" stroke="#D4778A" stroke-width="1.2" stroke-opacity=".6"/><line x1="22" y1="39" x2="6" y2="22" stroke="#D4778A" stroke-width="1.2" stroke-opacity=".6"/><line x1="6" y1="22" x2="22" y2="5" stroke="#D4778A" stroke-width="1.2" stroke-opacity=".6"/><line x1="22" y1="5" x2="22" y2="39" stroke="#D4778A" stroke-width=".6" stroke-opacity=".2"/><line x1="6" y1="22" x2="38" y2="22" stroke="#D4778A" stroke-width=".6" stroke-opacity=".2"/><circle cx="38" cy="22" r="2.5" fill="#D4778A" opacity=".8"/><circle cx="22" cy="39" r="2.5" fill="#D4778A" opacity=".8"/><circle cx="6" cy="22" r="2.5" fill="#D4778A" opacity=".8"/><circle cx="22" cy="5" r="5.5" fill="none" stroke="#E8A0B0" stroke-width="1" opacity=".38"/><circle cx="22" cy="5" r="3.4" fill="#E8A0B0"/><circle cx="22" cy="5" r="1.8" fill="#F9E4EA"/><circle cx="22" cy="5" r=".9" fill="#fff"/></svg>`,
+  plnr:`<svg viewBox="0 0 44 44" width="44" height="44"><line x1="22" y1="22" x2="22" y2="5" stroke="#1A9E82" stroke-width="1.2" stroke-opacity=".6"/><line x1="22" y1="22" x2="39" y2="22" stroke="#1A9E82" stroke-width="1.2" stroke-opacity=".55"/><line x1="22" y1="22" x2="22" y2="39" stroke="#1A9E82" stroke-width="1.2" stroke-opacity=".55"/><line x1="22" y1="22" x2="5" y2="22" stroke="#1A9E82" stroke-width="1.2" stroke-opacity=".55"/><line x1="22" y1="22" x2="35" y2="9" stroke="#1A9E82" stroke-width=".7" stroke-opacity=".3"/><line x1="22" y1="22" x2="35" y2="35" stroke="#1A9E82" stroke-width=".7" stroke-opacity=".3"/><line x1="22" y1="22" x2="9" y2="35" stroke="#1A9E82" stroke-width=".7" stroke-opacity=".3"/><line x1="22" y1="22" x2="9" y2="9" stroke="#1A9E82" stroke-width=".7" stroke-opacity=".3"/><circle cx="22" cy="22" r="10" fill="none" stroke="#1A9E82" stroke-width=".6" stroke-opacity=".2"/><circle cx="22" cy="12" r="1.6" fill="#9FE1CB" opacity=".6"/><circle cx="32" cy="22" r="1.6" fill="#9FE1CB" opacity=".6"/><circle cx="22" cy="32" r="1.6" fill="#9FE1CB" opacity=".6"/><circle cx="12" cy="22" r="1.6" fill="#9FE1CB" opacity=".6"/><circle cx="39" cy="22" r="2.2" fill="#9FE1CB" opacity=".75"/><circle cx="22" cy="39" r="2.2" fill="#9FE1CB" opacity=".75"/><circle cx="5" cy="22" r="2.2" fill="#9FE1CB" opacity=".75"/><circle cx="22" cy="5" r="5.5" fill="none" stroke="#1A9E82" stroke-width="1" opacity=".4"/><circle cx="22" cy="5" r="3.4" fill="#1A9E82"/><circle cx="22" cy="5" r="1.8" fill="#9FE1CB"/><circle cx="22" cy="5" r=".9" fill="#fff"/></svg>`,
+  vndr:`<svg viewBox="0 0 44 44" width="44" height="44"><line x1="22" y1="6" x2="22" y2="22" stroke="#E8622A" stroke-width="1.4" stroke-opacity=".6"/><line x1="22" y1="22" x2="10" y2="38" stroke="#E8622A" stroke-width="1.1" stroke-opacity=".55"/><line x1="22" y1="22" x2="22" y2="38" stroke="#E8622A" stroke-width="1.1" stroke-opacity=".55"/><line x1="22" y1="22" x2="34" y2="38" stroke="#E8622A" stroke-width="1.1" stroke-opacity=".55"/><line x1="10" y1="28" x2="34" y2="28" stroke="#E8622A" stroke-width=".9" stroke-opacity=".3"/><circle cx="10" cy="38" r="2.5" fill="#F5A882" opacity=".8"/><circle cx="22" cy="38" r="2.5" fill="#F5A882" opacity=".75"/><circle cx="34" cy="38" r="2.5" fill="#F5A882" opacity=".8"/><circle cx="22" cy="6" r="5.5" fill="none" stroke="#E8622A" stroke-width="1" opacity=".4"/><circle cx="22" cy="6" r="3.4" fill="#E8622A"/><circle cx="22" cy="6" r="1.8" fill="#F5A882"/><circle cx="22" cy="6" r=".9" fill="#fff"/></svg>`,
+  catr:`<svg viewBox="0 0 44 44" width="44" height="44"><line x1="22" y1="5" x2="38" y2="37" stroke="#C9A84C" stroke-width="1.2" stroke-opacity=".6"/><line x1="38" y1="37" x2="6" y2="37" stroke="#C9A84C" stroke-width="1.2" stroke-opacity=".6"/><line x1="6" y1="37" x2="22" y2="5" stroke="#C9A84C" stroke-width="1.2" stroke-opacity=".6"/><line x1="22" y1="5" x2="22" y2="37" stroke="#C9A84C" stroke-width=".6" stroke-opacity=".2"/><line x1="6" y1="37" x2="30" y2="21" stroke="#C9A84C" stroke-width=".5" stroke-opacity=".16"/><line x1="38" y1="37" x2="14" y2="21" stroke="#C9A84C" stroke-width=".5" stroke-opacity=".16"/><circle cx="38" cy="37" r="2.5" fill="#F0D88A" opacity=".8"/><circle cx="6" cy="37" r="2.5" fill="#F0D88A" opacity=".8"/><circle cx="22" cy="5" r="5.5" fill="none" stroke="#C9A84C" stroke-width="1" opacity=".4"/><circle cx="22" cy="5" r="3.4" fill="#C9A84C"/><circle cx="22" cy="5" r="1.8" fill="#F0D88A"/><circle cx="22" cy="5" r=".9" fill="#fff"/></svg>`,
+  venue:`<svg viewBox="0 0 44 44" width="44" height="44"><line x1="10" y1="38" x2="10" y2="18" stroke="#378ADD" stroke-width="1.2" stroke-opacity=".6"/><line x1="34" y1="38" x2="34" y2="18" stroke="#378ADD" stroke-width="1.2" stroke-opacity=".6"/><polyline points="10,18 12,13 16,9 22,7 28,9 32,13 34,18" fill="none" stroke="#378ADD" stroke-width="1.2" stroke-opacity=".6"/><line x1="10" y1="26" x2="34" y2="26" stroke="#378ADD" stroke-width=".9" stroke-opacity=".35"/><line x1="10" y1="18" x2="22" y2="7" stroke="#378ADD" stroke-width=".5" stroke-opacity=".18"/><line x1="34" y1="18" x2="22" y2="7" stroke="#378ADD" stroke-width=".5" stroke-opacity=".18"/><line x1="10" y1="38" x2="34" y2="26" stroke="#378ADD" stroke-width=".5" stroke-opacity=".14"/><line x1="34" y1="38" x2="10" y2="26" stroke="#378ADD" stroke-width=".5" stroke-opacity=".14"/><circle cx="10" cy="38" r="2.5" fill="#B5D4F4" opacity=".8"/><circle cx="34" cy="38" r="2.5" fill="#B5D4F4" opacity=".8"/><circle cx="22" cy="7" r="5.5" fill="none" stroke="#378ADD" stroke-width="1" opacity=".4"/><circle cx="22" cy="7" r="3.4" fill="#378ADD"/><circle cx="22" cy="7" r="1.8" fill="#B5D4F4"/><circle cx="22" cy="7" r=".9" fill="#fff"/></svg>`,
+  cue:`<svg viewBox="0 0 52 52" width="44" height="44"><rect width="52" height="52" rx="12" fill="#180F28"/><line x1="20" y1="9" x2="39" y2="17" stroke="#D4A0B8" stroke-width="1.2" stroke-opacity=".55"/><line x1="39" y1="17" x2="39" y2="35" stroke="#D4A0B8" stroke-width="1.2" stroke-opacity=".55"/><line x1="39" y1="35" x2="20" y2="43" stroke="#D4A0B8" stroke-width="1.2" stroke-opacity=".55"/><line x1="20" y1="43" x2="8" y2="26" stroke="#D4A0B8" stroke-width="1.2" stroke-opacity=".55"/><line x1="8" y1="26" x2="20" y2="9" stroke="#D4A0B8" stroke-width="1.2" stroke-opacity=".55"/><circle cx="39" cy="17" r="2.4" fill="#D4778A" opacity=".8"/><circle cx="39" cy="35" r="2.4" fill="#D4778A" opacity=".8"/><circle cx="20" cy="43" r="2.4" fill="#D4778A" opacity=".8"/><circle cx="8" cy="26" r="2.4" fill="#D4778A" opacity=".8"/><circle cx="20" cy="9" r="5.5" fill="none" stroke="#E8A0B0" stroke-width="1" opacity=".4"/><circle cx="20" cy="9" r="3.4" fill="#E8A0B0"/><circle cx="20" cy="9" r="1.8" fill="#F9E4EA"/><circle cx="20" cy="9" r=".9" fill="#fff"/></svg>`
+};
+
+function openModal(id){
+  const p=data[id];
+  document.getElementById('mi').innerHTML=iconSVGs[id]||'';
+  document.getElementById('mt').textContent=p.title;
+  document.getElementById('mt').style.color=p.color;
+  document.getElementById('ms').textContent=p.sub;
+  document.getElementById('ms').style.color=p.color;
+  document.getElementById('mb').textContent=p.body;
+  const mf=document.getElementById('mf');mf.innerHTML='';
+  p.features.forEach(f=>{
+    const d=document.createElement('div');d.className='mf';
+    d.innerHTML=`<div class="mf-dot" style="background:${p.color}"></div><div>${f}</div>`;
+    mf.appendChild(d);
+  });
+  const cta=document.getElementById('mc');
+  cta.textContent=p.cta;cta.style.borderColor=p.border;cta.style.color=p.color;
+  document.getElementById('mbox').style.borderColor=p.border;
+  document.getElementById('mbg').classList.add('open');
+}
+function closeModal(){document.getElementById('mbg').classList.remove('open')}
+function bgClose(e){if(e.target===document.getElementById('mbg'))closeModal()}
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal()})
+</script>
+</body>
+</html>
