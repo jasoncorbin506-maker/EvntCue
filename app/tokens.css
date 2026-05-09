@@ -26,12 +26,13 @@
   --font-mono:    'JetBrains Mono', ui-monospace, monospace;
 
   /* ---------- Surface ramp (dark, foundational) ---------- */
-  /* Use --ink for the primary background, --ink2-5 for cards and elevation. */
-  --ink:  #030710;  /* page background */
-  --ink2: #050C18;  /* primary card */
-  --ink3: #0A1424;  /* raised card */
-  --ink4: #0F1C30;  /* hovered card */
-  --ink5: #14243C;  /* deepest elevation */
+  /* Locked 2026-05-05 to a 3-step ramp (CLAUDE.md). --ink4/--ink5 are the
+     retired 5-step values, kept in place until the ramp-retirement pass. */
+  --ink:  #050A14;  /* page background */
+  --ink2: #0B1220;  /* primary card */
+  --ink3: #111928;  /* raised card */
+  --ink4: #0F1C30;  /* legacy — retire */
+  --ink5: #14243C;  /* legacy — retire */
 
   /* Plum-tinted variants used in master/Cue surfaces (per master doc §18) */
   --plum:  #0B1220;  /* --ec-ink in master spec */
@@ -58,6 +59,12 @@
   --rb:      rgba(212, 119, 138, 0.28);
   --rt:      #E8A0B0;
   --rtt:     #F2DDA0;
+
+  /* Coral — Vndr prime (per CLAUDE.md 2026-05-05 portal accent table) */
+  --coral:   #E8622A;
+  --cl:      rgba(232, 98, 42, 0.10);
+  --cb:      rgba(232, 98, 42, 0.28);
+  --ct:      #F5A882;
 
   /* Violet — Plnr prime */
   --violet:  #AFA9EC;

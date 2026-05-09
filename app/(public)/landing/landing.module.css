@@ -1,0 +1,386 @@
+/* ============================================================================
+   landing.module.css — Phase 2.1 landing page
+   Ported from 02_Locked_Prototypes/Orgnz/evntcue_orgnz_onboarding_v8.html (p-landing)
+   All values reference tokens; no portal accent overrides here — landing is shared.
+   ============================================================================ */
+
+@keyframes ringPulse {
+  0%, 100% { opacity: 0.35; transform: translate(-50%, -50%) scale(1); }
+  50%      { opacity: 0.55; transform: translate(-50%, -50%) scale(1.04); }
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.page {
+  position: relative;
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 90% 60% at 50% 0%, rgba(212, 119, 138, 0.07), transparent 60%),
+    radial-gradient(ellipse 60% 40% at 50% 100%, rgba(42, 107, 219, 0.04), transparent 60%),
+    var(--ink);
+  color: var(--txt);
+  overflow-x: hidden;
+}
+
+.page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background:
+    radial-gradient(ellipse 80% 60% at 20% -10%, rgba(212, 119, 138, 0.06), transparent),
+    radial-gradient(ellipse 60% 50% at 80% 110%, rgba(15, 155, 126, 0.05), transparent);
+  pointer-events: none;
+  z-index: 0;
+}
+
+.wrap {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+  padding: 36px 20px 50px;
+}
+
+.frame {
+  position: relative;
+  z-index: 2;
+  width: 100%;
+  max-width: 440px;
+}
+
+/* ---------- Logo stage ---------- */
+.logoStage {
+  position: relative;
+  width: 100%;
+  height: 170px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 8px;
+}
+
+.bgConstellation {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 1;
+  opacity: 0.85;
+}
+
+.centerRing,
+.centerRing2 {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  border-radius: 50%;
+  transform: translate(-50%, -50%);
+  z-index: 1;
+  pointer-events: none;
+  animation: ringPulse 6s ease-in-out infinite;
+}
+
+.centerRing {
+  width: 170px;
+  height: 170px;
+  border: 0.5px solid rgba(212, 119, 138, 0.10);
+}
+
+.centerRing2 {
+  width: 260px;
+  height: 260px;
+  border: 0.5px solid rgba(255, 255, 255, 0.025);
+  animation-delay: 1.5s;
+}
+
+.logo {
+  position: relative;
+  z-index: 3;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.logoLine {
+  display: flex;
+  align-items: baseline;
+}
+
+.logoEvnt,
+.logoCue {
+  font-family: var(--font-display);
+  font-style: normal;
+  font-size: clamp(48px, 12vw, 60px);
+  font-weight: 300;
+  letter-spacing: 0.04em;
+  line-height: 1;
+}
+
+.logoEvnt { color: var(--rt); }
+.logoCue  { color: #fff; }
+
+.tagline {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  margin-top: 11px;
+  font-weight: 500;
+}
+
+.sub {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-style: italic;
+  font-weight: 400;
+  color: var(--txt2);
+  text-align: center;
+  margin: 0 auto 26px;
+  line-height: 1.45;
+  max-width: 340px;
+}
+
+/* ---------- Role stack ---------- */
+.stack {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 22px;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  width: 100%;
+  padding: 15px 17px;
+  background: rgba(255, 255, 255, 0.018);
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+  cursor: pointer;
+  transition: all 0.22s cubic-bezier(0.25, 0.8, 0.25, 1);
+  overflow: hidden;
+  backdrop-filter: blur(12px);
+  text-align: left;
+  font-family: inherit;
+  color: inherit;
+}
+
+.cardOrgnz:hover { border-color: var(--rb); background: var(--rl); transform: translateY(-1px); }
+.cardVndr:hover  { border-color: var(--cb); background: var(--cl); transform: translateY(-1px); }
+.cardVenu:hover  { border-color: var(--blub); background: var(--blul); transform: translateY(-1px); }
+
+.icon {
+  width: 42px;
+  height: 42px;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.text {
+  flex: 1;
+  min-width: 0;
+}
+
+.name {
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  line-height: 1;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.cardOrgnz .name { color: var(--rose); }
+.cardVndr  .name { color: var(--coral); }
+.cardVenu  .name { color: var(--blue); }
+
+.pitch {
+  font-family: var(--font-display);
+  font-size: 15.5px;
+  font-style: italic;
+  font-weight: 400;
+  color: rgba(255, 255, 255, 0.92);
+  line-height: 1.3;
+}
+
+.arrow {
+  font-family: var(--font-display);
+  font-size: 21px;
+  color: var(--txt3);
+  font-weight: 300;
+  flex-shrink: 0;
+  font-style: italic;
+  transition: transform 0.22s, color 0.22s;
+}
+
+.card:hover .arrow { transform: translateX(3px); }
+.cardOrgnz:hover .arrow { color: var(--rose); }
+.cardVndr:hover  .arrow { color: var(--coral); }
+.cardVenu:hover  .arrow { color: var(--blue); }
+
+.foot {
+  text-align: center;
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  margin-top: 6px;
+  font-weight: 500;
+}
+
+/* ---------- Coming-soon modal ---------- */
+.modalBg {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 20, 0.92);
+  z-index: 100;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(20px);
+  padding: 20px;
+  animation: fadeIn 0.2s ease;
+}
+
+.modal {
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr2);
+  border-radius: 16px;
+  padding: 26px 24px;
+  width: min(420px, 92vw);
+  position: relative;
+}
+
+.modalClose {
+  position: absolute;
+  top: 8px;
+  right: 10px;
+  background: none;
+  border: none;
+  color: var(--txt3);
+  font-size: 20px;
+  cursor: pointer;
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s;
+  font-family: inherit;
+}
+
+.modalClose:hover { color: var(--txt); background: rgba(255, 255, 255, 0.05); }
+
+.modalIcon {
+  width: 44px;
+  height: 44px;
+  margin-bottom: 11px;
+}
+
+.modalTitle {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 300;
+  color: #fff;
+  margin-bottom: 3px;
+  line-height: 1.15;
+  font-style: italic;
+}
+
+.modalSub {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  margin-bottom: 14px;
+  font-weight: 600;
+}
+
+.modalBody {
+  font-size: 13px;
+  color: var(--txt2);
+  line-height: 1.6;
+  margin-bottom: 16px;
+}
+
+.modalBody em {
+  font-style: italic;
+  color: var(--txt);
+  font-family: var(--font-display);
+  font-size: 14.5px;
+}
+
+.modalInput {
+  width: 100%;
+  background: rgba(255, 255, 255, 0.04);
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+  padding: 11px 13px;
+  color: var(--txt);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  outline: none;
+  transition: all 0.18s;
+  margin-bottom: 8px;
+}
+
+.modalInput:focus { border-color: var(--rb); background: var(--rl); }
+
+.modalCta {
+  width: 100%;
+  padding: 12px;
+  border: 1px solid;
+  border-radius: 10px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  cursor: pointer;
+  background: transparent;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  transition: all 0.18s;
+  color: #fff;
+}
+
+.modalCta:hover:not(:disabled) { filter: brightness(1.15); }
+.modalCta:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.modalCtaVndr { border-color: var(--coral); color: var(--ct); }
+.modalCtaVndr:hover:not(:disabled) { background: var(--cl); }
+
+.modalCtaVenu { border-color: var(--blue); color: var(--blut); }
+.modalCtaVenu:hover:not(:disabled) { background: var(--blul); }
+
+.modalError {
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  color: var(--redt);
+  margin-bottom: 10px;
+  font-weight: 500;
+}
+
+.modalSuccess {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--rt);
+  text-align: center;
+  padding: 6px 0 4px;
+}
