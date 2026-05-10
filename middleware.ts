@@ -42,14 +42,15 @@ export async function middleware(request: NextRequest) {
       return NextResponse.redirect(redirect);
     }
 
-    const { data: profile } = await supabase
-      .from("users")
+    const { data: roleRows } = await supabase
+      .from("user_roles")
       .select("role")
-      .eq("id", user.id)
-      .single();
+      .eq("user_id", user.id);
 
-    const role = profile?.role as Role | undefined;
-    if (role !== firstSeg && role !== "admin") {
+    const roles = (roleRows ?? []).map((r) => r.role as Role);
+    const allowed =
+      roles.includes(firstSeg as Role) || roles.includes("admin" as Role);
+    if (!allowed) {
       const redirect = request.nextUrl.clone();
       redirect.pathname = "/login";
       return NextResponse.redirect(redirect);

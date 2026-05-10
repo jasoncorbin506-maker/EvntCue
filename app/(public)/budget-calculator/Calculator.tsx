@@ -212,11 +212,13 @@ export default function Calculator() {
               <line x1="39" y1="17" x2="20" y2="43" stroke="#D4A0B8" strokeWidth="0.8" strokeOpacity="0.25" />
               <line x1="39" y1="17" x2="8"  y2="26" stroke="#D4A0B8" strokeWidth="0.8" strokeOpacity="0.25" />
               <line x1="39" y1="35" x2="8"  y2="26" stroke="#D4A0B8" strokeWidth="0.8" strokeOpacity="0.25" />
-              {/* 5 vertices */}
-              <circle cx="39" cy="17" r="3"   fill="#D4778A" />
-              <circle cx="39" cy="35" r="3"   fill="#D4778A" />
-              <circle cx="20" cy="43" r="3"   fill="#D4778A" />
-              <circle cx="8"  cy="26" r="3"   fill="#D4778A" />
+              {/* 5 vertices — one per portal, clockwise from top:
+                  Orgnz · Plnr · Vndr · Catr · Venu */}
+              <circle cx="39" cy="17" r="3"   fill="#AFA9EC" />{/* Plnr — violet */}
+              <circle cx="39" cy="35" r="3"   fill="#E8622A" />{/* Vndr — coral */}
+              <circle cx="20" cy="43" r="3"   fill="#C98A1A" />{/* Catr — amber */}
+              <circle cx="8"  cy="26" r="3"   fill="#2A6BDB" />{/* Venu — blue  */}
+              {/* Orgnz apex — haloed (also Cue voice prime) */}
               <circle cx="20" cy="9"  r="5"   fill="#E8A0B0" />
               <circle cx="20" cy="9"  r="2.8" fill="#F9E4EA" />
               <circle cx="20" cy="9"  r="1.1" fill="#fff" />

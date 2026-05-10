@@ -1,0 +1,178 @@
+/* ============================================================================
+   orgnz.module.css — Phase 3.1 placeholder portal surface
+   Real Phase 3.2 build replaces this with the full 6-tab skeleton.
+   ============================================================================ */
+
+.page {
+  min-height: 100vh;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% -10%, rgba(212, 119, 138, 0.08), transparent 60%),
+    var(--ink);
+  color: var(--txt);
+  padding: 56px 20px 80px;
+}
+
+.wrap {
+  max-width: 720px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 28px;
+}
+
+.head {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.headRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.signOut {
+  background: transparent;
+  border: 1px solid var(--bdr2);
+  color: var(--txt2);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  padding: 6px 12px;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease, background 140ms ease;
+}
+
+.signOut:hover {
+  color: var(--txt);
+  border-color: var(--bdr2);
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.eyebrow {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--rt);
+}
+
+.title {
+  margin: 0;
+  font-family: var(--font-display);
+  font-weight: 400;
+  font-size: 38px;
+  line-height: 1.08;
+  color: var(--txt);
+}
+
+.title em {
+  font-style: italic;
+  font-weight: 400;
+}
+
+.sub {
+  margin: 4px 0 0;
+  font-family: var(--font-body);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--txt2);
+  max-width: 60ch;
+}
+
+.card,
+.cardEmpty {
+  background: var(--ink2);
+  border: 1px solid var(--bdr);
+  border-radius: 14px;
+  padding: 24px 26px;
+}
+
+.cardEmpty {
+  color: var(--txt2);
+  font-family: var(--font-body);
+  font-size: 14px;
+}
+
+.cardEyebrow {
+  margin: 0 0 4px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--txt2);
+}
+
+.cardTitle {
+  margin: 0 0 16px;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-weight: 400;
+  font-size: 24px;
+  color: var(--txt);
+}
+
+.facts {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: 12px 18px;
+  margin: 0;
+}
+
+.fact {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fact dt {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--txt3);
+}
+
+.fact dd {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: var(--txt);
+}
+
+.link {
+  color: var(--rt);
+  text-decoration: none;
+}
+
+.link:hover {
+  color: var(--rtt);
+}
+
+.nav {
+  display: flex;
+  gap: 12px;
+}
+
+.navLink {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--rose);
+  text-decoration: none;
+  padding: 12px 18px;
+  border: 1px solid var(--rb);
+  border-radius: 8px;
+  transition: background 140ms ease, color 140ms ease;
+}
+
+.navLink:hover {
+  background: var(--rl);
+  color: var(--rt);
+}
