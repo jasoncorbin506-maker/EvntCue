@@ -4,7 +4,7 @@ import { createServerClient } from "@supabase/ssr";
 const ROLE_PATHS = ["orgnz", "plnr", "vndr", "catr", "venue", "admin"] as const;
 type Role = (typeof ROLE_PATHS)[number];
 
-export async function middleware(request: NextRequest) {
+export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
 
   const supabase = createServerClient(

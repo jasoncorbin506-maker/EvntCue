@@ -1,128 +1,109 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
-import { signOutAction } from "./_actions/sign-out";
-import styles from "./orgnz.module.css";
+import { BudgetCard } from "./_components/BudgetCard";
+import { ChecklistCard } from "./_components/ChecklistCard";
+import { CuePanel } from "./_components/CuePanel";
+import { MessagesCard } from "./_components/MessagesCard";
+import { MilestoneTimeline } from "./_components/MilestoneTimeline";
+import { MoodBoardHero } from "./_components/MoodBoardHero";
+import { StatsGrid } from "./_components/StatsGrid";
+import { VendorGrid } from "./_components/VendorGrid";
+import { daysUntil, loadOrgnzContext } from "./_lib/load-context";
+import shell from "./orgnz.module.css";
+import styles from "./dashboard.module.css";
+import type { CategoryKey } from "@/data/budget-presets";
 
-export const metadata = { title: "Your event · EvntCue" };
+export const metadata = { title: "Dashboard · EvntCue" };
 
-export default async function OrgnzOverviewPage() {
-  const supabase = await createClient();
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
-  if (!user) redirect("/login?role=orgnz");
+// event_type enum on the events table is wider than CategoryKey (the
+// 5 calculator categories). Anything outside the 5 falls back to "social"
+// for milestone lookups.
+function toCategory(eventType: string): CategoryKey {
+  const valid: CategoryKey[] = ["wedding", "corporate", "nonprofit", "public", "social"];
+  return (valid as string[]).includes(eventType)
+    ? (eventType as CategoryKey)
+    : "social";
+}
 
-  const admin = createAdminClient();
+export default async function OrgnzDashboardPage() {
+  const ctx = await loadOrgnzContext();
+  if (!ctx) redirect("/login?role=orgnz");
 
-  const { data: roles } = await admin
-    .from("user_roles")
-    .select("tenant_id")
-    .eq("user_id", user.id)
-    .eq("role", "orgnz")
-    .limit(1);
-  const tenantId = roles?.[0]?.tenant_id as string | undefined;
-
-  let event:
-    | {
-        id: string;
-        name: string;
-        event_type: string;
-        start_date: string;
-        guest_count: number | null;
-        budget_cents: number | null;
-      }
-    | null = null;
-  let lineCount = 0;
-
-  if (tenantId) {
-    const { data: events } = await admin
-      .from("events")
-      .select("id,name,event_type,start_date,guest_count,budget_cents")
-      .eq("orgnz_tenant_id", tenantId)
-      .order("created_at", { ascending: false })
-      .limit(1);
-    event = events?.[0] ?? null;
-    if (event) {
-      const { count } = await admin
-        .from("event_budgets")
-        .select("id", { count: "exact", head: true })
-        .eq("event_id", event.id);
-      lineCount = count ?? 0;
-    }
+  if (!ctx.event) {
+    return (
+      <div className={styles.pageBody}>
+        <h1 className={styles.pageBodyTitle}>
+          <em>Let&rsquo;s seed your event.</em>
+        </h1>
+        <p className={styles.pageBodyText}>
+          You&rsquo;re signed in but no event is attached to this account yet —
+          probably because you confirmed your email on a different device than
+          you signed up from. Re-run the calculator and we&rsquo;ll attach it.
+        </p>
+        <Link href="/budget-calculator" className={styles.pageBodyLink}>
+          Open the Budget Calculator →
+        </Link>
+      </div>
+    );
   }
 
+  const { event, lineItems } = ctx;
+  const allocated = lineItems.reduce((sum, item) => sum + item.amount_cents, 0);
+  const days = daysUntil(event.start_date);
+  const category = toCategory(event.event_type);
+
   return (
-    <main className={styles.page}>
-      <div className={styles.wrap}>
-        <header className={styles.head}>
-          <div className={styles.headRow}>
-            <p className={styles.eyebrow}>Orgnz portal</p>
-            <form action={signOutAction}>
-              <button type="submit" className={styles.signOut}>
-                Sign out
-              </button>
-            </form>
+    <>
+      <MoodBoardHero imageCount={0} paletteHex={[]} vibeLabel={null} />
+
+      <CuePanel eventType={event.event_type} daysOut={days} />
+
+      <StatsGrid
+        budgetCents={event.budget_cents}
+        allocatedCents={allocated}
+        lineItemCount={lineItems.length}
+        guestCount={event.guest_count}
+      />
+
+      <div className={styles.twoCol}>
+        <div>
+          <div className={shell.secH}>
+            <div className={shell.secT}>Vendor status</div>
+            <span className={shell.secA}>Browse marketplace — soon</span>
           </div>
-          <h1 className={styles.title}>
-            <em>Welcome to your workspace.</em>
-          </h1>
-          <p className={styles.sub}>
-            Phase 3.2 — full portal surfaces — lands next. For now, here&rsquo;s what
-            we captured for you.
-          </p>
-        </header>
+          <VendorGrid />
 
-        {event ? (
-          <section className={styles.card}>
-            <p className={styles.cardEyebrow}>Your draft event</p>
-            <h2 className={styles.cardTitle}>{event.name}</h2>
-            <dl className={styles.facts}>
-              <div className={styles.fact}>
-                <dt>Type</dt>
-                <dd>{event.event_type}</dd>
-              </div>
-              <div className={styles.fact}>
-                <dt>Date</dt>
-                <dd>{event.start_date}</dd>
-              </div>
-              <div className={styles.fact}>
-                <dt>Guests</dt>
-                <dd>{event.guest_count ?? "—"}</dd>
-              </div>
-              <div className={styles.fact}>
-                <dt>Budget</dt>
-                <dd>
-                  {event.budget_cents != null
-                    ? `$${(event.budget_cents / 100).toLocaleString()}`
-                    : "—"}
-                </dd>
-              </div>
-              <div className={styles.fact}>
-                <dt>Line items</dt>
-                <dd>{lineCount}</dd>
-              </div>
-            </dl>
-          </section>
-        ) : (
-          <section className={styles.cardEmpty}>
-            <p>
-              No draft yet. Run the{" "}
-              <Link href="/budget-calculator" className={styles.link}>
-                Budget Calculator
-              </Link>{" "}
-              to seed your first event.
-            </p>
-          </section>
-        )}
+          <div className={shell.secH}>
+            <div className={shell.secT}>Budget</div>
+            <span className={shell.secA}>Details — soon</span>
+          </div>
+          <BudgetCard
+            budgetCents={event.budget_cents}
+            contingencyPct={event.contingency_pct}
+            lineItems={lineItems}
+          />
 
-        <nav className={styles.nav}>
-          <Link href="/orgnz/mood-board" className={styles.navLink}>
-            Mood Board →
-          </Link>
-        </nav>
+          <div className={shell.secH}>
+            <div className={shell.secT}>Upcoming milestones</div>
+            <span className={shell.secA}>Full timeline — soon</span>
+          </div>
+          <MilestoneTimeline category={category} startDateIso={event.start_date} />
+        </div>
+
+        <div>
+          <div className={shell.secH}>
+            <div className={shell.secT}>This week</div>
+            <span className={shell.secA}>All tasks — soon</span>
+          </div>
+          <ChecklistCard />
+
+          <div className={shell.secH}>
+            <div className={shell.secT}>Messages</div>
+            <span className={shell.secA}>Inbox — soon</span>
+          </div>
+          <MessagesCard />
+        </div>
       </div>
-    </main>
+    </>
   );
 }
