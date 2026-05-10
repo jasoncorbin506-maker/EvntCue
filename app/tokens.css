@@ -26,12 +26,12 @@
   --font-mono:    'JetBrains Mono', ui-monospace, monospace;
 
   /* ---------- Surface ramp (dark, foundational) ---------- */
-  /* Locked 2026-05-05 to a 3-step ramp (CLAUDE.md). --ink4/--ink5 are the
-     retired 5-step values, kept in place until the ramp-retirement pass. */
+  /* Locked to a 4-step ramp 2026-05-10 (v2 mobile mockup reintroduced --ink4).
+     Reverses the 2026-05-05 3-step lock. --ink5 retired. */
   --ink:  #050A14;  /* page background */
   --ink2: #0B1220;  /* primary card */
   --ink3: #111928;  /* raised card */
-  --ink4: #0F1C30;  /* legacy — retire */
+  --ink4: #1A2438;  /* elevated surface (drawer / sheet) */
   --ink5: #14243C;  /* legacy — retire */
 
   /* Plum-tinted variants used in master/Cue surfaces (per master doc §18) */
@@ -58,7 +58,7 @@
   --rl:      rgba(212, 119, 138, 0.08);
   --rb:      rgba(212, 119, 138, 0.28);
   --rt:      #E8A0B0;
-  --rtt:     #F2DDA0;
+  --rtt:     #F2C8D4;  /* pale rose, constellation apex highlight (locked 2026-05-10 per v2 mockup) */
 
   /* Coral — Vndr prime (per CLAUDE.md 2026-05-05 portal accent table) */
   --coral:   #E8622A;
@@ -71,12 +71,19 @@
   --vl:      rgba(175, 169, 236, 0.10);
   --vt:      #C4BFEF;
 
-  /* Amber — Catr prime, also "warn" semantic */
+  /* Amber — "warn" semantic / crisis pulse (v2 mockup 2026-05-10 reassigns
+     Catr accent away from amber; reconcile with §Brand on next master-spec pass) */
   --amber:   #C98A1A;
   --al:      rgba(201, 138, 26, 0.10);
   --ab:      rgba(201, 138, 26, 0.28);
   --at:      #E8C46A;
   --att:     #F2DDA0;
+
+  /* Gold — Plnr prime, day-of mode (added 2026-05-10 per v2 mobile mockup) */
+  --gold:    #B8902A;
+  --gl:      rgba(184, 144, 42, 0.10);
+  --gb:      rgba(184, 144, 42, 0.30);
+  --gt:      #E8C86A;
 
   /* Blue — Venue prime */
   --blue:    #2A6BDB;

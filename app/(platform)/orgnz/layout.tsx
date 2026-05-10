@@ -1,13 +1,12 @@
 import { redirect } from "next/navigation";
-import { Sidebar } from "./_components/Sidebar";
-import { Topbar } from "./_components/Topbar";
+import { Chrome } from "./_components/Chrome";
+import { HelpBar } from "./_components/HelpBar";
+import { ModeToggle } from "./_components/ModeToggle";
+import { Toast } from "./_components/Toast";
 import {
-  buildTargetIso,
   daysUntil,
-  formatStartDateLong,
   formatStartDateShort,
   loadOrgnzContext,
-  prettyEventType,
 } from "./_lib/load-context";
 import styles from "./orgnz.module.css";
 
@@ -19,50 +18,25 @@ export default async function OrgnzLayout({
   const ctx = await loadOrgnzContext();
   if (!ctx) redirect("/login?role=orgnz");
 
-  const { user, event } = ctx;
-
-  // Sidebar event chip
+  const { event } = ctx;
   const eventName = event?.name ?? null;
-  const eventMeta = event
-    ? `${prettyEventType(event.event_type)} · ${formatStartDateShort(event.start_date)}`
-    : null;
-  const days = event ? daysUntil(event.start_date) : null;
-
-  // Topbar
-  const topbarTitle = event?.name ?? "Your workspace";
-  const topbarSubtitle = event
-    ? [
-        formatStartDateLong(event.start_date),
-        event.guest_count ? `${event.guest_count} guests` : null,
-        prettyEventType(event.event_type),
-      ]
-        .filter(Boolean)
-        .join(" · ")
-    : null;
-  const targetIso = event ? buildTargetIso(event.start_date, event.start_time) : null;
-  const dateLabel = event
-    ? `${formatStartDateShort(event.start_date)}${event.start_time ? "" : " · 5 PM"}`
-    : null;
+  const startDateShort = event ? formatStartDateShort(event.start_date) : null;
+  const daysOut = event ? daysUntil(event.start_date) : null;
 
   return (
-    <div className={styles.shell}>
-      <Sidebar
-        eventName={eventName}
-        eventMeta={eventMeta}
-        daysOut={days}
-        userInitials={user.initials}
-        userName={user.displayName}
-        userRole="Orgnz"
-      />
-      <main className={styles.main}>
-        <Topbar
-          title={topbarTitle}
-          subtitle={topbarSubtitle}
-          targetIso={targetIso}
-          dateLabel={dateLabel}
+    <>
+      <div id="orgnz-app" className={styles.app}>
+        <Chrome
+          eventName={eventName}
+          startDateShort={startDateShort}
+          daysOut={daysOut}
         />
-        <div className={styles.content}>{children}</div>
-      </main>
-    </div>
+        {children}
+        {/* HelpBar (Ask Cue + 12-Min Bump) is day-of-only — gated inside .app via .app.dayof. */}
+        <HelpBar />
+      </div>
+      <ModeToggle />
+      <Toast />
+    </>
   );
 }

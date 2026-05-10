@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { loadOrgnzContext } from "../_lib/load-context";
-import styles from "../dashboard.module.css";
+import styles from "../orgnz.module.css";
 
 export const metadata = { title: "Mood Board · EvntCue" };
 
@@ -17,12 +17,12 @@ export default async function MoodBoardPage() {
         <em>
           {hasEvent
             ? "Your visual brief — coming up next."
-            : "Let’s pick up where you left off."}
+            : "Let&rsquo;s pick up where you left off."}
         </em>
       </h1>
       <p className={styles.pageBodyText}>
         {hasEvent
-          ? "The Path 1 Curator (URL paste, file upload, color-thief palette extraction from any source) lands in Phase 3.4. Your event is already saved — when this page goes live, your draft will be here waiting."
+          ? "The Curator (URL paste, file upload, color-thief palette extraction) is the next CC chunk after the dashboard sheets land. Your event is already saved — when this page goes live, your draft will be here waiting."
           : "Looks like you confirmed your email on a different device than you signed up from, so your budget didn’t carry over. Re-run the calculator and we’ll attach it to your account."}
       </p>
       <p>

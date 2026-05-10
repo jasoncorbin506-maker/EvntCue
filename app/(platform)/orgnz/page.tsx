@@ -1,28 +1,78 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { BudgetCard } from "./_components/BudgetCard";
-import { ChecklistCard } from "./_components/ChecklistCard";
-import { CuePanel } from "./_components/CuePanel";
-import { MessagesCard } from "./_components/MessagesCard";
-import { MilestoneTimeline } from "./_components/MilestoneTimeline";
-import { MoodBoardHero } from "./_components/MoodBoardHero";
-import { StatsGrid } from "./_components/StatsGrid";
-import { VendorGrid } from "./_components/VendorGrid";
-import { daysUntil, loadOrgnzContext } from "./_lib/load-context";
-import shell from "./orgnz.module.css";
-import styles from "./dashboard.module.css";
 import type { CategoryKey } from "@/data/budget-presets";
+import { CuePill } from "./_components/CuePill";
+import { DayOfStub } from "./_components/DayOfStub";
+import { Feed, type FeedCard } from "./_components/Feed";
+import { Hero } from "./_components/Hero";
+import { TileGrid } from "./_components/TileGrid";
+import { TimelineRail } from "./_components/TimelineRail";
+import {
+  daysUntil,
+  loadOrgnzContext,
+  prettyEventType,
+} from "./_lib/load-context";
+import { buildRailPins, formatStartLongDate } from "./_lib/timeline";
+import styles from "./orgnz.module.css";
 
 export const metadata = { title: "Dashboard · EvntCue" };
 
-// event_type enum on the events table is wider than CategoryKey (the
-// 5 calculator categories). Anything outside the 5 falls back to "social"
-// for milestone lookups.
+const CATEGORIES: CategoryKey[] = ["wedding", "corporate", "nonprofit", "public", "social"];
+
 function toCategory(eventType: string): CategoryKey {
-  const valid: CategoryKey[] = ["wedding", "corporate", "nonprofit", "public", "social"];
-  return (valid as string[]).includes(eventType)
+  return (CATEGORIES as string[]).includes(eventType)
     ? (eventType as CategoryKey)
     : "social";
+}
+
+function buildWelcomeFeed(args: {
+  eventType: string;
+  daysOut: number;
+  hasVenu: boolean;
+}): FeedCard[] {
+  const cards: FeedCard[] = [];
+
+  cards.push({
+    id: "welcome",
+    kind: "cueSuggest",
+    eyebrow: "Cue welcomes you",
+    when: "Just now",
+    body: `<em>Your celebration is on the board.</em> Three things up next: lock the venue, build a mood board, and tell us if you want a Plnr to ride alongside.`,
+    primaryCta: {
+      label: "Start mood board",
+      toast: "Mood Board opens. <em>Pin your first image.</em>",
+    },
+    secondaryCta: {
+      label: "Find a Plnr",
+      toast: "Plnr sheet opens here in <em>3.2.B</em>.",
+    },
+  });
+
+  if (!args.hasVenu) {
+    cards.push({
+      id: "venu-first",
+      kind: "cueWarn",
+      eyebrow: "Venu first",
+      when: "Lock 5a",
+      body: `Vendors get sticky once a date is locked, and a date locks when the <strong>venue</strong> confirms. <em>You can still proceed</em> — just expect quotes to firm up after.`,
+      primaryCta: {
+        label: "Browse Venu",
+        toast: "Venu sheet opens here in <em>3.2.B</em>.",
+      },
+    });
+  }
+
+  if (args.daysOut <= 60 && args.daysOut > 0) {
+    cards.push({
+      id: "tight-window",
+      kind: "cueWarn",
+      eyebrow: "Tight window",
+      when: `${args.daysOut} days out`,
+      body: `Most ${args.eventType.toLowerCase()} vendors prefer 90+ days. <em>You can still proceed</em>, but expect rush fees on a few categories.`,
+    });
+  }
+
+  return cards;
 }
 
 export default async function OrgnzDashboardPage() {
@@ -48,62 +98,58 @@ export default async function OrgnzDashboardPage() {
   }
 
   const { event, lineItems } = ctx;
-  const allocated = lineItems.reduce((sum, item) => sum + item.amount_cents, 0);
+  const allocatedCents = lineItems.reduce((sum, item) => sum + item.amount_cents, 0);
   const days = daysUntil(event.start_date);
   const category = toCategory(event.event_type);
+  const longDate = formatStartLongDate(event.start_date);
+
+  // event_subtype isn't persisted yet (PARKING_LOT #10) — pins fall through to
+  // the per-category generic fallback in getMilestones until that migration ships.
+  const pins = buildRailPins({
+    category,
+    subtypeKey: null,
+    startDateIso: event.start_date,
+  });
+
+  // Free-tier for v1 — Stripe wiring lands Phase 4. All current users are free.
+  const isPaidTier = false;
+
+  // No live data for these yet — placeholders until Phase 4+/5+ wires them.
+  const vendorCount = 0;
+  const moodImageCount = 0;
+  const guestRsvpIn: number | null = null;
+  const hasPlnr = false;
+  const hasVenu = false;
+
+  const welcomeCards = buildWelcomeFeed({
+    eventType: prettyEventType(event.event_type),
+    daysOut: days,
+    hasVenu,
+  });
 
   return (
     <>
-      <MoodBoardHero imageCount={0} paletteHex={[]} vibeLabel={null} />
-
-      <CuePanel eventType={event.event_type} daysOut={days} />
-
-      <StatsGrid
-        budgetCents={event.budget_cents}
-        allocatedCents={allocated}
-        lineItemCount={lineItems.length}
+      <CuePill />
+      <Hero
+        eventName={event.name}
+        longDate={longDate}
+        daysOut={days}
         guestCount={event.guest_count}
       />
-
-      <div className={styles.twoCol}>
-        <div>
-          <div className={shell.secH}>
-            <div className={shell.secT}>Vendor status</div>
-            <span className={shell.secA}>Browse marketplace — soon</span>
-          </div>
-          <VendorGrid />
-
-          <div className={shell.secH}>
-            <div className={shell.secT}>Budget</div>
-            <span className={shell.secA}>Details — soon</span>
-          </div>
-          <BudgetCard
-            budgetCents={event.budget_cents}
-            contingencyPct={event.contingency_pct}
-            lineItems={lineItems}
-          />
-
-          <div className={shell.secH}>
-            <div className={shell.secT}>Upcoming milestones</div>
-            <span className={shell.secA}>Full timeline — soon</span>
-          </div>
-          <MilestoneTimeline category={category} startDateIso={event.start_date} />
-        </div>
-
-        <div>
-          <div className={shell.secH}>
-            <div className={shell.secT}>This week</div>
-            <span className={shell.secA}>All tasks — soon</span>
-          </div>
-          <ChecklistCard />
-
-          <div className={shell.secH}>
-            <div className={shell.secT}>Messages</div>
-            <span className={shell.secA}>Inbox — soon</span>
-          </div>
-          <MessagesCard />
-        </div>
-      </div>
+      <TimelineRail pins={pins} />
+      <Feed initial={welcomeCards} />
+      <TileGrid
+        budgetCents={event.budget_cents}
+        allocatedCents={allocatedCents}
+        vendorCount={vendorCount}
+        moodImageCount={moodImageCount}
+        guestRsvpIn={guestRsvpIn}
+        guestTotal={event.guest_count}
+        hasPlnr={hasPlnr}
+        hasVenu={hasVenu}
+        isPaidTier={isPaidTier}
+      />
+      <DayOfStub />
     </>
   );
 }
