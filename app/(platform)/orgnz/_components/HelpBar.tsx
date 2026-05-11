@@ -1,6 +1,7 @@
 "use client";
 
 import styles from "../orgnz.module.css";
+import { openCrisis } from "../_lib/sheet";
 import { showToast } from "../_lib/toast";
 
 export function HelpBar() {
@@ -17,9 +18,7 @@ export function HelpBar() {
       <button
         type="button"
         className={`${styles.hbBtn} ${styles.hbBump}`}
-        onClick={() =>
-          showToast("12-Min Bump opens here in <em>3.2.C</em>.")
-        }
+        onClick={() => openCrisis(true)}
       >
         <span className={styles.hbBumpDot} />
         12-Min Bump

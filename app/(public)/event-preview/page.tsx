@@ -8,7 +8,7 @@ import {
   combinedSeverity,
   coverSeverity,
   getSubtype,
-  leadTimeSeverity,
+  leadTimeSeverityFromMonths,
   type BudgetSeverity,
   type CategoryKey,
   type CoverSeverity,
@@ -16,6 +16,34 @@ import {
   type GuestBand,
   type LeadTimeSeverity,
 } from "@/data/budget-presets";
+
+const DAYS_PER_MONTH = 30.44;
+const MS_PER_DAY = 24 * 60 * 60 * 1000;
+
+/**
+ * Category-level event nouns for user-facing copy. Subtype labels (Jewish /
+ * Catholic / Hindu / Mexican / Korean / etc.) MUST NOT be concatenated with
+ * "your" / "for" / "budget" / "events" because the resulting phrases ("your
+ * jewish budget", "mexican events typically need") read as ethnic / religious
+ * profiling tied to money. Categorical nouns are the safe primitive.
+ */
+const EVENT_NOUNS: Record<CategoryKey, { singular: string; plural: string }> = {
+  wedding:   { singular: "wedding",         plural: "weddings" },
+  corporate: { singular: "corporate event", plural: "corporate events" },
+  nonprofit: { singular: "nonprofit event", plural: "nonprofit events" },
+  public:    { singular: "public event",    plural: "public events" },
+  social:    { singular: "celebration",     plural: "celebrations" },
+};
+
+function monthsUntilIso(iso: string): number {
+  const target = new Date(iso + "T00:00:00").getTime();
+  const today = (() => {
+    const d = new Date();
+    d.setHours(0, 0, 0, 0);
+    return d.getTime();
+  })();
+  return Math.max(0, (target - today) / (MS_PER_DAY * DAYS_PER_MONTH));
+}
 
 function isoFromMonthsAhead(months: number): string {
   const d = new Date();
@@ -52,6 +80,12 @@ export type PreviewData = {
   perGuest: number;
   categoryLabel: string;
   subtypeLabel: string | null;
+  // Singular + plural event noun for user-facing copy. NEVER use subtypeLabel
+  // alone here — it concatenates into offensive constructions like "your jewish
+  // budget" or "mexican events typically need…". Cultural specificity lives in
+  // the milestone rail and Cue voice instead.
+  eventNounSingular: string; // "wedding" / "corporate event" / "celebration"
+  eventNounPlural: string;   // "weddings" / "corporate events" / "celebrations"
   recommendedLeadMonths: number;
   horizonMonths: number;
   severity: LeadTimeSeverity;
@@ -111,7 +145,16 @@ export default async function EventPreviewPage() {
   const anchorTotalForBudget = subtype?.recommendedTotal ?? category.recommendedTotal;
   const typicalPerGuest = typicalGuests > 0 ? Math.round(anchorTotalForBudget / typicalGuests) : 0;
 
-  const leadSeverity = leadTimeSeverity(parsed.dateHorizon, recLead);
+  // If the user picked an explicit calendar date, derive months-until from that.
+  // Otherwise fall back to the horizon-band's representative month count.
+  const isPickedDate =
+    typeof parsed.selectedDateIso === "string" &&
+    /^\d{4}-\d{2}-\d{2}$/.test(parsed.selectedDateIso);
+  const effectiveMonths = isPickedDate
+    ? monthsUntilIso(parsed.selectedDateIso!)
+    : horizonMonths;
+
+  const leadSeverity = leadTimeSeverityFromMonths(effectiveMonths, recLead);
   const coverSig = coverSeverity(parsed.guestCount, typicalGuests);
   const budgetSig = budgetSeverity(perGuest, typicalPerGuest);
   const severity = combinedSeverity(leadSeverity, coverSig.severity, budgetSig.severity);
@@ -137,6 +180,8 @@ export default async function EventPreviewPage() {
     perGuest,
     categoryLabel: category.label,
     subtypeLabel: subtype?.label ?? null,
+    eventNounSingular: EVENT_NOUNS[parsed.category].singular,
+    eventNounPlural: EVENT_NOUNS[parsed.category].plural,
     recommendedLeadMonths: recLead,
     horizonMonths,
     severity,

@@ -2,8 +2,8 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CATEGORIES, type CategoryKey } from "@/data/budget-presets";
 import { CuePill } from "./_components/CuePill";
-import { DayOfStub } from "./_components/DayOfStub";
 import { Feed, type FeedCard } from "./_components/Feed";
+import { RunOfShow } from "./_components/RunOfShow";
 import { Hero } from "./_components/Hero";
 import { SheetManager } from "./_components/SheetManager";
 import { TileGrid } from "./_components/TileGrid";
@@ -105,16 +105,26 @@ export default async function OrgnzDashboardPage() {
   const category = toCategory(event.event_type);
   const longDate = formatStartLongDate(event.start_date);
 
-  // event_subtype isn't persisted yet (PARKING_LOT #10) — pins fall through to
-  // the per-category generic fallback in getMilestones until that migration ships.
+  // PARKING_LOT #10 closed 2026-05-11 (session 9) — migration 021 added
+  // events.event_subtype. Pins now resolve to research-backed cultural lists
+  // (Catholic pre-Cana, Hindu sangeet+mehndi+baraat, Jewish ketubah, etc.).
+  // Falls through to the per-category generic fallback only when the column
+  // is NULL (pre-3.2.C events or calculator bypass).
   const pins = buildRailPins({
     category,
-    subtypeKey: null,
+    subtypeKey: event.event_subtype,
     startDateIso: event.start_date,
   });
 
-  // Free-tier for v1 — Stripe wiring lands Phase 4. All current users are free.
-  const isPaidTier = false;
+  // PAYWALL DISABLED FOR DEV (2026-05-11, Jason directive).
+  // All paid features (Guests sheet, Travel modal, Cue beyond 5, day-of) are
+  // ungated until launch so review/approval can move fast. The full-tile gate
+  // (PARKING_LOT #19) is still the design lock — it just isn't exercised in
+  // the UI right now. Before public launch, flip back to a real check:
+  //   const isPaidTier = await checkSubscription(user.id);
+  // This needs to happen alongside Phase 4 Stripe wiring; do not ship to prod
+  // with `true` hardcoded.
+  const isPaidTier = true;
 
   // No live data for these yet — placeholders until Phase 4+/5+ wires them.
   const vendorCount = 0;
@@ -178,7 +188,7 @@ export default async function OrgnzDashboardPage() {
         hasVenu={hasVenu}
         isPaidTier={isPaidTier}
       />
-      <DayOfStub />
+      <RunOfShow />
       <SheetManager budget={budgetSheetData} hasVenu={hasVenu} />
     </>
   );

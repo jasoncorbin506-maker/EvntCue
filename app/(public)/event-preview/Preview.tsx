@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import s from "./preview.module.css";
 import type { PreviewData } from "./page";
 import { EmailFallbackModal } from "./EmailFallbackModal";
@@ -25,7 +26,6 @@ function formatUSD(n: number): string {
 export function Preview({ data }: { data: PreviewData }) {
   const [emailOpen, setEmailOpen] = useState(false);
 
-  const titleSubject = data.subtypeLabel ?? data.categoryLabel;
   const horizonLabel = HORIZON_LABELS[data.dateHorizon] ?? "in planning";
 
   return (
@@ -41,14 +41,14 @@ export function Preview({ data }: { data: PreviewData }) {
           <h1 className={s.title}>
             Your <em>{formatUSD(data.grand)}</em>
             <br />
-            {titleSubject.toLowerCase()} budget.
+            {data.eventNounSingular} budget.
           </h1>
           <p className={s.sub}>
             For <strong>{data.guestCount}</strong> guests · {horizonLabel} · {formatUSD(data.perGuest)} per guest
           </p>
         </header>
 
-        <CueWarning data={data} subject={titleSubject} />
+        <CueWarning data={data} />
 
         <div className={s.layout}>
           <section className={s.colMain}>
@@ -57,9 +57,9 @@ export function Preview({ data }: { data: PreviewData }) {
           </section>
 
           <aside className={s.colAside}>
-            <CueCard severity={data.severity} subject={titleSubject} />
+            <CueCard severity={data.severity} eventNoun={data.eventNounSingular} />
             {data.suggestPlnr && <PlnrSuggestion />}
-            <VendorTeaser categoryLabel={titleSubject} />
+            <VendorTeaser />
           </aside>
         </div>
 
@@ -85,8 +85,20 @@ export function Preview({ data }: { data: PreviewData }) {
 }
 
 /* ---------- Cue-style warning (3 signals: lead time, cover count, per-guest budget) ---------- */
-function CueWarning({ data, subject }: { data: PreviewData; subject: string }) {
-  const { severity, leadSeverity, coverSig, budgetSig, recommendedLeadMonths, typicalGuests, typicalPerGuest, guestCount, perGuest } = data;
+function CueWarning({ data }: { data: PreviewData }) {
+  const {
+    severity,
+    leadSeverity,
+    coverSig,
+    budgetSig,
+    recommendedLeadMonths,
+    typicalGuests,
+    typicalPerGuest,
+    guestCount,
+    perGuest,
+    eventNounSingular,
+    eventNounPlural,
+  } = data;
 
   const cls =
     severity === "danger" ? s.cueDanger : severity === "warn" ? s.cueWarning : s.cueCalm;
@@ -126,12 +138,12 @@ function CueWarning({ data, subject }: { data: PreviewData; subject: string }) {
           {/* Lead-time line */}
           {leadSeverity === "calm" ? (
             <>
-              {subject} events typically need <strong>{recommendedLeadMonths}+ months</strong> of lead time —
+              Most {eventNounPlural} need <strong>{recommendedLeadMonths}+ months</strong> of lead time —
               you&rsquo;ve got room to breathe.
             </>
           ) : (
             <>
-              {subject} events typically need <strong>{recommendedLeadMonths}+ months</strong> of lead time
+              Most {eventNounPlural} need <strong>{recommendedLeadMonths}+ months</strong> of lead time
               — venue holds and {leadSeverity === "danger" ? "permits" : "specialty bookings"} fill up early.
             </>
           )}
@@ -150,8 +162,8 @@ function CueWarning({ data, subject }: { data: PreviewData; subject: string }) {
           {budgetSig.severity !== "calm" && typicalPerGuest > 0 && (
             <>
               {" "}Per-guest at <strong>${perGuest}</strong> sits{" "}
-              {budgetSig.direction === "low" ? "below" : "above"} DFW typical (~${typicalPerGuest}/guest)
-              for {subject.toLowerCase()}.{" "}
+              {budgetSig.direction === "low" ? "below" : "above"} the DFW typical (~${typicalPerGuest}/guest)
+              for a {eventNounSingular} of this scope.{" "}
               {budgetSig.direction === "low"
                 ? "Vendor matches will favor budget-tier; some specialty options will be out of reach."
                 : "Cue can scope premium and luxury-tier vendor matches."}
@@ -160,8 +172,8 @@ function CueWarning({ data, subject }: { data: PreviewData; subject: string }) {
           {/* Calm reassurance for budget if everything is calm */}
           {severity === "calm" && typicalPerGuest > 0 && (
             <>
-              {" "}Per-guest at <strong>${perGuest}</strong> aligns with DFW typical
-              (~${typicalPerGuest}/guest) for {subject.toLowerCase()}.
+              {" "}Per-guest at <strong>${perGuest}</strong> aligns with the DFW typical
+              (~${typicalPerGuest}/guest) for a {eventNounSingular} of this scope.
             </>
           )}
         </div>
@@ -203,12 +215,16 @@ function DateSelector({ data }: { data: PreviewData }) {
   const [iso, setIso] = useState(data.selectedDateIso);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [, startTransition] = useTransition();
+  const router = useRouter();
 
   function persist(next: string) {
     setIso(next);
     setPickerOpen(false);
     startTransition(async () => {
       await updateSelectedDate({ iso: next });
+      // Re-fetch the server component so the Cue severity recomputes from the
+      // new selectedDateIso (otherwise the warning stays stale until reload).
+      router.refresh();
     });
   }
 
@@ -252,10 +268,10 @@ function DateSelector({ data }: { data: PreviewData }) {
 /* ---------- Cue card (calm) ---------- */
 function CueCard({
   severity,
-  subject,
+  eventNoun,
 }: {
   severity: "calm" | "warn" | "danger";
-  subject: string;
+  eventNoun: string;
 }) {
   const dotClass =
     severity === "danger" ? s.cueDotDanger : severity === "warn" ? s.cueDotWarn : s.cueDotCalm;
@@ -267,7 +283,7 @@ function CueCard({
         <div className={s.cueLabel}>Cue · {stateText}</div>
       </div>
       <div className={s.cueText}>
-        <em>I&rsquo;ve sketched a starting plan</em> for your {subject.toLowerCase()}. Sign up and
+        <em>I&rsquo;ve sketched a starting plan</em> for your {eventNoun}. Sign up and
         I&rsquo;ll match vendors who fit your budget and style, draft your timeline, and send you
         five board-matched shortlists you can compare side by side.
       </div>
@@ -299,7 +315,7 @@ function PlnrSuggestion() {
 }
 
 /* ---------- Vendor teaser — Lock 5a: vendors gated until venue confirms ---------- */
-function VendorTeaser({ categoryLabel }: { categoryLabel: string }) {
+function VendorTeaser() {
   return (
     <div className={s.card}>
       <div className={s.cardHead}>
@@ -334,7 +350,7 @@ function VendorTeaser({ categoryLabel }: { categoryLabel: string }) {
       <div className={s.vendorFootnote}>
         Catr and Vndr matches unlock once your Venu is booked. Every other vendor
         scopes around the venue&rsquo;s catering rules, AV setup, and date — so locking
-        the {categoryLabel.toLowerCase()} venue first saves rework.
+        the venue first saves rework.
       </div>
     </div>
   );

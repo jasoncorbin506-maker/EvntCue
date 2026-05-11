@@ -375,7 +375,18 @@ export function leadTimeSeverity(
   horizon: DateHorizon,
   recommendedLeadMonths: number,
 ): LeadTimeSeverity {
-  const userMonths = HORIZON_MONTHS[horizon];
+  return leadTimeSeverityFromMonths(HORIZON_MONTHS[horizon], recommendedLeadMonths);
+}
+
+/**
+ * Raw-months variant — used when the user has picked an actual calendar date
+ * (via /event-preview's DatePickerModal) and we have a precise months-until
+ * figure rather than a 2-month horizon band.
+ */
+export function leadTimeSeverityFromMonths(
+  userMonths: number,
+  recommendedLeadMonths: number,
+): LeadTimeSeverity {
   if (recommendedLeadMonths <= 0) return "calm";
   const ratio = userMonths / recommendedLeadMonths;
   if (ratio < 0.5) return "danger";

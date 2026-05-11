@@ -69,7 +69,14 @@ export default async function LoginPage(props: {
           <h1 className={styles.headline}>{headline}</h1>
           <p className={styles.sub}>{sub}</p>
 
-          <LoginForm mode={mode} intent={intent} role={role} />
+          {/*
+            key={mode} forces a remount when the swap link flips between
+            signup ↔ signin. Without it, useActionState in LoginForm retains
+            the prior submit's state — so after a signup hits "needsConfirm"
+            and the user clicks "Sign in" to back out, the confirm screen
+            keeps rendering even though mode === "signin".
+          */}
+          <LoginForm key={mode} mode={mode} intent={intent} role={role} />
 
           <p className={styles.swap}>
             {mode === "signup" ? "Already have an account?" : "New to EvntCue?"}{" "}

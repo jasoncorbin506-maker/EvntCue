@@ -353,6 +353,39 @@ const BY_CATEGORY: Record<CategoryKey, Record<string, Milestone[]>> = {
 };
 
 /**
+ * Universal wedding planning milestones — overlaid on top of the cultural
+ * subtype list so the rail shows the COMPLETE picture: cultural tradition
+ * checkpoints (Tenaim, Aufruf, Sangeet, Pre-Cana, etc.) AND the logistical /
+ * vendor-activity milestones (mood board, vendor lock, tastings, walkthrough,
+ * fittings, RSVP cutoff, rehearsal). Without this overlay the rail under-tells
+ * the story: every wedding regardless of tradition runs these planning beats.
+ *
+ * Merge strategy: cultural list wins on label collisions (since it carries the
+ * cultural detail). Universal items that don't collide get added.
+ */
+const WEDDING_CORE: Milestone[] = [
+  { label: "Save-the-dates", lead: 6 },
+  { label: "Mood board lock", lead: 5, detail: "Cue extracts palettes from your images" },
+  { label: "Vendor lock", lead: 4, detail: "Photo · florals · music · baker" },
+  { label: "Engagement shoot", lead: 3, detail: "Photographer · save-the-date imagery" },
+  { label: "Cake tasting", lead: 3, detail: "Baker selection round" },
+  { label: "Catering tasting", lead: 3, detail: "Final menu locked" },
+  { label: "Invitations", lead: 2 },
+  { label: "Venue walkthrough", lead: 1, detail: "Coordinator + photographer site visit" },
+  { label: "Final fittings", lead: 0.5 },
+  { label: "Final guest count", lead: 0.5, detail: "Catering + seating cutoff" },
+  { label: "Hotel block opens", lead: 0.1, detail: "Out-of-town guests check in" },
+  { label: "Rehearsal", lead: 0.03 },
+  { label: "Rehearsal dinner", lead: 0.03 },
+];
+
+function mergeWeddingMilestones(cultural: Milestone[]): Milestone[] {
+  const culturalLabels = new Set(cultural.map((m) => m.label));
+  const universalKept = WEDDING_CORE.filter((m) => !culturalLabels.has(m.label));
+  return [...universalKept, ...cultural];
+}
+
+/**
  * Generic horizon-derived fallback when subtype isn't in the lookup table.
  * Used as a safety net — should be hit only if data is missing.
  */
@@ -379,8 +412,17 @@ export function getMilestones(
   subtypeKey: string | null | undefined,
   userHorizonMonths: number,
 ): MilestoneWithStatus[] {
-  const lookup = subtypeKey ? BY_CATEGORY[category][subtypeKey] : undefined;
-  const list = lookup ?? genericFallback();
+  // Wedding category: overlay WEDDING_CORE (universal logistical / vendor /
+  // travel milestones) onto the subtype-specific cultural list so the rail
+  // shows the complete picture, not just the cultural beats.
+  let list: Milestone[];
+  if (category === "wedding") {
+    const cultural = subtypeKey ? WEDDING[subtypeKey] : undefined;
+    list = cultural ? mergeWeddingMilestones(cultural) : [...WEDDING_CORE];
+  } else {
+    const lookup = subtypeKey ? BY_CATEGORY[category][subtypeKey] : undefined;
+    list = lookup ?? genericFallback();
+  }
   // Sort ascending by lead (largest lead first → earliest milestone first chronologically)
   const sorted = [...list].sort((a, b) => b.lead - a.lead);
   return sorted.map((m) => ({ ...m, status: statusFor(m, userHorizonMonths) }));

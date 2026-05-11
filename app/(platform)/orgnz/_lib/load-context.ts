@@ -6,6 +6,7 @@ export type OrgnzEvent = {
   id: string;
   name: string;
   event_type: string;
+  event_subtype: string | null;
   start_date: string;
   start_time: string | null;
   guest_count: number | null;
@@ -59,7 +60,7 @@ export const loadOrgnzContext = cache(async (): Promise<OrgnzContext | null> => 
     const { data: events } = await admin
       .from("events")
       .select(
-        "id,name,event_type,start_date,start_time,guest_count,budget_cents,contingency_pct",
+        "id,name,event_type,event_subtype,start_date,start_time,guest_count,budget_cents,contingency_pct",
       )
       .eq("orgnz_tenant_id", tenantId)
       .order("created_at", { ascending: false })

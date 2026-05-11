@@ -154,6 +154,7 @@ export async function postAuthSeed(args: {
           .insert({
             name: eventName,
             event_type: eventTypeEnum,
+            event_subtype: state.subtypeKey,  // 3.2.C — drives milestone rail subtype lookup
             orgnz_tenant_id: tenantId,
             start_date: startDate,
             guest_count: state.guestCount,
@@ -192,6 +193,7 @@ export async function postAuthSeed(args: {
           converted_user_id: args.userId,
           email_captured: args.email,
           date_horizon: dbHorizonFromUi(state.dateHorizon),
+          event_subtype: state.subtypeKey,  // 3.2.C — also persist on capture session
         })
         .eq("session_token", sessionToken);
     }

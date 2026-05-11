@@ -18,10 +18,15 @@ type Props = {
 };
 
 function dollars(cents: number): string {
-  if (cents >= 1_000_000) return `$${Math.round(cents / 100_000) / 10}M`;
-  if (cents >= 1_000_00) return `$${Math.round(cents / 100_000)}K`;
-  if (cents >= 10_000) return `$${Math.round(cents / 1000)}K`;
-  return `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
+  // Work in dollars so the thresholds read clearly.
+  // (Prior version used cents thresholds with off-by-100 errors that
+  // rendered $60K budgets as "$6M". Not aspirational — just broken math.)
+  const d = cents / 100;
+  if (d >= 1_000_000) {
+    return `$${(d / 1_000_000).toFixed(1).replace(/\.0$/, "")}M`;
+  }
+  if (d >= 10_000) return `$${Math.round(d / 1000)}K`;
+  return `$${d.toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
 }
 
 export function TileGrid(props: Props) {
@@ -130,12 +135,12 @@ export function TileGrid(props: Props) {
         </div>
       </Link>
 
-      {/* GUESTS — paywalled */}
+      {/* GUESTS — paywalled (PARKING_LOT #19: full-tile gate, locked 2026-05-11) */}
       {isPaidTier ? (
         <button
           type="button"
           className={`${styles.tile} ${styles.tileGuests}`}
-          onClick={() => showToast("Guests sheet ships when paid tier lights up.")}
+          onClick={() => openSheet("guests")}
         >
           <div className={styles.tileH}>
             <div className={styles.tileIco}>
