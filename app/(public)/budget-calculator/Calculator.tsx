@@ -22,14 +22,13 @@ import {
   type CoverSeverity,
   type DateHorizon,
   type LeadTimeSeverity,
-  type LineItem,
   type Subtype,
 } from "@/data/budget-presets";
 import { saveAndOpenPreview } from "./_actions/save-budget-session";
 import { MegaEventModal } from "./MegaEventModal";
 import s from "./budget.module.css";
 
-type Step = "category" | "subtype" | "scope" | "items";
+type Step = "category" | "subtype" | "scope";
 
 type State = {
   step: Step;
@@ -47,11 +46,7 @@ type Action =
   | { type: "pickSubtype"; subtypeKey: string }
   | { type: "setGuestCount"; count: number }
   | { type: "setHorizon"; horizon: DateHorizon }
-  | { type: "setAmount"; key: string; amount: number }
-  | { type: "applyPreset"; preset: "min" | "recommended" | "luxury" }
   | { type: "scaleBudget"; targetBudget: number }
-  | { type: "setContingency"; pct: number }
-  | { type: "setTax"; pct: number }
   | { type: "goto"; step: Step };
 
 const initialState: State = {
@@ -114,24 +109,20 @@ function reducer(state: State, action: Action): State {
         step: "scope",
       };
     }
-    case "setGuestCount":
-      return { ...state, guestCount: action.count };
-    case "setHorizon":
-      return { ...state, dateHorizon: action.horizon };
-    case "setAmount":
-      return {
-        ...state,
-        amounts: { ...state.amounts, [action.key]: Math.max(0, Math.round(action.amount)) },
-      };
-    case "applyPreset": {
-      if (!state.category) return state;
+    case "setGuestCount": {
+      // Rescale line items so per-guest dollar stays anchored at the subtype's
+      // typical $/head — keeps the budget meaningful as the user drags guests.
+      if (!state.category) return { ...state, guestCount: action.count };
       const cat = CATEGORIES.find((c) => c.key === state.category)!;
       const sub = getSubtype(state.category, state.subtypeKey);
       return {
         ...state,
-        amounts: seedAmounts(cat, sub, state.guestCount, action.preset),
+        guestCount: action.count,
+        amounts: seedAmounts(cat, sub, action.count, "recommended"),
       };
     }
+    case "setHorizon":
+      return { ...state, dateHorizon: action.horizon };
     case "scaleBudget": {
       if (!state.category) return state;
       const target = Math.max(0, action.targetBudget);
@@ -153,18 +144,9 @@ function reducer(state: State, action: Action): State {
       for (const [k, v] of Object.entries(state.amounts)) out[k] = Math.round(v * scale);
       return { ...state, amounts: out };
     }
-    case "setContingency":
-      return { ...state, contingencyPct: clamp(action.pct, 0, 50) };
-    case "setTax":
-      return { ...state, taxPct: clamp(action.pct, 0, 25) };
     case "goto":
       return { ...state, step: action.step };
   }
-}
-
-function clamp(n: number, lo: number, hi: number) {
-  if (Number.isNaN(n)) return lo;
-  return Math.min(hi, Math.max(lo, n));
 }
 
 function formatUSD(n: number): string {
@@ -177,6 +159,9 @@ function formatUSD(n: number): string {
 
 export default function Calculator() {
   const [state, dispatch] = useReducer(reducer, initialState);
+  const [pending, startTransition] = useTransition();
+  const [saveError, setSaveError] = useState<string | null>(null);
+
   const category = state.category ? CATEGORIES.find((c) => c.key === state.category)! : null;
   const subtype = state.category ? getSubtype(state.category, state.subtypeKey) : undefined;
 
@@ -192,6 +177,31 @@ export default function Calculator() {
     const perGuest = guests > 0 ? Math.round(grand / guests) : 0;
     return { subtotal, contingency, tax, grand, perGuest, guests };
   }, [state.amounts, state.contingencyPct, state.taxPct, state.guestCount]);
+
+  function continueToPreview() {
+    if (!state.category) return;
+    setSaveError(null);
+    startTransition(async () => {
+      try {
+        await saveAndOpenPreview({
+          category: state.category!,
+          subtypeKey: state.subtypeKey,
+          guestCount: state.guestCount,
+          dateHorizon: state.dateHorizon,
+          guestBand: guestBandFromCount(state.guestCount),
+          amounts: state.amounts,
+          contingencyPct: state.contingencyPct,
+          taxPct: state.taxPct,
+          subtotal: totals.subtotal,
+          contingency: totals.contingency,
+          tax: totals.tax,
+          grand: totals.grand,
+        });
+      } catch (e) {
+        setSaveError(e instanceof Error ? e.message : "Something went wrong.");
+      }
+    });
+  }
 
   return (
     <main className={s.page}>
@@ -254,18 +264,9 @@ export default function Calculator() {
             state={state}
             dispatch={dispatch}
             onBack={() => dispatch({ type: "goto", step: "subtype" })}
-            onNext={() => dispatch({ type: "goto", step: "items" })}
-          />
-        )}
-
-        {state.step === "items" && category && (
-          <ItemsStep
-            category={category}
-            subtype={subtype}
-            state={state}
-            totals={totals}
-            dispatch={dispatch}
-            onBack={() => dispatch({ type: "goto", step: "scope" })}
+            onContinue={continueToPreview}
+            pending={pending}
+            saveError={saveError}
           />
         )}
       </div>
@@ -342,14 +343,18 @@ function ScopeStep({
   state,
   dispatch,
   onBack,
-  onNext,
+  onContinue,
+  pending,
+  saveError,
 }: {
   category: Category;
   subtype: Subtype | undefined;
   state: State;
   dispatch: React.Dispatch<Action>;
   onBack: () => void;
-  onNext: () => void;
+  onContinue: () => void;
+  pending: boolean;
+  saveError: string | null;
 }) {
   const [megaOpen, setMegaOpen] = useState(false);
   const isMega = state.guestCount >= GUEST_SLIDER.megaThreshold;
@@ -456,14 +461,18 @@ function ScopeStep({
         />
       </div>
 
+      {saveError && <div className={s.errorMsg}>{saveError}</div>}
+
       <div className={s.navRow}>
-        <button className={s.btnGhost} onClick={onBack}>Back</button>
+        <button className={s.btnGhost} onClick={onBack} disabled={pending}>Back</button>
         {isMega ? (
           <button className={s.btnPrimary} onClick={() => setMegaOpen(true)}>
             Talk to our team →
           </button>
         ) : (
-          <button className={s.btnPrimary} onClick={onNext}>Continue</button>
+          <button className={s.btnPrimary} onClick={onContinue} disabled={pending}>
+            {pending ? "Building your event…" : "View your event preview →"}
+          </button>
         )}
       </div>
 
@@ -572,225 +581,6 @@ function ScopeWarning({
                 : "Cue can scope premium and luxury-tier matches at this per-guest spend."}
             </>
           )}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-/* ---------- Step: Items ---------- */
-function ItemsStep({
-  category,
-  subtype,
-  state,
-  totals,
-  dispatch,
-  onBack,
-}: {
-  category: Category;
-  subtype: Subtype | undefined;
-  state: State;
-  totals: { subtotal: number; contingency: number; tax: number; grand: number; perGuest: number; guests: number };
-  dispatch: React.Dispatch<Action>;
-  onBack: () => void;
-}) {
-  const scale = computeScale(category, subtype, state.guestCount);
-  const [pending, startTransition] = useTransition();
-  const [error, setError] = useState<string | null>(null);
-
-  function continueToPreview() {
-    setError(null);
-    startTransition(async () => {
-      try {
-        await saveAndOpenPreview({
-          category: category.key,
-          subtypeKey: state.subtypeKey,
-          guestCount: state.guestCount,
-          dateHorizon: state.dateHorizon,
-          guestBand: guestBandFromCount(state.guestCount),
-          amounts: state.amounts,
-          contingencyPct: state.contingencyPct,
-          taxPct: state.taxPct,
-          subtotal: totals.subtotal,
-          contingency: totals.contingency,
-          tax: totals.tax,
-          grand: totals.grand,
-        });
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Something went wrong.");
-      }
-    });
-  }
-
-  return (
-    <section className={s.stepWide}>
-      <div className={s.itemsLayout}>
-        <div className={s.itemsCol}>
-          <h2 className={s.stepHeading}>Line items</h2>
-
-          <div className={s.presetRow}>
-            <span className={s.presetLabel}>Quick-fill:</span>
-            <button type="button" className={s.presetBtn} onClick={() => dispatch({ type: "applyPreset", preset: "min" })}>Min</button>
-            <button type="button" className={s.presetBtn} onClick={() => dispatch({ type: "applyPreset", preset: "recommended" })}>Recommended</button>
-            <button type="button" className={s.presetBtn} onClick={() => dispatch({ type: "applyPreset", preset: "luxury" })}>Luxury</button>
-          </div>
-
-          <div className={s.itemsList}>
-            {category.items.map((item) => (
-              <ItemRow
-                key={item.key}
-                item={item}
-                scale={scale}
-                amount={state.amounts[item.key] ?? 0}
-                onChange={(v) => dispatch({ type: "setAmount", key: item.key, amount: v })}
-              />
-            ))}
-          </div>
-
-          <div className={s.tunersRow}>
-            <Tuner
-              label="Contingency"
-              suffix="%"
-              value={state.contingencyPct}
-              onChange={(v) => dispatch({ type: "setContingency", pct: v })}
-              min={0}
-              max={50}
-              step={1}
-            />
-            <Tuner
-              label="Tax"
-              suffix="%"
-              value={state.taxPct}
-              onChange={(v) => dispatch({ type: "setTax", pct: v })}
-              min={0}
-              max={25}
-              step={0.25}
-            />
-          </div>
-
-          {error && <div className={s.errorMsg}>{error}</div>}
-
-          <div className={s.navRow}>
-            <button className={s.btnGhost} onClick={onBack} disabled={pending}>Back</button>
-            <button className={s.btnPrimary} onClick={continueToPreview} disabled={pending}>
-              {pending ? "Building your event…" : "View your event preview →"}
-            </button>
-          </div>
-        </div>
-
-        <aside className={s.totalsCol}>
-          <TotalsPanel totals={totals} category={category} subtype={subtype} />
-        </aside>
-      </div>
-    </section>
-  );
-}
-
-function ItemRow({
-  item,
-  scale,
-  amount,
-  onChange,
-}: {
-  item: LineItem;
-  scale: number;
-  amount: number;
-  onChange: (v: number) => void;
-}) {
-  const minScaled = Math.round(item.min * scale);
-  const recScaled = Math.round(item.recommended * scale);
-  const luxScaled = Math.round(item.luxury * scale);
-  return (
-    <div className={s.itemRow}>
-      <div className={s.itemHead}>
-        <div className={s.itemLabel}>{item.label}</div>
-        <div className={s.itemHint}>
-          min {formatUSD(minScaled)} · rec {formatUSD(recScaled)} · lux {formatUSD(luxScaled)}
-        </div>
-      </div>
-      <div className={s.itemControl}>
-        <span className={s.dollar}>$</span>
-        <input
-          className={s.itemInput}
-          type="number"
-          inputMode="numeric"
-          min={0}
-          step={50}
-          value={amount}
-          onChange={(e) => onChange(Number(e.target.value))}
-        />
-      </div>
-    </div>
-  );
-}
-
-function Tuner({
-  label,
-  suffix,
-  value,
-  onChange,
-  min,
-  max,
-  step,
-}: {
-  label: string;
-  suffix: string;
-  value: number;
-  onChange: (v: number) => void;
-  min: number;
-  max: number;
-  step: number;
-}) {
-  return (
-    <label className={s.tuner}>
-      <span className={s.tunerLabel}>{label}</span>
-      <span className={s.tunerControl}>
-        <input
-          className={s.tunerInput}
-          type="number"
-          inputMode="decimal"
-          min={min}
-          max={max}
-          step={step}
-          value={value}
-          onChange={(e) => onChange(Number(e.target.value))}
-        />
-        <span className={s.tunerSuffix}>{suffix}</span>
-      </span>
-    </label>
-  );
-}
-
-/* ---------- Totals panel ---------- */
-function TotalsPanel({
-  totals,
-  category,
-  subtype,
-}: {
-  totals: { subtotal: number; contingency: number; tax: number; grand: number; perGuest: number; guests: number };
-  category: Category;
-  subtype: Subtype | undefined;
-}) {
-  return (
-    <div className={s.totalsCard}>
-      <div className={s.totalsEyebrow}>{(subtype?.label ?? category.label) + " budget"}</div>
-      <div className={s.totalsGrand}>{formatUSD(totals.grand)}</div>
-      <div className={s.totalsPerGuest}>
-        {formatUSD(totals.perGuest)} per guest · {totals.guests} guests
-      </div>
-
-      <div className={s.totalsBreakdown}>
-        <div className={s.totalsRow}>
-          <span>Subtotal</span>
-          <span>{formatUSD(totals.subtotal)}</span>
-        </div>
-        <div className={s.totalsRow}>
-          <span>Contingency</span>
-          <span>{formatUSD(totals.contingency)}</span>
-        </div>
-        <div className={s.totalsRow}>
-          <span>Tax</span>
-          <span>{formatUSD(totals.tax)}</span>
         </div>
       </div>
     </div>

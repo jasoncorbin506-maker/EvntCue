@@ -3,6 +3,7 @@
 import Link from "next/link";
 import styles from "../orgnz.module.css";
 import { showToast } from "../_lib/toast";
+import { openSheet } from "../_lib/sheet";
 
 type Props = {
   budgetCents: number | null;
@@ -42,13 +43,10 @@ export function TileGrid(props: Props) {
   return (
     <section className={styles.tiles}>
       {/* BUDGET — free */}
-      <Link
-        href="/orgnz"
+      <button
+        type="button"
         className={`${styles.tile} ${styles.tileBudget}`}
-        onClick={(e) => {
-          e.preventDefault();
-          showToast("Budget sheet opens here in <em>3.2.B</em>.");
-        }}
+        onClick={() => openSheet("budget")}
       >
         <div className={styles.tileH}>
           <div className={styles.tileIco}>
@@ -70,13 +68,13 @@ export function TileGrid(props: Props) {
               : `${Math.round((allocatedCents / budgetTotal) * 100)}% allocated`
             : "Run the calculator first"}
         </div>
-      </Link>
+      </button>
 
       {/* VENDORS — free (browse) */}
       <button
         type="button"
         className={`${styles.tile} ${styles.tileVendors}`}
-        onClick={() => showToast("Vendors sheet opens here in <em>3.2.B</em>.")}
+        onClick={() => openSheet("vendors")}
       >
         <div className={styles.tileH}>
           <div className={styles.tileIco}>
@@ -137,7 +135,7 @@ export function TileGrid(props: Props) {
         <button
           type="button"
           className={`${styles.tile} ${styles.tileGuests}`}
-          onClick={() => showToast("Guests sheet opens here in <em>3.2.B</em>.")}
+          onClick={() => showToast("Guests sheet ships when paid tier lights up.")}
         >
           <div className={styles.tileH}>
             <div className={styles.tileIco}>
@@ -197,7 +195,7 @@ export function TileGrid(props: Props) {
       <button
         type="button"
         className={`${styles.tile} ${styles.tilePlnr}`}
-        onClick={() => showToast("Plnr sheet opens here in <em>3.2.B</em>.")}
+        onClick={() => openSheet("plnr")}
       >
         <div className={styles.tileH}>
           <div className={styles.tileIco}>
@@ -219,7 +217,7 @@ export function TileGrid(props: Props) {
       <button
         type="button"
         className={`${styles.tile} ${styles.tileVenu}`}
-        onClick={() => showToast("Venu sheet opens here in <em>3.2.B</em>.")}
+        onClick={() => openSheet("venu")}
       >
         <div className={styles.tileH}>
           <div className={styles.tileIco}>

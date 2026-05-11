@@ -868,3 +868,243 @@
 
 .modalCta:hover { background: #C76479; transform: translateY(-1px); }
 .modalCta:disabled { opacity: 0.6; cursor: not-allowed; }
+
+/* ---------- Date selector — trigger + modal (ported from v8 onboarding) --- */
+.dateTrigger {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+  padding: 16px 18px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+  cursor: pointer;
+  font-family: inherit;
+  color: var(--txt);
+  text-align: left;
+  transition: border-color 180ms ease, background 180ms ease;
+  margin-top: 4px;
+}
+.dateTrigger:hover { border-color: var(--rb); background: rgba(212, 119, 138, 0.04); }
+.dateTriggerHasValue { border-color: var(--rb); }
+.dateTriggerText {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 22px;
+  color: var(--rt);
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  flex: 1;
+  min-width: 0;
+}
+.dateTriggerIcon {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 24px;
+  color: var(--txt3);
+  font-weight: 300;
+  flex-shrink: 0;
+}
+.dateFoot {
+  margin-top: 14px;
+  font-family: var(--font-display);
+  font-size: 13.5px;
+  font-style: italic;
+  color: var(--txt2);
+  line-height: 1.55;
+}
+
+/* Modal */
+.dpModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 20, 0.92);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 20px;
+  animation: dpFadeIn 180ms ease;
+}
+@keyframes dpFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.dpCard {
+  width: min(360px, 94vw);
+  background: var(--ink2);
+  border: 0.5px solid rgba(212, 119, 138, 0.20);
+  border-radius: 16px;
+  padding: 18px;
+  max-height: 88vh;
+  overflow-y: auto;
+}
+.dpHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.dpTitle {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-style: italic;
+  color: #fff;
+  font-weight: 400;
+}
+.dpClose {
+  background: none;
+  border: none;
+  color: var(--txt3);
+  font-size: 20px;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms ease, color 150ms ease;
+}
+.dpClose:hover { background: rgba(255, 255, 255, 0.05); color: var(--txt); }
+.dpControls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.dpSelect {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.04);
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  padding: 9px 28px 9px 10px;
+  color: var(--txt);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.4)' fill='none' stroke-width='1'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+}
+.dpSelect:focus { border-color: var(--rb); }
+.dpNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+.dpNavBtn {
+  background: none;
+  border: 0.5px solid var(--bdr);
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: var(--txt2);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
+}
+.dpNavBtn:hover:not(:disabled) { background: rgba(255, 255, 255, 0.05); color: var(--txt); }
+.dpNavBtn:disabled { opacity: 0.25; cursor: not-allowed; }
+.dpNavLabel {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-style: italic;
+  color: #fff;
+  font-weight: 400;
+}
+.dpWeekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 5px;
+}
+.dpWd {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  text-align: center;
+  padding: 5px 0;
+  font-weight: 600;
+}
+.dpGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.dpDay {
+  aspect-ratio: 1 / 1;
+  background: none;
+  border: 0.5px solid transparent;
+  border-radius: 7px;
+  color: var(--txt);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  transition: background 120ms ease, border-color 120ms ease, color 120ms ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.dpDay:not(.dpDayPast):not(.dpDayEmpty):hover {
+  background: var(--rl);
+  border-color: var(--rb);
+}
+.dpDayEmpty { visibility: hidden; pointer-events: none; }
+.dpDayPast {
+  color: var(--txt3);
+  cursor: not-allowed;
+  text-decoration: line-through;
+  opacity: 0.4;
+}
+.dpDayToday {
+  border-color: rgba(255, 255, 255, 0.14);
+  color: var(--rt);
+}
+.dpDaySelected {
+  background: var(--rose);
+  color: #fff;
+  border-color: var(--rose);
+}
+.dpDaySelected:hover { background: var(--rose); }
+.dpQuick {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--bdr);
+}
+.dpQuickPill {
+  padding: 6px 11px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--txt2);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.dpQuickPill:hover {
+  border-color: var(--rb);
+  color: var(--rt);
+  background: var(--rl);
+}

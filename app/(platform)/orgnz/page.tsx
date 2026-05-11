@@ -1,12 +1,14 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import type { CategoryKey } from "@/data/budget-presets";
+import { CATEGORIES, type CategoryKey } from "@/data/budget-presets";
 import { CuePill } from "./_components/CuePill";
 import { DayOfStub } from "./_components/DayOfStub";
 import { Feed, type FeedCard } from "./_components/Feed";
 import { Hero } from "./_components/Hero";
+import { SheetManager } from "./_components/SheetManager";
 import { TileGrid } from "./_components/TileGrid";
 import { TimelineRail } from "./_components/TimelineRail";
+import { buildBenchmarkRows, overallVariance } from "./_lib/benchmarks";
 import {
   daysUntil,
   loadOrgnzContext,
@@ -17,10 +19,10 @@ import styles from "./orgnz.module.css";
 
 export const metadata = { title: "Dashboard · EvntCue" };
 
-const CATEGORIES: CategoryKey[] = ["wedding", "corporate", "nonprofit", "public", "social"];
+const VALID_CATEGORIES: CategoryKey[] = ["wedding", "corporate", "nonprofit", "public", "social"];
 
 function toCategory(eventType: string): CategoryKey {
-  return (CATEGORIES as string[]).includes(eventType)
+  return (VALID_CATEGORIES as string[]).includes(eventType)
     ? (eventType as CategoryKey)
     : "social";
 }
@@ -127,6 +129,33 @@ export default async function OrgnzDashboardPage() {
     hasVenu,
   });
 
+  // Cue Pricing Informatics — DFW benchmarks reused from budget-presets per Jason 2026-05-10.
+  // Proper percentile extraction from 03_Research/ xlsx queued in PARKING_LOT #20.
+  const guestCountForBench = event.guest_count ?? CATEGORIES.find((c) => c.key === category)?.typicalGuests ?? 150;
+  const benchmarks = buildBenchmarkRows({
+    category,
+    guestCount: guestCountForBench,
+    userLineItems: lineItems.map((li) => ({ label: li.label, amount_cents: li.amount_cents })),
+    topN: 5,
+  });
+  const { pct: variancePct, state: varianceState } = overallVariance(benchmarks);
+  const categoryLabel = CATEGORIES.find((c) => c.key === category)?.label.toLowerCase() ?? "event";
+
+  const budgetSheetData = {
+    spentCents: allocatedCents,
+    budgetCents: event.budget_cents ?? 0,
+    // Real escrow / paid-out flows land Phase 4 (Stripe Connect). Stub at zero so the
+    // hero card renders honestly until then.
+    escrowCents: 0,
+    paidOutCents: 0,
+    guestCount: guestCountForBench,
+    categoryLabel,
+    benchmarks,
+    benchmarkSummaryPct: variancePct,
+    benchmarkSummaryState: varianceState,
+    lineItems: lineItems.map((li) => ({ label: li.label, amount_cents: li.amount_cents })),
+  };
+
   return (
     <>
       <CuePill />
@@ -150,6 +179,7 @@ export default async function OrgnzDashboardPage() {
         isPaidTier={isPaidTier}
       />
       <DayOfStub />
+      <SheetManager budget={budgetSheetData} hasVenu={hasVenu} />
     </>
   );
 }

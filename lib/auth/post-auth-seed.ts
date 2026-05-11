@@ -26,6 +26,7 @@ type CalcCookieState = {
   contingency: number;
   tax: number;
   grand: number;
+  selectedDateIso?: string;  // set when user picked a date on /event-preview
 };
 
 const horizonToStartDate = (h: DateHorizon): string => {
@@ -139,13 +140,22 @@ export async function postAuthSeed(args: {
           ? `${subtype.label} · draft`
           : `${category.label} · draft`;
 
+        // Prefer the user-picked date if /event-preview captured one; otherwise
+        // fall back to the horizon midpoint.
+        const isPickedDate =
+          typeof state.selectedDateIso === "string" &&
+          /^\d{4}-\d{2}-\d{2}$/.test(state.selectedDateIso);
+        const startDate = isPickedDate
+          ? state.selectedDateIso!
+          : horizonToStartDate(state.dateHorizon);
+
         const { data: event, error: eventErr } = await admin
           .from("events")
           .insert({
             name: eventName,
             event_type: eventTypeEnum,
             orgnz_tenant_id: tenantId,
-            start_date: horizonToStartDate(state.dateHorizon),
+            start_date: startDate,
             guest_count: state.guestCount,
             budget_cents: Math.round(state.grand * 100),
             contingency_pct: state.contingencyPct,

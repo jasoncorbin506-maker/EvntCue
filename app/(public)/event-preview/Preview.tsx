@@ -1,10 +1,11 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
 import s from "./preview.module.css";
 import type { PreviewData } from "./page";
 import { EmailFallbackModal } from "./EmailFallbackModal";
-import { formatLead, getMilestones, type MilestoneWithStatus } from "@/data/event-milestones";
+import { DatePickerModal } from "./DatePickerModal";
+import { updateSelectedDate } from "./_actions/update-selected-date";
 
 import { DATE_HORIZONS } from "@/data/budget-presets";
 
@@ -23,7 +24,6 @@ function formatUSD(n: number): string {
 
 export function Preview({ data }: { data: PreviewData }) {
   const [emailOpen, setEmailOpen] = useState(false);
-  const milestones = getMilestones(data.category, data.subtypeKey, data.horizonMonths);
 
   const titleSubject = data.subtypeLabel ?? data.categoryLabel;
   const horizonLabel = HORIZON_LABELS[data.dateHorizon] ?? "in planning";
@@ -52,8 +52,8 @@ export function Preview({ data }: { data: PreviewData }) {
 
         <div className={s.layout}>
           <section className={s.colMain}>
+            <DateSelector data={data} />
             <BudgetCard data={data} />
-            <HorizontalTimeline milestones={milestones} subject={titleSubject} />
           </section>
 
           <aside className={s.colAside}>
@@ -198,44 +198,53 @@ function BudgetCard({ data }: { data: PreviewData }) {
   );
 }
 
-/* ---------- Horizontal timeline (subtype-aware milestones) ---------- */
-function HorizontalTimeline({
-  milestones,
-  subject,
-}: {
-  milestones: MilestoneWithStatus[];
-  subject: string;
-}) {
+/* ---------- Date selector (replaces the milestone timeline) ---------- */
+function DateSelector({ data }: { data: PreviewData }) {
+  const [iso, setIso] = useState(data.selectedDateIso);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [, startTransition] = useTransition();
+
+  function persist(next: string) {
+    setIso(next);
+    setPickerOpen(false);
+    startTransition(async () => {
+      await updateSelectedDate({ iso: next });
+    });
+  }
+
+  const longDate = new Intl.DateTimeFormat("en-US", {
+    weekday: "long",
+    month: "long",
+    day: "numeric",
+    year: "numeric",
+  }).format(new Date(iso + "T00:00:00"));
+
   return (
     <div className={s.card}>
       <div className={s.cardHead}>
-        <div className={s.cardTitle}>{subject} timeline</div>
-        <div className={s.cardSub}>Scroll for the full arc · status shifts as your date approaches</div>
-      </div>
-      <div className={s.tlScroll}>
-        <div className={s.tlTrack}>
-          {milestones.map((m, i) => (
-            <button
-              key={i}
-              type="button"
-              className={`${s.tlStop} ${s[`tlStatus_${m.status}`]}`}
-              title={m.detail ?? m.label}
-            >
-              <div className={s.tlStopHeader}>
-                <span className={s.tlStopDot} />
-                <span className={s.tlStopLead}>{formatLead(m.lead)}</span>
-              </div>
-              <div className={s.tlStopLabel}>{m.label}</div>
-              {m.detail && <div className={s.tlStopDetail}>{m.detail}</div>}
-            </button>
-          ))}
+        <div className={s.cardTitle}>Your date</div>
+        <div className={s.cardSub}>
+          Picked from your <em className={s.shortInline}>{data.horizonLabel}</em> window — adjust anytime.
         </div>
       </div>
-      <div className={s.tlLegend}>
-        <span className={`${s.tlLegendDot} ${s.tlStatus_now}`} /> Due now
-        <span className={`${s.tlLegendDot} ${s.tlStatus_next}`} /> Coming up
-        <span className={`${s.tlLegendDot} ${s.tlStatus_open}`} /> Distant
-      </div>
+      <button
+        type="button"
+        className={`${s.dateTrigger} ${s.dateTriggerHasValue}`}
+        onClick={() => setPickerOpen(true)}
+      >
+        <span className={s.dateTriggerText}>{longDate}</span>
+        <span className={s.dateTriggerIcon}>›</span>
+      </button>
+      <p className={s.dateFoot}>
+        This is what locks first — your Venu confirms against this date, then everything else
+        scopes around it. You can change it later in the dashboard.
+      </p>
+      <DatePickerModal
+        open={pickerOpen}
+        selectedIso={iso}
+        onPick={persist}
+        onClose={() => setPickerOpen(false)}
+      />
     </div>
   );
 }

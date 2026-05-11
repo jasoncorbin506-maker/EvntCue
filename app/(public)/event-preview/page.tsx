@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import {
   CATEGORIES,
+  DATE_HORIZONS,
   HORIZON_MONTHS,
   budgetSeverity,
   combinedSeverity,
@@ -15,6 +16,19 @@ import {
   type GuestBand,
   type LeadTimeSeverity,
 } from "@/data/budget-presets";
+
+function isoFromMonthsAhead(months: number): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setMonth(d.getMonth() + months);
+  return d.toISOString().slice(0, 10);
+}
+
+function todayIso(): string {
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  return d.toISOString().slice(0, 10);
+}
 import { Preview } from "./Preview";
 
 export const metadata = {
@@ -49,6 +63,11 @@ export type PreviewData = {
   budgetSig: BudgetSeverity;
   typicalGuests: number;
   typicalPerGuest: number;
+  // Date selector
+  selectedDateIso: string;     // current pick (or horizon-midpoint default)
+  defaultDateIso: string;      // horizon-midpoint baseline for reset
+  earliestDateIso: string;     // today
+  horizonLabel: string;        // e.g. "8–10 mo"
 };
 
 export default async function EventPreviewPage() {
@@ -69,6 +88,7 @@ export default async function EventPreviewPage() {
     contingency: number;
     tax: number;
     grand: number;
+    selectedDateIso?: string;
   };
 
   let parsed: Cookie;
@@ -106,6 +126,12 @@ export default async function EventPreviewPage() {
   const suggestPlnr =
     parsed.grand >= anchorTotal * 0.5 && parsed.grand <= anchorTotal * 2.0;
 
+  // Default selected date = horizon midpoint, computed today. If the user has
+  // already picked a date on this page, the cookie carries it forward.
+  const defaultDateIso = isoFromMonthsAhead(horizonMonths);
+  const selectedDateIso = parsed.selectedDateIso ?? defaultDateIso;
+  const horizonLabel = DATE_HORIZONS.find((h) => h.value === parsed.dateHorizon)?.label ?? "—";
+
   const data: PreviewData = {
     ...parsed,
     perGuest,
@@ -121,6 +147,10 @@ export default async function EventPreviewPage() {
     budgetSig,
     typicalGuests,
     typicalPerGuest,
+    selectedDateIso,
+    defaultDateIso,
+    earliestDateIso: todayIso(),
+    horizonLabel,
   };
 
   return <Preview data={data} />;
