@@ -1,6 +1,7 @@
 "use client";
 
 import { useActionState } from "react";
+import { useTranslations } from "next-intl";
 import { submitAuth, type AuthResult } from "./_actions/auth";
 import styles from "./login.module.css";
 
@@ -13,12 +14,13 @@ type Props = {
 const initial: AuthResult | null = null;
 
 export function LoginForm({ mode, intent, role }: Props) {
+  const t = useTranslations("login");
   const [state, formAction, pending] = useActionState<AuthResult | null, FormData>(
     async (_prev, formData) => submitAuth(formData),
     initial,
   );
 
-  const cta = mode === "signup" ? "Create account" : "Sign in";
+  const cta = mode === "signup" ? t("createAccount") : t("signIn");
   const error = state && state.ok === false ? state.error : null;
   const needsConfirm = state && state.ok === false && state.needsConfirm;
 
@@ -38,13 +40,10 @@ export function LoginForm({ mode, intent, role }: Props) {
           </svg>
         </div>
         <h2 className={styles.confirmTitle}>
-          <em>Check your email.</em>
+          <em>{t("confirmTitleEm")}</em>
         </h2>
         <p className={styles.confirmBody}>{error}</p>
-        <p className={styles.confirmHint}>
-          Open the link on this device so we can finish wiring your event into the
-          workspace. The link expires in an hour.
-        </p>
+        <p className={styles.confirmHint}>{t("confirmHint")}</p>
       </div>
     );
   }
@@ -56,19 +55,19 @@ export function LoginForm({ mode, intent, role }: Props) {
       {role ? <input type="hidden" name="role" value={role} /> : null}
 
       <label className={styles.field}>
-        <span className={styles.label}>Email</span>
+        <span className={styles.label}>{t("emailLabel")}</span>
         <input
           name="email"
           type="email"
           autoComplete="email"
           required
           className={styles.input}
-          placeholder="you@email.com"
+          placeholder={t("emailPlaceholder")}
         />
       </label>
 
       <label className={styles.field}>
-        <span className={styles.label}>Password</span>
+        <span className={styles.label}>{t("passwordLabel")}</span>
         <input
           name="password"
           type="password"
@@ -76,7 +75,7 @@ export function LoginForm({ mode, intent, role }: Props) {
           required
           minLength={mode === "signup" ? 8 : undefined}
           className={styles.input}
-          placeholder={mode === "signup" ? "8+ characters" : "Your password"}
+          placeholder={mode === "signup" ? t("passwordPlaceholderSignup") : t("passwordPlaceholderSignin")}
         />
       </label>
 

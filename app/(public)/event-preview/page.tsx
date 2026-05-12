@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import {
   CATEGORIES,
   DATE_HORIZONS,
@@ -21,18 +22,19 @@ const DAYS_PER_MONTH = 30.44;
 const MS_PER_DAY = 24 * 60 * 60 * 1000;
 
 /**
- * Category-level event nouns for user-facing copy. Subtype labels (Jewish /
- * Catholic / Hindu / Mexican / Korean / etc.) MUST NOT be concatenated with
- * "your" / "for" / "budget" / "events" because the resulting phrases ("your
- * jewish budget", "mexican events typically need") read as ethnic / religious
- * profiling tied to money. Categorical nouns are the safe primitive.
+ * Category-level event nouns. Locale-aware — pulled from `messages/{locale}.json`
+ * under `preview.eventNouns.*`. Subtype labels (Jewish / Catholic / Hindu / Mexican
+ * / Korean / etc.) MUST NOT be concatenated with "your" / "for" / "budget" /
+ * "events" because the resulting phrases ("your jewish budget", "mexican events
+ * typically need") read as ethnic / religious profiling tied to money. Categorical
+ * nouns are the safe primitive. Lock 14.
  */
-const EVENT_NOUNS: Record<CategoryKey, { singular: string; plural: string }> = {
-  wedding:   { singular: "wedding",         plural: "weddings" },
-  corporate: { singular: "corporate event", plural: "corporate events" },
-  nonprofit: { singular: "nonprofit event", plural: "nonprofit events" },
-  public:    { singular: "public event",    plural: "public events" },
-  social:    { singular: "celebration",     plural: "celebrations" },
+const NOUN_KEYS: Record<CategoryKey, { singular: string; plural: string }> = {
+  wedding:   { singular: "wedding",   plural: "weddingPlural"   },
+  corporate: { singular: "corporate", plural: "corporatePlural" },
+  nonprofit: { singular: "nonprofit", plural: "nonprofitPlural" },
+  public:    { singular: "public",    plural: "publicPlural"    },
+  social:    { singular: "social",    plural: "socialPlural"    },
 };
 
 function monthsUntilIso(iso: string): number {
@@ -59,10 +61,13 @@ function todayIso(): string {
 }
 import { Preview } from "./Preview";
 
-export const metadata = {
-  title: "Your event preview · EvntCue",
-  description: "Your event budget rendered in the planning workspace. Sign up to keep it live.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("preview");
+  return {
+    title: `${t("eyebrow")} · EvntCue`,
+    description: t("ctaSub"),
+  };
+}
 
 export type PreviewData = {
   category: CategoryKey;
@@ -175,13 +180,14 @@ export default async function EventPreviewPage() {
   const selectedDateIso = parsed.selectedDateIso ?? defaultDateIso;
   const horizonLabel = DATE_HORIZONS.find((h) => h.value === parsed.dateHorizon)?.label ?? "—";
 
+  const tNouns = await getTranslations("preview.eventNouns");
   const data: PreviewData = {
     ...parsed,
     perGuest,
     categoryLabel: category.label,
     subtypeLabel: subtype?.label ?? null,
-    eventNounSingular: EVENT_NOUNS[parsed.category].singular,
-    eventNounPlural: EVENT_NOUNS[parsed.category].plural,
+    eventNounSingular: tNouns(NOUN_KEYS[parsed.category].singular),
+    eventNounPlural: tNouns(NOUN_KEYS[parsed.category].plural),
     recommendedLeadMonths: recLead,
     horizonMonths,
     severity,

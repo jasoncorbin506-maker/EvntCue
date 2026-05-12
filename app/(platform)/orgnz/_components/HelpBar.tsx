@@ -1,19 +1,21 @@
 "use client";
 
+import { useTranslations } from "next-intl";
 import styles from "../orgnz.module.css";
 import { openCrisis } from "../_lib/sheet";
 import { showToast } from "../_lib/toast";
 
 export function HelpBar() {
+  const t = useTranslations("dashboard");
   return (
-    <nav className={styles.helpBar} aria-label="Quick actions">
+    <nav className={styles.helpBar} aria-label={t("helpAria")}>
       <button
         type="button"
         className={`${styles.hbBtn} ${styles.hbCue}`}
-        onClick={() => showToast("Cue is here. <em>What do you need?</em>")}
+        onClick={() => showToast(t("cueAskToast"))}
       >
         <span className={styles.hbCueSpark} />
-        Ask Cue
+        {t("helpAskCue")}
       </button>
       <button
         type="button"
@@ -21,7 +23,7 @@ export function HelpBar() {
         onClick={() => openCrisis(true)}
       >
         <span className={styles.hbBumpDot} />
-        12-Min Bump
+        {t("help12Min")}
       </button>
     </nav>
   );

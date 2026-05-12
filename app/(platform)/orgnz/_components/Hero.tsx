@@ -1,3 +1,4 @@
+import { getTranslations } from "next-intl/server";
 import styles from "../orgnz.module.css";
 
 type Props = {
@@ -12,12 +13,13 @@ type Props = {
  * each side is rendered with the rose-tinted italic emphasis the v2 mockup
  * uses for "Sofia & Marcus". Otherwise the whole name renders as one line.
  */
-export function Hero({ eventName, longDate, daysOut, guestCount }: Props) {
+export async function Hero({ eventName, longDate, daysOut, guestCount }: Props) {
+  const t = await getTranslations("dashboard");
   const couple = eventName.match(/^(.+?)\s+&\s+(.+?)(?:\s*['’]s\s+\w+)?$/);
 
   return (
     <section className={styles.hero}>
-      <div className={styles.heroEyebrow}>Your celebration</div>
+      <div className={styles.heroEyebrow}>{t("heroEyebrow")}</div>
       <h1 className={styles.heroCouple}>
         {couple ? (
           <>
@@ -33,14 +35,14 @@ export function Hero({ eventName, longDate, daysOut, guestCount }: Props) {
           <>
             <span className={styles.heroMetaSep} />
             <span className={styles.heroMetaD}>
-              {daysOut === 0 ? "today" : `${daysOut} days out`}
+              {daysOut === 0 ? t("chromeDaysToday") : t("heroDaysOut", { n: daysOut })}
             </span>
           </>
         )}
         {guestCount != null && (
           <>
             <span className={styles.heroMetaSep} />
-            <span>{guestCount} guests</span>
+            <span>{t("heroGuests", { n: guestCount })}</span>
           </>
         )}
       </div>

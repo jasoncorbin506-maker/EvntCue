@@ -54,6 +54,14 @@
   max-width: 440px;
 }
 
+/* Pre-auth language toggle — top-right of the wrap, safe-area aware */
+.langCorner {
+  position: absolute;
+  top: max(18px, env(safe-area-inset-top, 0px));
+  right: max(18px, env(safe-area-inset-right, 0px));
+  z-index: 5;
+}
+
 /* ---------- Logo stage ---------- */
 .logoStage {
   position: relative;

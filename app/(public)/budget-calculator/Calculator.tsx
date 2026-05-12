@@ -1,6 +1,8 @@
 "use client";
 
 import { useMemo, useReducer, useState, useTransition } from "react";
+import { useTranslations } from "next-intl";
+import { LangToggle } from "@/app/_components/LangToggle";
 import {
   CATEGORIES,
   DATE_HORIZONS,
@@ -158,6 +160,7 @@ function formatUSD(n: number): string {
 }
 
 export default function Calculator() {
+  const t = useTranslations("calculator");
   const [state, dispatch] = useReducer(reducer, initialState);
   const [pending, startTransition] = useTransition();
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -206,8 +209,11 @@ export default function Calculator() {
   return (
     <main className={s.page}>
       <div className={s.wrap}>
+        <div className={s.langCorner}>
+          <LangToggle />
+        </div>
         <header className={s.header}>
-          <div className={s.srOnly}>Free planning tool</div>
+          <div className={s.srOnly}>{t("eyebrow")}</div>
           <div className={s.brandStage} aria-hidden="true">
             <svg className={s.brandLogo} viewBox="0 0 52 52" xmlns="http://www.w3.org/2000/svg">
               {/* outer pentagon edges */}
@@ -238,11 +244,11 @@ export default function Calculator() {
             <span className={s.brandWord}>
               <span className={s.brandEvnt}>Evnt</span><span className={s.brandCue}>Cue</span>
             </span>
-            <span className={s.brandTitle}><em>Budget</em> Calculator</span>
+            <span className={s.brandTitle}>
+              {t.rich("title", { em: (chunks) => <em>{chunks}</em> })}
+            </span>
           </h1>
-          <p className={s.sub}>
-            Real DFW pricing. Drag whatever. Math keeps up.
-          </p>
+          <p className={s.sub}>{t("sub")}</p>
         </header>
 
         {state.step === "category" && (
@@ -276,9 +282,10 @@ export default function Calculator() {
 
 /* ---------- Step: Category ---------- */
 function CategoryStep({ onPick }: { onPick: (c: CategoryKey) => void }) {
+  const t = useTranslations("calculator");
   return (
     <section className={s.step}>
-      <h2 className={s.stepHeading}>What kind of event?</h2>
+      <h2 className={s.stepHeading}>{t("categoryHeading")}</h2>
       <div className={s.categoryGrid}>
         {CATEGORIES.map((c) => (
           <button key={c.key} type="button" className={s.categoryCard} onClick={() => onPick(c.key)}>
@@ -305,21 +312,12 @@ function SubtypeStep({
   onPick: (k: string) => void;
   onBack: () => void;
 }) {
+  const t = useTranslations("calculator");
   const subtypes = SUBTYPES_BY_CATEGORY[category.key];
-  const heading: Record<CategoryKey, string> = {
-    wedding: "Which wedding tradition?",
-    corporate: "Which corporate event?",
-    nonprofit: "Which non-profit event?",
-    public: "Which public or cultural event?",
-    social: "Which social event?",
-  };
   return (
     <section className={s.step}>
-      <h2 className={s.stepHeading}>{heading[category.key]}</h2>
-      <p className={s.subLeft}>
-        We&rsquo;ll start your line items at DFW averages for that subtype, scaled to your guest count.
-        You can adjust anything next.
-      </p>
+      <h2 className={s.stepHeading}>{t(`subtypeHeading.${category.key}`)}</h2>
+      <p className={s.subLeft}>{t("subtypeSub")}</p>
       <div className={s.subtypeGrid}>
         {subtypes.map((sub) => (
           <button key={sub.key} type="button" className={s.subtypeCard} onClick={() => onPick(sub.key)}>
@@ -329,7 +327,7 @@ function SubtypeStep({
         ))}
       </div>
       <div className={s.navRow}>
-        <button className={s.btnGhost} onClick={onBack}>Back</button>
+        <button className={s.btnGhost} onClick={onBack}>{t("back")}</button>
         <span />
       </div>
     </section>
@@ -356,9 +354,10 @@ function ScopeStep({
   pending: boolean;
   saveError: string | null;
 }) {
+  const t = useTranslations("calculator");
   const [megaOpen, setMegaOpen] = useState(false);
   const isMega = state.guestCount >= GUEST_SLIDER.megaThreshold;
-  const stepLabel = subtype ? `${subtype.label} — scope` : `${category.label} — scope`;
+  const stepLabel = t("scopeLabel", { label: subtype ? subtype.label : category.label });
   const recLead = subtype?.recommendedLeadMonths ?? category.recommendedLeadMonths;
   const typicalGuests = subtype?.typicalGuests ?? category.typicalGuests;
   const subtotal = Object.values(state.amounts).reduce(
@@ -377,10 +376,10 @@ function ScopeStep({
       <h2 className={s.stepHeading}>{stepLabel}</h2>
 
       <div className={s.fieldGroup}>
-        <label className={s.label} htmlFor="guestSlider">Guest count</label>
+        <label className={s.label} htmlFor="guestSlider">{t("guestCountLabel")}</label>
         <div className={s.guestDisplay}>
           <span className={s.guestVal}>{state.guestCount}</span>
-          <span className={s.guestLbl}>{state.guestCount >= GUEST_SLIDER.max ? "guests +" : "guests"}</span>
+          <span className={s.guestLbl}>{state.guestCount >= GUEST_SLIDER.max ? t("guestsUnitPlus") : t("guestsUnit")}</span>
         </div>
         <input
           id="guestSlider"
@@ -400,17 +399,15 @@ function ScopeStep({
           <span>{GUEST_SLIDER.max}+</span>
         </div>
         {isMega && (
-          <div className={s.megaHint}>
-            Past 500 covers, our team scopes events one-on-one — venue holds, catering tiers, AV rigging.
-          </div>
+          <div className={s.megaHint}>{t("megaHint")}</div>
         )}
       </div>
 
       <div className={s.fieldGroup}>
-        <label className={s.label} htmlFor="budgetSlider">Total budget</label>
+        <label className={s.label} htmlFor="budgetSlider">{t("totalBudgetLabel")}</label>
         <div className={s.guestDisplay}>
           <span className={s.guestVal}>{formatUSD(Math.round(subtotal))}</span>
-          <span className={s.guestLbl}>{subtotal >= BUDGET_SLIDER.dollarMax ? "+" : "budget"}</span>
+          <span className={s.guestLbl}>{subtotal >= BUDGET_SLIDER.dollarMax ? "+" : t("budgetUnit")}</span>
         </div>
         <input
           id="budgetSlider"
@@ -434,7 +431,7 @@ function ScopeStep({
       </div>
 
       <div className={s.fieldGroup}>
-        <label className={s.label}>When is the event?</label>
+        <label className={s.label}>{t("whenLabel")}</label>
         <div className={s.chipRow}>
           {DATE_HORIZONS.map((d) => (
             <button
@@ -464,14 +461,14 @@ function ScopeStep({
       {saveError && <div className={s.errorMsg}>{saveError}</div>}
 
       <div className={s.navRow}>
-        <button className={s.btnGhost} onClick={onBack} disabled={pending}>Back</button>
+        <button className={s.btnGhost} onClick={onBack} disabled={pending}>{t("back")}</button>
         {isMega ? (
           <button className={s.btnPrimary} onClick={() => setMegaOpen(true)}>
-            Talk to our team →
+            {t("talkToTeam")}
           </button>
         ) : (
           <button className={s.btnPrimary} onClick={onContinue} disabled={pending}>
-            {pending ? "Building your event…" : "View your event preview →"}
+            {pending ? t("building") : t("viewPreview")}
           </button>
         )}
       </div>
@@ -511,6 +508,7 @@ function ScopeWarning({
   typicalPerGuest: number;
   subtypeLabel: string;
 }) {
+  const t = useTranslations("calculator.warning");
   const cls =
     overall === "danger" ? s.leadDanger : overall === "warn" ? s.leadWarn : s.leadCalm;
   const dotCls =
@@ -520,18 +518,20 @@ function ScopeWarning({
   // Eyebrow reflects the strongest signal
   let eyebrow: string;
   if (overall === "danger") {
-    if (lead === "danger") eyebrow = "Very short notice";
+    if (lead === "danger") eyebrow = t("veryShort");
     else if (budget.severity === "danger") {
-      eyebrow = budget.direction === "low" ? "Budget far below DFW typical" : "Luxury-tier budget";
-    } else eyebrow = "Cover count outside DFW typical";
+      eyebrow = budget.direction === "low" ? t("budgetFarBelow") : t("budgetLuxury");
+    } else eyebrow = t("coverOutside");
   } else if (overall === "warn") {
-    if (lead === "warn") eyebrow = "Short notice";
+    if (lead === "warn") eyebrow = t("shortNotice");
     else if (budget.severity === "warn") {
-      eyebrow = budget.direction === "low" ? "Lean budget for DFW" : "Above DFW typical budget";
-    } else eyebrow = "Cover count atypical for DFW";
+      eyebrow = budget.direction === "low" ? t("budgetLean") : t("budgetAbove");
+    } else eyebrow = t("coverAtypical");
   } else {
-    eyebrow = "Inside the DFW planning window";
+    eyebrow = t("calm");
   }
+
+  const strong = (chunks: React.ReactNode) => <strong>{chunks}</strong>;
 
   return (
     <div className={`${s.leadWarning} ${cls}`}>
@@ -540,45 +540,28 @@ function ScopeWarning({
         <div className={s.leadEyebrow}>{eyebrow}</div>
         <div className={s.leadBody}>
           {/* Lead-time line */}
-          {lead === "calm" ? (
-            <>
-              {subtypeLabel} events typically need <strong>{recLeadMonths}+ months</strong> of lead time —
-              you&rsquo;re comfortably inside that window.
-            </>
-          ) : (
-            <>
-              {subtypeLabel} events typically need <strong>{recLeadMonths}+ months</strong> of lead time
-              — venue holds, vendor calendars, and {lead === "danger" ? "permits" : "specialty bookings"} fill up early.
-              {lead === "danger" ? " Expect a tighter shortlist and premium pricing for last-minute slots." : ""}
-            </>
-          )}
+          {lead === "calm"
+            ? t.rich("leadCalm", { label: subtypeLabel, months: recLeadMonths, strong })
+            : lead === "danger"
+              ? t.rich("leadTightDanger", { label: subtypeLabel, months: recLeadMonths, strong })
+              : t.rich("leadTightWarn", { label: subtypeLabel, months: recLeadMonths, strong })}
           {/* Cover-count line — only render when non-calm */}
           {cover.severity !== "calm" && (
             <>
               {" "}
-              {cover.direction === "low" ? (
-                <>
-                  At <strong>{userGuests} guests</strong>, your event is much smaller than DFW typical
-                  for {subtypeLabel.toLowerCase()} (~{typicalGuests} guests). Cue can scope a more
-                  intimate vendor list — some packages and venue minimums won&rsquo;t apply.
-                </>
-              ) : (
-                <>
-                  At <strong>{userGuests} guests</strong>, your event runs larger than DFW typical
-                  for {subtypeLabel.toLowerCase()} (~{typicalGuests} guests). Larger venues, expanded AV,
-                  and tier-up catering are likely needed.
-                </>
-              )}
+              {cover.direction === "low"
+                ? t.rich("coverLow", { guests: userGuests, label: subtypeLabel.toLowerCase(), typical: typicalGuests, strong })
+                : t.rich("coverHigh", { guests: userGuests, label: subtypeLabel.toLowerCase(), typical: typicalGuests, strong })}
             </>
           )}
           {/* Budget per-guest line — only when non-calm and we have a typical to compare to */}
           {budget.severity !== "calm" && typicalPerGuest > 0 && (
             <>
-              {" "}Per-guest at <strong>${userPerGuest}</strong> sits{" "}
-              {budget.direction === "low" ? "below" : "above"} DFW typical (~${typicalPerGuest}/guest).{" "}
-              {budget.direction === "low"
-                ? "Vendor matches will skew budget-tier; some specialty options will be out of reach."
-                : "Cue can scope premium and luxury-tier matches at this per-guest spend."}
+              {" "}
+              {t("perGuestPrefix", { perGuest: userPerGuest })}{" "}
+              {budget.direction === "low" ? t("below") : t("above")}{" "}
+              {t("perGuestSuffix", { typical: typicalPerGuest })}{" "}
+              {budget.direction === "low" ? t("budgetLowTail") : t("budgetHighTail")}
             </>
           )}
         </div>

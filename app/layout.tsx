@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Cormorant_Garamond, Barlow, Barlow_Condensed } from "next/font/google";
+import { NextIntlClientProvider } from "next-intl";
+import { getLocale } from "@/i18n/locale";
 import "./tokens.css";
 import "./globals.css";
 
@@ -30,15 +32,20 @@ export const metadata: Metadata = {
   description: "Every handoff invisible.",
 };
 
-export default function RootLayout({
+export default async function RootLayout({
   children,
 }: Readonly<{ children: React.ReactNode }>) {
+  const locale = await getLocale();
   return (
     <html
-      lang="en"
+      lang={locale}
       className={`${cormorant.variable} ${barlow.variable} ${barlowCondensed.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <NextIntlClientProvider locale={locale}>
+          {children}
+        </NextIntlClientProvider>
+      </body>
     </html>
   );
 }

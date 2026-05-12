@@ -2,49 +2,67 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import { useLocale, useTranslations } from "next-intl";
 import s from "./preview.module.css";
 import type { PreviewData } from "./page";
 import { EmailFallbackModal } from "./EmailFallbackModal";
 import { DatePickerModal } from "./DatePickerModal";
 import { updateSelectedDate } from "./_actions/update-selected-date";
+import { LangToggle } from "@/app/_components/LangToggle";
 
 import { DATE_HORIZONS } from "@/data/budget-presets";
 
-const HORIZON_LABELS: Record<string, string> = Object.fromEntries(
-  DATE_HORIZONS.map((h) => [h.value, `${h.label.replace(" mo", " months").trim()} out`]),
-);
-
-function formatUSD(n: number): string {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency: "USD",
-    maximumFractionDigits: 0,
-  }).format(n);
+function useFormatUSD() {
+  const locale = useLocale();
+  return (n: number) =>
+    new Intl.NumberFormat(locale === "es" ? "es-MX" : "en-US", {
+      style: "currency",
+      currency: "USD",
+      maximumFractionDigits: 0,
+    }).format(n);
 }
 
-
 export function Preview({ data }: { data: PreviewData }) {
+  const t = useTranslations("preview");
+  const locale = useLocale();
+  const formatUSD = useFormatUSD();
   const [emailOpen, setEmailOpen] = useState(false);
 
-  const horizonLabel = HORIZON_LABELS[data.dateHorizon] ?? "in planning";
+  const HORIZON_LABELS: Record<string, string> = Object.fromEntries(
+    DATE_HORIZONS.map((h) => [
+      h.value,
+      t("horizonOut", { label: h.label.replace(" mo", locale === "es" ? " m" : " months").trim() }),
+    ]),
+  );
+  const horizonLabel = HORIZON_LABELS[data.dateHorizon] ?? t("horizonPlanning");
+  const strong = (chunks: React.ReactNode) => <strong>{chunks}</strong>;
 
   return (
     <main className={s.page}>
       <div className={s.wrap}>
         <div className={s.topbar}>
-          <a href="/budget-calculator" className={s.topbarBack}>← Calculator</a>
+          <a href="/budget-calculator" className={s.topbarBack}>{t("topbarBack")}</a>
           <span className={s.topbarBrand}>EvntCue</span>
+          <LangToggle className={s.topbarLang} />
         </div>
 
         <header className={s.header}>
-          <div className={s.eyebrow}>Your event · preview</div>
+          <div className={s.eyebrow}>{t("eyebrow")}</div>
           <h1 className={s.title}>
-            Your <em>{formatUSD(data.grand)}</em>
-            <br />
-            {data.eventNounSingular} budget.
+            {t.rich("titleRich", {
+              grand: formatUSD(data.grand),
+              noun: data.eventNounSingular,
+              em: (chunks) => <em>{chunks}</em>,
+              br: () => <br />,
+            })}
           </h1>
           <p className={s.sub}>
-            For <strong>{data.guestCount}</strong> guests · {horizonLabel} · {formatUSD(data.perGuest)} per guest
+            {t.rich("forGuests", {
+              guests: data.guestCount,
+              horizon: horizonLabel,
+              perGuest: formatUSD(data.perGuest),
+              strong,
+            })}
           </p>
         </header>
 
@@ -65,15 +83,15 @@ export function Preview({ data }: { data: PreviewData }) {
 
         <div className={s.ctaBar}>
           <div className={s.ctaCopy}>
-            <div className={s.ctaTitle}>Start your mood board</div>
-            <div className={s.ctaSub}>Sign up free — your budget carries over, vendor browsing unlocks, escrow is ready.</div>
+            <div className={s.ctaTitle}>{t("ctaTitle")}</div>
+            <div className={s.ctaSub}>{t("ctaSub")}</div>
           </div>
           <div className={s.ctaActions}>
             <button type="button" className={s.btnGhost} onClick={() => setEmailOpen(true)}>
-              Email me this →
+              {t("emailMe")}
             </button>
             <a href="/login?role=orgnz&intent=mood_board" className={s.btnPrimary}>
-              Build Mood Board →
+              {t("buildMoodBoard")}
             </a>
           </div>
         </div>
@@ -86,6 +104,7 @@ export function Preview({ data }: { data: PreviewData }) {
 
 /* ---------- Cue-style warning (3 signals: lead time, cover count, per-guest budget) ---------- */
 function CueWarning({ data }: { data: PreviewData }) {
+  const t = useTranslations("preview");
   const {
     severity,
     leadSeverity,
@@ -106,76 +125,53 @@ function CueWarning({ data }: { data: PreviewData }) {
     severity === "danger" ? s.cueDotDanger : severity === "warn" ? s.cueDotWarn : s.cueDotCalm;
   const pulse = severity !== "calm" ? s.cueDotPulse : "";
 
-  let headline: string;
+  let headlineKey: string;
   if (severity === "calm") {
-    headline = "Cue says — you're in the normal planning window.";
+    headlineKey = "cueCalmHeadline";
   } else if (severity === "danger") {
-    headline =
+    headlineKey =
       leadSeverity === "danger"
-        ? "Cue says — this is very tight."
+        ? "cueTightHeadline"
         : budgetSig.severity === "danger"
           ? budgetSig.direction === "low"
-            ? "Cue says — this budget is far below DFW typical."
-            : "Cue says — this budget is luxury-tier territory."
-          : "Cue says — your cover count is well outside DFW typical.";
+            ? "cueBudgetFarBelow"
+            : "cueBudgetLuxury"
+          : "cueCoverFar";
   } else {
-    headline =
+    headlineKey =
       leadSeverity === "warn"
-        ? "Cue says — this is short notice."
+        ? "cueShortNotice"
         : budgetSig.severity === "warn"
           ? budgetSig.direction === "low"
-            ? "Cue says — your budget is on the lean side for DFW."
-            : "Cue says — your budget runs above DFW typical."
-          : "Cue says — your cover count is atypical for DFW.";
+            ? "cueBudgetLean"
+            : "cueBudgetAbove"
+          : "cueCoverAtypical";
   }
+
+  const strong = (chunks: React.ReactNode) => <strong>{chunks}</strong>;
+  const leadKey =
+    leadSeverity === "calm" ? "leadCalm" : leadSeverity === "danger" ? "leadTightDanger" : "leadTightWarn";
+  const coverKey = coverSig.direction === "low" ? "coverLow" : "coverHigh";
+  const perGuestKey =
+    budgetSig.severity === "calm"
+      ? "perGuestCalm"
+      : budgetSig.direction === "low"
+        ? "perGuestBelow"
+        : "perGuestAbove";
 
   return (
     <div className={`${s.cueWarn} ${cls}`}>
       <div className={`${s.cueDot} ${dotCls} ${pulse}`} aria-hidden="true" />
       <div className={s.cueBody}>
         <div className={s.cueLine}>
-          <em>{headline}</em>{" "}
-          {/* Lead-time line */}
-          {leadSeverity === "calm" ? (
-            <>
-              Most {eventNounPlural} need <strong>{recommendedLeadMonths}+ months</strong> of lead time —
-              you&rsquo;ve got room to breathe.
-            </>
-          ) : (
-            <>
-              Most {eventNounPlural} need <strong>{recommendedLeadMonths}+ months</strong> of lead time
-              — venue holds and {leadSeverity === "danger" ? "permits" : "specialty bookings"} fill up early.
-            </>
-          )}
-          {/* Cover-count line */}
-          {coverSig.severity !== "calm" && (
-            <>
-              {" "}At <strong>{guestCount} guests</strong>, your event runs{" "}
-              {coverSig.direction === "low" ? "smaller" : "larger"} than DFW typical (
-              {typicalGuests} guests).{" "}
-              {coverSig.direction === "low"
-                ? "Cue can scope a tighter, more intimate vendor list."
-                : "Larger venues, expanded AV, and tier-up catering are likely needed."}
-            </>
-          )}
-          {/* Budget per-guest line */}
-          {budgetSig.severity !== "calm" && typicalPerGuest > 0 && (
-            <>
-              {" "}Per-guest at <strong>${perGuest}</strong> sits{" "}
-              {budgetSig.direction === "low" ? "below" : "above"} the DFW typical (~${typicalPerGuest}/guest)
-              for a {eventNounSingular} of this scope.{" "}
-              {budgetSig.direction === "low"
-                ? "Vendor matches will favor budget-tier; some specialty options will be out of reach."
-                : "Cue can scope premium and luxury-tier vendor matches."}
-            </>
-          )}
-          {/* Calm reassurance for budget if everything is calm */}
-          {severity === "calm" && typicalPerGuest > 0 && (
-            <>
-              {" "}Per-guest at <strong>${perGuest}</strong> aligns with the DFW typical
-              (~${typicalPerGuest}/guest) for a {eventNounSingular} of this scope.
-            </>
-          )}
+          <em>{t(headlineKey)}</em>{" "}
+          {t.rich(leadKey, { plural: eventNounPlural, months: recommendedLeadMonths, strong })}
+          {coverSig.severity !== "calm" &&
+            t.rich(coverKey, { guests: guestCount, typical: typicalGuests, strong })}
+          {budgetSig.severity !== "calm" && typicalPerGuest > 0 &&
+            t.rich(perGuestKey, { perGuest, typical: typicalPerGuest, noun: eventNounSingular, strong })}
+          {severity === "calm" && typicalPerGuest > 0 &&
+            t.rich("perGuestCalm", { perGuest, typical: typicalPerGuest, noun: eventNounSingular, strong })}
         </div>
       </div>
     </div>
@@ -184,6 +180,8 @@ function CueWarning({ data }: { data: PreviewData }) {
 
 /* ---------- Budget card (mirrors P2 dashboard prototype) ---------- */
 function BudgetCard({ data }: { data: PreviewData }) {
+  const t = useTranslations("preview");
+  const formatUSD = useFormatUSD();
   const items = Object.entries(data.amounts)
     .filter(([, v]) => v > 0)
     .sort((a, b) => b[1] - a[1]);
@@ -192,8 +190,14 @@ function BudgetCard({ data }: { data: PreviewData }) {
   return (
     <div className={s.card}>
       <div className={s.cardHead}>
-        <div className={s.cardTitle}>Budget</div>
-        <div className={s.cardSub}>{formatUSD(data.subtotal)} subtotal · {formatUSD(data.contingency)} contingency · {formatUSD(data.tax)} tax</div>
+        <div className={s.cardTitle}>{t("budgetTitle")}</div>
+        <div className={s.cardSub}>
+          {t("budgetSub", {
+            subtotal: formatUSD(data.subtotal),
+            contingency: formatUSD(data.contingency),
+            tax: formatUSD(data.tax),
+          })}
+        </div>
       </div>
       <div className={s.itemsList}>
         {items.map(([key, amt]) => (
@@ -212,6 +216,8 @@ function BudgetCard({ data }: { data: PreviewData }) {
 
 /* ---------- Date selector (replaces the milestone timeline) ---------- */
 function DateSelector({ data }: { data: PreviewData }) {
+  const t = useTranslations("preview");
+  const locale = useLocale();
   const [iso, setIso] = useState(data.selectedDateIso);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [, startTransition] = useTransition();
@@ -222,13 +228,11 @@ function DateSelector({ data }: { data: PreviewData }) {
     setPickerOpen(false);
     startTransition(async () => {
       await updateSelectedDate({ iso: next });
-      // Re-fetch the server component so the Cue severity recomputes from the
-      // new selectedDateIso (otherwise the warning stays stale until reload).
       router.refresh();
     });
   }
 
-  const longDate = new Intl.DateTimeFormat("en-US", {
+  const longDate = new Intl.DateTimeFormat(locale === "es" ? "es-MX" : "en-US", {
     weekday: "long",
     month: "long",
     day: "numeric",
@@ -238,9 +242,12 @@ function DateSelector({ data }: { data: PreviewData }) {
   return (
     <div className={s.card}>
       <div className={s.cardHead}>
-        <div className={s.cardTitle}>Your date</div>
+        <div className={s.cardTitle}>{t("yourDate")}</div>
         <div className={s.cardSub}>
-          Picked from your <em className={s.shortInline}>{data.horizonLabel}</em> window — adjust anytime.
+          {t.rich("yourDateSub", {
+            horizon: data.horizonLabel,
+            em: (chunks) => <em className={s.shortInline}>{chunks}</em>,
+          })}
         </div>
       </div>
       <button
@@ -251,10 +258,7 @@ function DateSelector({ data }: { data: PreviewData }) {
         <span className={s.dateTriggerText}>{longDate}</span>
         <span className={s.dateTriggerIcon}>›</span>
       </button>
-      <p className={s.dateFoot}>
-        This is what locks first — your Venu confirms against this date, then everything else
-        scopes around it. You can change it later in the dashboard.
-      </p>
+      <p className={s.dateFoot}>{t("yourDateFoot")}</p>
       <DatePickerModal
         open={pickerOpen}
         selectedIso={iso}
@@ -273,9 +277,11 @@ function CueCard({
   severity: "calm" | "warn" | "danger";
   eventNoun: string;
 }) {
+  const t = useTranslations("preview");
   const dotClass =
     severity === "danger" ? s.cueDotDanger : severity === "warn" ? s.cueDotWarn : s.cueDotCalm;
-  const stateText = severity === "danger" ? "tight" : severity === "warn" ? "short notice" : "ready";
+  const stateText =
+    severity === "danger" ? t("cueStateTight") : severity === "warn" ? t("cueStateShort") : t("cueStateReady");
   return (
     <div className={s.card}>
       <div className={s.cueHead}>
@@ -283,9 +289,8 @@ function CueCard({
         <div className={s.cueLabel}>Cue · {stateText}</div>
       </div>
       <div className={s.cueText}>
-        <em>I&rsquo;ve sketched a starting plan</em> for your {eventNoun}. Sign up and
-        I&rsquo;ll match vendors who fit your budget and style, draft your timeline, and send you
-        five board-matched shortlists you can compare side by side.
+        <em>{t("cueCardEm")}</em>
+        {t("cueCardBody", { noun: eventNoun })}
       </div>
     </div>
   );
@@ -293,22 +298,21 @@ function CueCard({
 
 /* ---------- Plnr suggestion (budget in average range) ---------- */
 function PlnrSuggestion() {
+  const t = useTranslations("preview");
   return (
     <div className={s.card}>
       <div className={s.cardHead}>
         <div className={s.cardTitle}>
-          A Planner — <em className={s.shortInline}>Plnr</em> — would help here
+          {t("plnrTitlePrefix")} <em className={s.shortInline}>{t("plnrTitleShortInline")}</em> {t("plnrTitleSuffix")}
         </div>
-        <div className={s.cardSub}>Cue&rsquo;s read on your budget tier</div>
+        <div className={s.cardSub}>{t("plnrSub")}</div>
       </div>
       <div className={s.cueText}>
-        <em>Your event sits where a full-service Plnr earns their keep.</em>
-        They own your timeline end-to-end, fight for you on vendor contracts and
-        commission stacking, know the cultural traditions cold, and save you weeks
-        of late-night coordination.
+        <em>{t("plnrBodyEm")}</em>
+        {t("plnrBody")}
       </div>
       <a href="/login?role=orgnz&intent=plnr" className={s.btnGhost} style={{ marginTop: 14, display: "inline-block" }}>
-        Browse DFW Plnrs →
+        {t("plnrBrowse")}
       </a>
     </div>
   );
@@ -316,11 +320,12 @@ function PlnrSuggestion() {
 
 /* ---------- Vendor teaser — Lock 5a: vendors gated until venue confirms ---------- */
 function VendorTeaser() {
+  const t = useTranslations("preview");
   return (
     <div className={s.card}>
       <div className={s.cardHead}>
-        <div className={s.cardTitle}>Vendors</div>
-        <div className={s.cardSub}>Venu first — everything else scopes around it</div>
+        <div className={s.cardTitle}>{t("vendorsTitle")}</div>
+        <div className={s.cardSub}>{t("vendorsSub")}</div>
       </div>
       <div className={s.vendorGrid}>
         <div className={`${s.vendorChip} ${s.vendorChipActive}`}>
@@ -328,30 +333,26 @@ function VendorTeaser() {
             <div className={s.vendorChipIcon}>✦</div>
           </div>
           <div className={s.vendorChipBody}>
-            <div className={s.vendorChipCat}>Venu <span className={s.vendorChipShort}>(venue)</span></div>
-            <div className={s.vendorChipHint}>4 DFW matches ready · lock first</div>
+            <div className={s.vendorChipCat}>{t("vendorChipVenu")} <span className={s.vendorChipShort}>{t("vendorChipVenuShort")}</span></div>
+            <div className={s.vendorChipHint}>{t("vendorChipVenuHint")}</div>
           </div>
         </div>
         <div className={`${s.vendorChip} ${s.vendorChipDull}`}>
           <div className={s.vendorChipIcon}>✦</div>
           <div className={s.vendorChipBody}>
-            <div className={s.vendorChipCat}>Catr <span className={s.vendorChipShort}>(caterers)</span></div>
-            <div className={s.vendorChipHint}>Unlocks when Venu confirms</div>
+            <div className={s.vendorChipCat}>{t("vendorChipCatr")} <span className={s.vendorChipShort}>{t("vendorChipCatrShort")}</span></div>
+            <div className={s.vendorChipHint}>{t("vendorChipCatrHint")}</div>
           </div>
         </div>
         <div className={`${s.vendorChip} ${s.vendorChipDull}`}>
           <div className={s.vendorChipIcon}>✦</div>
           <div className={s.vendorChipBody}>
-            <div className={s.vendorChipCat}>Vndr <span className={s.vendorChipShort}>(everything else)</span></div>
-            <div className={s.vendorChipHint}>Florals, photo, music, AV — unlocks with Venu</div>
+            <div className={s.vendorChipCat}>{t("vendorChipVndr")} <span className={s.vendorChipShort}>{t("vendorChipVndrShort")}</span></div>
+            <div className={s.vendorChipHint}>{t("vendorChipVndrHint")}</div>
           </div>
         </div>
       </div>
-      <div className={s.vendorFootnote}>
-        Catr and Vndr matches unlock once your Venu is booked. Every other vendor
-        scopes around the venue&rsquo;s catering rules, AV setup, and date — so locking
-        the venue first saves rework.
-      </div>
+      <div className={s.vendorFootnote}>{t("vendorFootnote")}</div>
     </div>
   );
 }

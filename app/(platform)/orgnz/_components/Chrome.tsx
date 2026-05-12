@@ -1,10 +1,14 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
+import { useLocale, useTranslations } from "next-intl";
+import { useRouter } from "next/navigation";
 import styles from "../orgnz.module.css";
 import { signOutAction } from "../_actions/sign-out";
 import { showToast } from "../_lib/toast";
+import { setLocaleAction } from "@/i18n/set-locale";
+import type { Locale } from "@/i18n/locale";
 
 type Props = {
   eventName: string | null;
@@ -13,7 +17,12 @@ type Props = {
 };
 
 export function Chrome({ eventName, startDateShort, daysOut }: Props) {
+  const t = useTranslations("dashboard");
+  const tLang = useTranslations("lang");
+  const locale = useLocale() as Locale;
   const [menuOpen, setMenuOpen] = useState(false);
+  const [, startTransition] = useTransition();
+  const router = useRouter();
   const menuRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
@@ -34,6 +43,25 @@ export function Chrome({ eventName, startDateShort, daysOut }: Props) {
     };
   }, [menuOpen]);
 
+  function flipLocale(next: Locale) {
+    if (next === locale) {
+      setMenuOpen(false);
+      return;
+    }
+    setMenuOpen(false);
+    startTransition(async () => {
+      await setLocaleAction(next);
+      router.refresh();
+    });
+  }
+
+  const daysCopy =
+    daysOut == null
+      ? null
+      : daysOut === 0
+        ? t("chromeDaysToday")
+        : t("chromeDaysMany", { n: daysOut });
+
   return (
     <header className={styles.chrome}>
       <Link href="/orgnz" className={styles.wm}>
@@ -44,11 +72,11 @@ export function Chrome({ eventName, startDateShort, daysOut }: Props) {
         {eventName ? (
           <span className={styles.eventChipName}>{eventName}</span>
         ) : (
-          <span>Your celebration</span>
+          <span>{t("chromeEventDefault")}</span>
         )}
-        {startDateShort && daysOut != null && (
+        {startDateShort && daysCopy && (
           <span className={styles.eventChipD}>
-            {startDateShort} · {daysOut === 0 ? "today" : `${daysOut} days`}
+            {startDateShort} · {daysCopy}
           </span>
         )}
       </div>
@@ -56,7 +84,7 @@ export function Chrome({ eventName, startDateShort, daysOut }: Props) {
         <button
           type="button"
           className={styles.menuBtn}
-          aria-label="Menu"
+          aria-label={t("menuAria")}
           aria-expanded={menuOpen}
           onClick={() => setMenuOpen((v) => !v)}
         >
@@ -68,26 +96,24 @@ export function Chrome({ eventName, startDateShort, daysOut }: Props) {
         </button>
         {menuOpen && (
           <div className={styles.menuPopover} role="menu">
-            <div className={styles.menuLangRow} aria-label="Language">
-              <span className={styles.menuLangLabel}>Language</span>
+            <div className={styles.menuLangRow} aria-label={tLang("ariaLabel")}>
+              <span className={styles.menuLangLabel}>{t("menuLanguage")}</span>
               <div className={styles.menuLangPills}>
                 <button
                   type="button"
-                  className={`${styles.menuLangPill} ${styles.menuLangPillOn}`}
-                  aria-pressed="true"
+                  className={`${styles.menuLangPill} ${locale === "en" ? styles.menuLangPillOn : ""}`}
+                  aria-pressed={locale === "en"}
+                  onClick={() => flipLocale("en")}
                 >
-                  EN
+                  {tLang("en")}
                 </button>
                 <button
                   type="button"
-                  className={styles.menuLangPill}
-                  aria-pressed="false"
-                  onClick={() => {
-                    setMenuOpen(false);
-                    showToast("Spanish lands in <em>Phase 3.3</em> · §46.");
-                  }}
+                  className={`${styles.menuLangPill} ${locale === "es" ? styles.menuLangPillOn : ""}`}
+                  aria-pressed={locale === "es"}
+                  onClick={() => flipLocale("es")}
                 >
-                  ES
+                  {tLang("es")}
                 </button>
               </div>
             </div>
@@ -98,10 +124,10 @@ export function Chrome({ eventName, startDateShort, daysOut }: Props) {
               role="menuitem"
               onClick={() => {
                 setMenuOpen(false);
-                showToast("Settings sheet lands in a future session.");
+                showToast(t("menuSettingsToast"));
               }}
             >
-              Settings
+              {t("menuSettings")}
             </button>
             <button
               type="button"
@@ -109,10 +135,10 @@ export function Chrome({ eventName, startDateShort, daysOut }: Props) {
               role="menuitem"
               onClick={() => {
                 setMenuOpen(false);
-                showToast("Multi-event switching lands when bookings flow.");
+                showToast(t("menuSwitchEventToast"));
               }}
             >
-              Switch event
+              {t("menuSwitchEvent")}
             </button>
             <form action={signOutAction}>
               <button
@@ -120,7 +146,7 @@ export function Chrome({ eventName, startDateShort, daysOut }: Props) {
                 className={`${styles.menuItem} ${styles.menuItemDanger}`}
                 role="menuitem"
               >
-                Sign out
+                {t("menuSignOut")}
               </button>
             </form>
           </div>

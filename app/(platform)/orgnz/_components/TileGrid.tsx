@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useTranslations } from "next-intl";
 import styles from "../orgnz.module.css";
 import { showToast } from "../_lib/toast";
 import { openSheet } from "../_lib/sheet";
@@ -30,6 +31,7 @@ function dollars(cents: number): string {
 }
 
 export function TileGrid(props: Props) {
+  const t = useTranslations("dashboard");
   const {
     budgetCents,
     allocatedCents,
@@ -61,17 +63,17 @@ export function TileGrid(props: Props) {
           </div>
           <span className={styles.tileArrow}>→</span>
         </div>
-        <div className={styles.tileL}>Budget</div>
+        <div className={styles.tileL}>{t("tileBudget")}</div>
         <div className={styles.tileV}>
-          {budgetTotal > 0 ? dollars(budgetSpent) : "—"}
+          {budgetTotal > 0 ? dollars(budgetSpent) : t("tileBudgetEmpty")}
           {budgetTotal > 0 && <em>/ {dollars(budgetTotal)}</em>}
         </div>
         <div className={styles.tileD}>
           {budgetTotal > 0
             ? allocatedCents === 0
-              ? "Allocate your first line item"
-              : `${Math.round((allocatedCents / budgetTotal) * 100)}% allocated`
-            : "Run the calculator first"}
+              ? t("tileBudgetAllocateFirst")
+              : t("tileBudgetAllocated", { pct: Math.round((allocatedCents / budgetTotal) * 100) })
+            : t("tileBudgetRunCalc")}
         </div>
       </button>
 
@@ -90,19 +92,19 @@ export function TileGrid(props: Props) {
           </div>
           <span className={styles.tileArrow}>→</span>
         </div>
-        <div className={styles.tileL}>Vendors</div>
+        <div className={styles.tileL}>{t("tileVendors")}</div>
         <div className={styles.tileV}>
           {vendorCount > 0 ? (
             <>
               {vendorCount}
-              <em>booked</em>
+              <em>{t("tileVendorsBooked")}</em>
             </>
           ) : (
-            "Find your team"
+            t("tileVendorsFind")
           )}
         </div>
         <div className={styles.tileD}>
-          {vendorCount === 0 ? "Lock the venue first" : "View status & quotes"}
+          {vendorCount === 0 ? t("tileVendorsLock") : t("tileVendorsStatus")}
         </div>
       </button>
 
@@ -119,19 +121,19 @@ export function TileGrid(props: Props) {
           </div>
           <span className={styles.tileArrow}>→</span>
         </div>
-        <div className={styles.tileL}>Mood Board</div>
+        <div className={styles.tileL}>{t("tileMood")}</div>
         <div className={styles.tileV}>
           {moodImageCount > 0 ? (
             <>
               {moodImageCount}
-              <em>images</em>
+              <em>{t("tileMoodImages")}</em>
             </>
           ) : (
-            "Start"
+            t("tileMoodStart")
           )}
         </div>
         <div className={styles.tileD}>
-          {moodImageCount === 0 ? "Pin your visual brief" : "Curator-extracted palettes"}
+          {moodImageCount === 0 ? t("tileMoodPin") : t("tileMoodCurator")}
         </div>
       </Link>
 
@@ -152,24 +154,22 @@ export function TileGrid(props: Props) {
             </div>
             <span className={styles.tileArrow}>→</span>
           </div>
-          <div className={styles.tileL}>Guests</div>
+          <div className={styles.tileL}>{t("tileGuests")}</div>
           <div className={styles.tileV}>
             {guestRsvpIn ?? 0}
             {guestTotal != null && <em>/ {guestTotal}</em>}
           </div>
           <div className={styles.tileD}>
             {guestTotal && guestRsvpIn != null
-              ? `${Math.round((guestRsvpIn / guestTotal) * 100)}% RSVP'd`
-              : "Send save-the-date"}
+              ? t("tileGuestsRsvpd", { pct: Math.round((guestRsvpIn / guestTotal) * 100) })
+              : t("tileGuestsSendStd")}
           </div>
         </button>
       ) : (
         <button
           type="button"
           className={`${styles.tile} ${styles.tileGuests} ${styles.tileLocked}`}
-          onClick={() =>
-            showToast("Guest features unlock at <em>$19.99/mo</em>. Upgrade flow lands in Phase 4.")
-          }
+          onClick={() => showToast(t("tileGuestsUpgradeToast"))}
         >
           <div className={styles.tileH}>
             <div className={styles.tileIco}>
@@ -179,20 +179,20 @@ export function TileGrid(props: Props) {
                 <path d="M3 19a6 6 0 0112 0M14 19a4 4 0 017-2.5" />
               </svg>
             </div>
-            <span className={styles.tileLockedBadge}>Premium</span>
+            <span className={styles.tileLockedBadge}>{t("tileGuestsPremium")}</span>
           </div>
-          <div className={styles.tileL}>Guests</div>
+          <div className={styles.tileL}>{t("tileGuests")}</div>
           <div className={styles.tileV}>
             {guestTotal != null ? (
               <>
                 {guestTotal}
-                <em>invites</em>
+                <em>{t("tileGuestsInvites")}</em>
               </>
             ) : (
-              "Manage list"
+              t("tileGuestsManage")
             )}
           </div>
-          <div className={styles.tileLockCta}>Upgrade — $19.99/mo →</div>
+          <div className={styles.tileLockCta}>{t("tileGuestsUpgrade")}</div>
         </button>
       )}
 
@@ -211,10 +211,10 @@ export function TileGrid(props: Props) {
           </div>
           <span className={styles.tileArrow}>→</span>
         </div>
-        <div className={styles.tileL}>Plnr</div>
-        <div className={styles.tileV}>{hasPlnr ? "Booked" : "Find one"}</div>
+        <div className={styles.tileL}>{t("tilePlnr")}</div>
+        <div className={styles.tileV}>{hasPlnr ? t("tilePlnrBooked") : t("tilePlnrFind")}</div>
         <div className={styles.tileD}>
-          {hasPlnr ? "Day-of details" : "Browse DFW Plnrs"}
+          {hasPlnr ? t("tilePlnrDayOf") : t("tilePlnrBrowse")}
         </div>
       </button>
 
@@ -232,10 +232,10 @@ export function TileGrid(props: Props) {
           </div>
           <span className={styles.tileArrow}>→</span>
         </div>
-        <div className={styles.tileL}>Venu</div>
-        <div className={styles.tileV}>{hasVenu ? "Locked" : "Pick one"}</div>
+        <div className={styles.tileL}>{t("tileVenu")}</div>
+        <div className={styles.tileV}>{hasVenu ? t("tileVenuLocked") : t("tileVenuPick")}</div>
         <div className={styles.tileD}>
-          {hasVenu ? "Walkthroughs & contract" : "Browse DFW venues"}
+          {hasVenu ? t("tileVenuContract") : t("tileVenuBrowse")}
         </div>
       </button>
     </section>

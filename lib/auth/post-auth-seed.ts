@@ -3,6 +3,7 @@
 import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getLocale } from "@/i18n/locale";
 import {
   CATEGORIES,
   dbHorizonFromUi,
@@ -68,6 +69,10 @@ export async function postAuthSeed(args: {
   role: string | null;
 }): Promise<string> {
   const admin = createAdminClient();
+  // Capture the cookie locale at signup time so the tenant + user persist the
+  // language they chose pre-auth (or the browser default if they never flipped
+  // the toggle). Migration 022 — tenants.language_preference + users.language_preference.
+  const locale = await getLocale();
 
   // 1. public.users mirror
   const { data: existingUser } = await admin
@@ -80,6 +85,7 @@ export async function postAuthSeed(args: {
     const { error: insertUserErr } = await admin.from("users").insert({
       id: args.userId,
       email: args.email,
+      language_preference: locale,
     });
     if (insertUserErr) throw new Error("Could not create profile.");
   }
@@ -102,7 +108,7 @@ export async function postAuthSeed(args: {
   } else {
     const { data: tenant, error: tenantErr } = await admin
       .from("tenants")
-      .insert({ name: args.email, type: desiredRole })
+      .insert({ name: args.email, type: desiredRole, language_preference: locale })
       .select("id")
       .single();
     if (tenantErr || !tenant) throw new Error("Could not create workspace.");

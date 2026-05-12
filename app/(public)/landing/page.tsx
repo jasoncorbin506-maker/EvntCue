@@ -1,15 +1,24 @@
+import { getTranslations } from "next-intl/server";
 import styles from "./landing.module.css";
 import { RoleStack } from "./RoleStack";
+import { LangToggle } from "@/app/_components/LangToggle";
 
-export const metadata = {
-  title: "EvntCue — Begin",
-  description: "Whether you're throwing it, working it, or hosting it — start here.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("landing");
+  return {
+    title: "EvntCue — Begin",
+    description: t("sub"),
+  };
+}
 
-export default function LandingPage() {
+export default async function LandingPage() {
+  const t = await getTranslations("landing");
   return (
     <main className={styles.page}>
       <div className={styles.wrap}>
+        <div className={styles.langCorner}>
+          <LangToggle />
+        </div>
         <div className={styles.frame}>
           <div className={styles.logoStage}>
             <svg
@@ -39,17 +48,15 @@ export default function LandingPage() {
                 <span className={styles.logoEvnt}>Evnt</span>
                 <span className={styles.logoCue}>Cue</span>
               </div>
-              <div className={styles.tagline}>AI · Bringing people together</div>
+              <div className={styles.tagline}>{t("tagline")}</div>
             </div>
           </div>
 
-          <p className={styles.sub}>
-            Whether you&rsquo;re throwing it, working it, or hosting it &mdash; start here.
-          </p>
+          <p className={styles.sub}>{t("sub")}</p>
 
           <RoleStack />
 
-          <div className={styles.foot}>DFW · Texas · 2026</div>
+          <div className={styles.foot}>{t("foot")}</div>
         </div>
       </div>
     </main>

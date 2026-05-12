@@ -1,13 +1,18 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
+import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "./LoginForm";
+import { LangToggle } from "@/app/_components/LangToggle";
 import styles from "./login.module.css";
 
-export const metadata = {
-  title: "Sign in · EvntCue",
-  description: "Sign in or create an account to keep your event live in EvntCue.",
-};
+export async function generateMetadata() {
+  const t = await getTranslations("login");
+  return {
+    title: t("metaTitle"),
+    description: t("signinSub"),
+  };
+}
 
 type SearchParams = {
   mode?: "signin" | "signup";
@@ -38,19 +43,20 @@ export default async function LoginPage(props: {
     redirect(intent === "mood_board" ? "/orgnz/mood-board" : "/orgnz");
   }
 
-  const headline =
-    mode === "signup" ? "Keep your event live." : "Welcome back.";
-  const sub =
-    mode === "signup"
-      ? "Your budget, milestones, and mood board are waiting. One step from here."
-      : "Sign in to pick up where you left off.";
+  const t = await getTranslations("login");
+  const headline = mode === "signup" ? t("signupHeadline") : t("signinHeadline");
+  const sub = mode === "signup" ? t("signupSub") : t("signinSub");
 
   const otherMode = mode === "signup" ? "signin" : "signup";
-  const otherLabel = mode === "signup" ? "Sign in" : "Create account";
+  const otherLabel = mode === "signup" ? t("signIn") : t("createAccount");
+  const swapPrompt = mode === "signup" ? t("swapToSignin") : t("swapToSignup");
 
   return (
     <main className={styles.page}>
       <div className={styles.wrap}>
+        <div className={styles.langCorner}>
+          <LangToggle />
+        </div>
         <Link href="/" className={styles.brand}>
           <span className={styles.brandMark} aria-hidden>
             <svg width="22" height="22" viewBox="0 0 22 22" fill="none">
@@ -79,7 +85,7 @@ export default async function LoginPage(props: {
           <LoginForm key={mode} mode={mode} intent={intent} role={role} />
 
           <p className={styles.swap}>
-            {mode === "signup" ? "Already have an account?" : "New to EvntCue?"}{" "}
+            {swapPrompt}{" "}
             <Link
               href={`/login?mode=${otherMode}${intent ? `&intent=${intent}` : ""}${role ? `&role=${role}` : ""}`}
               className={styles.swapLink}
@@ -90,9 +96,9 @@ export default async function LoginPage(props: {
         </div>
 
         <p className={styles.foot}>
-          By continuing you agree to EvntCue&rsquo;s terms.{" "}
+          {t("footTerms")}{" "}
           <Link href="/" className={styles.footLink}>
-            Back to home
+            {t("footBack")}
           </Link>
         </p>
       </div>

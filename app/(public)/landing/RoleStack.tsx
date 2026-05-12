@@ -2,12 +2,14 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { useTranslations } from "next-intl";
 import styles from "./landing.module.css";
 import { ComingSoonModal, type ComingSoonRole } from "./ComingSoonModal";
 
 export function RoleStack() {
   const router = useRouter();
   const [comingSoon, setComingSoon] = useState<ComingSoonRole | null>(null);
+  const t = useTranslations("landing");
 
   return (
     <>
@@ -32,8 +34,8 @@ export function RoleStack() {
             </svg>
           </div>
           <div className={styles.text}>
-            <div className={styles.name}>Orgnz</div>
-            <div className={styles.pitch}>Plan your wedding or celebration.</div>
+            <div className={styles.name}>{t("orgnzName")}</div>
+            <div className={styles.pitch}>{t("orgnzPitch")}</div>
           </div>
           <div className={styles.arrow}>›</div>
         </button>
@@ -58,8 +60,8 @@ export function RoleStack() {
             </svg>
           </div>
           <div className={styles.text}>
-            <div className={styles.name}>Vndr</div>
-            <div className={styles.pitch}>Be one of DFW&rsquo;s most-booked.</div>
+            <div className={styles.name}>{t("vndrName")}</div>
+            <div className={styles.pitch}>{t("vndrPitch")}</div>
           </div>
           <div className={styles.arrow}>›</div>
         </button>
@@ -83,8 +85,8 @@ export function RoleStack() {
             </svg>
           </div>
           <div className={styles.text}>
-            <div className={styles.name}>Venu</div>
-            <div className={styles.pitch}>Get discovered by who&rsquo;s booking.</div>
+            <div className={styles.name}>{t("venuName")}</div>
+            <div className={styles.pitch}>{t("venuPitch")}</div>
           </div>
           <div className={styles.arrow}>›</div>
         </button>
