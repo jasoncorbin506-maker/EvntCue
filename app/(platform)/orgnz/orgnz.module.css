@@ -3513,3 +3513,870 @@
   color: var(--txt3);
   font-weight: 500;
 }
+
+/* =============================================================================
+   Phase 3.6 — Timeline editing (2026-05-12, session 12)
+   Date+time picker · rail extras · drawer affordances · add sheet · cultural picker
+   ============================================================================= */
+
+/* ─── Rail head "+ Add" button ──────────────────────────────────────────── */
+
+.railHeadAdd {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--rt);
+  font-weight: 600;
+  background: rgba(212,119,138,0.07);
+  border: 0.5px solid rgba(212,119,138,0.20);
+  border-radius: 14px;
+  padding: 5px 11px;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.railHeadAdd:hover, .railHeadAdd:active {
+  background: rgba(212,119,138,0.14);
+  border-color: rgba(212,119,138,0.35);
+}
+
+/* ─── Rail pin extras (time, custom flag, done) ─────────────────────────── */
+
+.railPinTime {
+  color: var(--txt3);
+  font-weight: 500;
+}
+.railPin.travel .railPinTime { color: var(--blut); }
+.railPin.gate .railPinTime { color: var(--rt); }
+.railPin.pinDayof .railPinTime { color: var(--gt); }
+
+.railPinDone .railPinDot {
+  background: var(--ink2) !important;
+  border-color: rgba(15,155,126,0.5) !important;
+  box-shadow: none !important;
+  position: relative;
+}
+.railPinDone .railPinDot::after {
+  content: '✓';
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 8px;
+  color: rgba(15,155,126,0.85);
+  font-weight: 700;
+}
+.railPinDone .railPinLabel {
+  color: var(--txt3) !important;
+  text-decoration: line-through;
+  text-decoration-color: rgba(255,255,255,0.18);
+}
+.railPinDone .railPinWhen { color: var(--txt3) !important; }
+
+.railPinCustom .railPinDot {
+  border-style: dashed;
+  border-color: rgba(212,119,138,0.40);
+}
+.railCustomFlag {
+  position: absolute;
+  top: -8px;
+  right: 4px;
+  font-size: 12px;
+  line-height: 1;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: rgba(212,119,138,0.18);
+  border: 0.5px solid rgba(212,119,138,0.35);
+  color: var(--rt);
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-ui);
+}
+
+/* ─── Inline "+ Add" at the end of the rail ─────────────────────────────── */
+
+.railAddInline {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 64px;
+  padding: 0 4px;
+  cursor: pointer;
+  scroll-snap-align: center;
+  background: none;
+  border: none;
+  margin-left: 4px;
+}
+.railAddDot {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(212,119,138,0.10);
+  border: 0.5px dashed rgba(212,119,138,0.40);
+  color: var(--rt);
+  font-size: 15px;
+  line-height: 1;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 4px;
+  font-family: var(--font-ui);
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.railAddInline:hover .railAddDot, .railAddInline:active .railAddDot {
+  background: rgba(212,119,138,0.18);
+  border-color: rgba(212,119,138,0.60);
+}
+.railAddLabel {
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--rt);
+  font-weight: 600;
+}
+
+/* ─── Drawer: done flag + tradition chip + action rows ──────────────────── */
+
+.drawerDoneFlag {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-style: normal;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(15,155,126,0.85);
+  font-weight: 600;
+  margin-left: 6px;
+}
+.drawerTraditionChip {
+  display: inline-block;
+  margin-top: 8px;
+  padding: 3px 9px;
+  border-radius: 11px;
+  background: rgba(212,119,138,0.08);
+  border: 0.5px solid rgba(212,119,138,0.22);
+  color: var(--rt);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+
+.drActionRow {
+  display: flex;
+  gap: 12px;
+  padding: 12px 13px;
+  background: rgba(255,255,255,0.018);
+  border: 0.5px solid var(--bdr);
+  border-radius: 11px;
+  margin-bottom: 7px;
+  align-items: flex-start;
+  width: 100%;
+  text-align: left;
+  cursor: pointer;
+  color: inherit;
+  font: inherit;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.drActionRow:hover, .drActionRow:active {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(212,119,138,0.20);
+}
+.drActionDanger:hover, .drActionDanger:active {
+  background: rgba(218,76,76,0.06);
+  border-color: rgba(218,76,76,0.25);
+}
+.drActionDanger .drItemT { color: rgba(218,76,76,0.95); }
+
+.drSortRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 13px;
+  background: rgba(255,255,255,0.012);
+  border: 0.5px solid var(--bdr);
+  border-radius: 11px;
+  margin-bottom: 7px;
+}
+.drSortL {
+  flex: 1;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt2);
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.drSortBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid var(--bdr);
+  color: var(--txt2);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 150ms ease, color 150ms ease;
+}
+.drSortBtn svg {
+  width: 14px;
+  height: 14px;
+  stroke: currentColor;
+  fill: none;
+}
+.drSortBtn:hover, .drSortBtn:active {
+  background: rgba(255,255,255,0.08);
+  color: var(--rt);
+}
+
+/* ─── Add sheet (tabbed picker container) ───────────────────────────────── */
+
+.addSheet {
+  max-height: 92vh;
+}
+.addTabs {
+  display: flex;
+  gap: 4px;
+  padding: 0 22px 12px;
+  border-bottom: 0.5px solid var(--bdr);
+  flex-shrink: 0;
+}
+.addTab {
+  flex: 1;
+  padding: 9px 12px;
+  background: transparent;
+  border: 0.5px solid transparent;
+  border-bottom: 2px solid transparent;
+  border-radius: 9px 9px 0 0;
+  color: var(--txt3);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  transition: color 150ms ease, border-color 150ms ease, background 150ms ease;
+}
+.addTab:hover { color: var(--txt2); }
+.addTabOn {
+  color: var(--rt);
+  border-bottom-color: var(--rose);
+  background: rgba(212,119,138,0.05);
+}
+
+/* ─── Custom milestone form ─────────────────────────────────────────────── */
+
+.cmForm {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+.cmNote {
+  padding: 10px 12px;
+  background: rgba(212,119,138,0.06);
+  border: 0.5px solid rgba(212,119,138,0.18);
+  border-radius: 10px;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-style: italic;
+  color: var(--txt2);
+  line-height: 1.5;
+}
+.cmField {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.cmFieldL {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  font-weight: 600;
+}
+.cmInput, .cmTextarea {
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid var(--bdr);
+  border-radius: 9px;
+  padding: 10px 12px;
+  color: var(--txt);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 150ms ease, background 150ms ease;
+  width: 100%;
+}
+.cmInput:focus, .cmTextarea:focus {
+  border-color: rgba(212,119,138,0.40);
+  background: rgba(255,255,255,0.06);
+}
+.cmTextarea {
+  resize: vertical;
+  min-height: 50px;
+  line-height: 1.5;
+  font-family: var(--font-ui);
+}
+.cmHint {
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  color: var(--txt3);
+  letter-spacing: 0.02em;
+  line-height: 1.4;
+}
+.cmDateBtn {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid var(--bdr);
+  border-radius: 9px;
+  color: var(--txt);
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-style: italic;
+  cursor: pointer;
+  width: fit-content;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+.cmDateBtn:hover, .cmDateBtn:active {
+  background: rgba(255,255,255,0.06);
+  border-color: rgba(212,119,138,0.30);
+}
+.cmChipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.cmChip {
+  padding: 5px 10px;
+  background: rgba(255,255,255,0.025);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  color: var(--txt2);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  letter-spacing: 0.02em;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.cmChip:hover { border-color: rgba(212,119,138,0.30); color: var(--txt); }
+.cmChipOn {
+  background: rgba(212,119,138,0.16);
+  border-color: rgba(212,119,138,0.50);
+  color: var(--rt);
+}
+.cmActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 6px;
+  border-top: 0.5px solid var(--bdr);
+  margin-top: 4px;
+}
+.cmCancel, .cmSave {
+  padding: 9px 16px;
+  border-radius: 9px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.cmCancel {
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  color: var(--txt2);
+}
+.cmCancel:hover { background: rgba(255,255,255,0.04); }
+.cmSave {
+  background: var(--rose);
+  border: 0.5px solid var(--rose);
+  color: #fff;
+}
+.cmSave:hover { background: var(--rt); border-color: var(--rt); }
+.cmSave:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* ─── Cultural traditions picker ────────────────────────────────────────── */
+
+.pickerWrap {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.pickerCultureRow {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 6px;
+  scrollbar-width: none;
+}
+.pickerCultureRow::-webkit-scrollbar { display: none; }
+.pickerCultureChip {
+  flex-shrink: 0;
+  padding: 7px 12px;
+  background: rgba(255,255,255,0.025);
+  border: 0.5px solid var(--bdr);
+  border-radius: 15px;
+  color: var(--txt2);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.pickerCultureChip:hover {
+  border-color: rgba(212,119,138,0.30);
+  color: var(--txt);
+}
+.pickerCultureChipOn {
+  background: rgba(212,119,138,0.16);
+  border-color: rgba(212,119,138,0.50);
+  color: var(--rt);
+}
+.pickerCovBadge {
+  color: var(--rt);
+  font-weight: 700;
+  margin-left: 2px;
+}
+.pickerCulturePane {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.pickerCultureHead {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.pickerCultureTitle {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-style: italic;
+  color: #fff;
+}
+.pickerCovNote {
+  padding: 9px 11px;
+  background: rgba(212,119,138,0.05);
+  border: 0.5px solid rgba(212,119,138,0.18);
+  border-radius: 9px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt2);
+  line-height: 1.5;
+  letter-spacing: 0.01em;
+}
+.pickerCovNote em {
+  color: var(--rt);
+  font-style: italic;
+  font-weight: 600;
+}
+.pickerCeremonyList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.pickerCeremony {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+  padding: 11px 13px;
+  background: rgba(255,255,255,0.018);
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.pickerCeremony:hover:not(:disabled) {
+  background: rgba(255,255,255,0.04);
+  border-color: rgba(212,119,138,0.25);
+}
+.pickerCeremony:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+.pickerCeremonyOn {
+  background: rgba(212,119,138,0.10) !important;
+  border-color: rgba(212,119,138,0.45) !important;
+}
+.pickerCeremonyExist {
+  background: rgba(15,155,126,0.04);
+  border-color: rgba(15,155,126,0.18);
+}
+.pickerCeremonyL { flex: 1; min-width: 0; }
+.pickerCeremonyT {
+  font-size: 13.5px;
+  color: var(--txt);
+  font-weight: 500;
+  margin-bottom: 3px;
+  letter-spacing: -0.005em;
+}
+.pickerCeremonyD {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt3);
+  line-height: 1.45;
+  letter-spacing: 0.02em;
+}
+.pickerCeremonyR {
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+.pickerOffset {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  font-weight: 600;
+  padding: 3px 7px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 9px;
+}
+.pickerExistFlag {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: rgba(15,155,126,0.85);
+  font-weight: 700;
+  padding: 3px 7px;
+  background: rgba(15,155,126,0.10);
+  border-radius: 9px;
+}
+.pickerReenableFlag {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--rt);
+  font-weight: 700;
+  padding: 3px 7px;
+  background: rgba(212,119,138,0.10);
+  border-radius: 9px;
+}
+.pickerSelectedDot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--rose);
+  border: 0.5px solid var(--rose);
+  box-shadow: 0 0 0 2px rgba(212,119,138,0.20);
+}
+.pickerFooter {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 8px;
+  border-top: 0.5px solid var(--bdr);
+  margin-top: 4px;
+}
+.pickerCancel, .pickerCommit {
+  padding: 9px 16px;
+  border-radius: 9px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.pickerCancel {
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  color: var(--txt2);
+}
+.pickerCancel:hover { background: rgba(255,255,255,0.04); }
+.pickerCommit {
+  background: var(--rose);
+  border: 0.5px solid var(--rose);
+  color: #fff;
+}
+.pickerCommit:hover:not(:disabled) { background: var(--rt); border-color: var(--rt); }
+.pickerCommit:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* ─── Date+time picker modal (port of dp* from event-preview + time row) ── */
+
+.dpModal {
+  position: fixed;
+  inset: 0;
+  background: rgba(5, 10, 20, 0.92);
+  z-index: 200;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 20px;
+  animation: dpFadeIn 180ms ease;
+}
+@keyframes dpFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.dpCard {
+  width: min(380px, 94vw);
+  background: var(--ink2);
+  border: 0.5px solid rgba(212, 119, 138, 0.20);
+  border-radius: 16px;
+  padding: 18px;
+  max-height: 92vh;
+  overflow-y: auto;
+}
+.dpHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.dpTitle {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-style: italic;
+  color: #fff;
+  font-weight: 400;
+}
+.dpClose {
+  background: none;
+  border: none;
+  color: var(--txt3);
+  font-size: 20px;
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 6px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dpClose:hover { background: rgba(255,255,255,0.05); color: var(--txt); }
+.dpControls {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+.dpSelect {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  padding: 9px 28px 9px 10px;
+  color: var(--txt);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6'><path d='M1 1l4 4 4-4' stroke='rgba(255,255,255,0.4)' fill='none' stroke-width='1'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 11px center;
+}
+.dpSelect:focus { border-color: rgba(212,119,138,0.40); }
+.dpNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+.dpNavBtn {
+  background: none;
+  border: 0.5px solid var(--bdr);
+  width: 28px;
+  height: 28px;
+  border-radius: 7px;
+  color: var(--txt2);
+  font-size: 14px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.dpNavBtn:hover:not(:disabled) { background: rgba(255,255,255,0.05); color: var(--txt); }
+.dpNavBtn:disabled { opacity: 0.25; cursor: not-allowed; }
+.dpNavLabel {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-style: italic;
+  color: #fff;
+  font-weight: 400;
+}
+.dpWeekdays {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+  margin-bottom: 5px;
+}
+.dpWd {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  text-align: center;
+  padding: 5px 0;
+  font-weight: 600;
+}
+.dpGrid {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 2px;
+}
+.dpDay {
+  aspect-ratio: 1 / 1;
+  background: none;
+  border: 0.5px solid transparent;
+  border-radius: 7px;
+  color: var(--txt);
+  font-family: var(--font-body);
+  font-size: 13px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+}
+.dpDay:not(.dpDayPast):not(.dpDayEmpty):hover {
+  background: rgba(212,119,138,0.10);
+  border-color: rgba(212,119,138,0.30);
+}
+.dpDayEmpty { visibility: hidden; pointer-events: none; }
+.dpDayPast {
+  color: var(--txt3);
+  cursor: not-allowed;
+  text-decoration: line-through;
+  opacity: 0.4;
+}
+.dpDayToday {
+  border-color: rgba(255,255,255,0.14);
+  color: var(--rt);
+}
+.dpDaySelected {
+  background: var(--rose);
+  color: #fff;
+  border-color: var(--rose);
+}
+.dpDaySelected:hover { background: var(--rose); }
+.dpQuick {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-top: 10px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--bdr);
+}
+.dpQuickPill {
+  padding: 6px 11px;
+  background: rgba(255,255,255,0.02);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--txt2);
+  cursor: pointer;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  font-weight: 600;
+}
+.dpQuickPill:hover {
+  border-color: rgba(212,119,138,0.30);
+  color: var(--rt);
+  background: rgba(212,119,138,0.06);
+}
+
+.dpTimeRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 0.5px solid var(--bdr);
+}
+.dpTimeLabel {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.10em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  font-weight: 600;
+  flex: 1;
+}
+.dpTimeInput {
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  padding: 7px 9px;
+  color: var(--txt);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+  color-scheme: dark;
+}
+.dpTimeInput:focus { border-color: rgba(212,119,138,0.40); }
+.dpTimeClear {
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  padding: 6px 10px;
+  color: var(--txt3);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dpTimeClear:hover { color: var(--rt); border-color: rgba(212,119,138,0.30); }
+
+.dpActions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 14px;
+}
+.dpCancel, .dpConfirm {
+  padding: 9px 16px;
+  border-radius: 9px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+}
+.dpCancel {
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  color: var(--txt2);
+}
+.dpCancel:hover { background: rgba(255,255,255,0.04); }
+.dpConfirm {
+  background: var(--rose);
+  border: 0.5px solid var(--rose);
+  color: #fff;
+}
+.dpConfirm:hover { background: var(--rt); border-color: var(--rt); }

@@ -99,7 +99,7 @@ export default async function OrgnzDashboardPage() {
     );
   }
 
-  const { event, lineItems } = ctx;
+  const { event, lineItems, customMilestones } = ctx;
   const allocatedCents = lineItems.reduce((sum, item) => sum + item.amount_cents, 0);
   const days = daysUntil(event.start_date);
   const category = toCategory(event.event_type);
@@ -110,11 +110,29 @@ export default async function OrgnzDashboardPage() {
   // (Catholic pre-Cana, Hindu sangeet+mehndi+baraat, Jewish ketubah, etc.).
   // Falls through to the per-category generic fallback only when the column
   // is NULL (pre-3.2.C events or calculator bypass).
+  //
+  // PARKING_LOT #36 closed 2026-05-12 (session 12) — migration 024 added
+  // events.milestone_overrides JSONB + event_custom_milestones table. Pins
+  // now merge overrides (status / custom_date / custom_time / sort_order) +
+  // user-authored custom milestones (from the cultural picker and free-text
+  // adds) on top of the seed list.
+  const overrides = (event.milestone_overrides as Record<string, Record<string, unknown>> | null) ?? {};
   const pins = buildRailPins({
     category,
     subtypeKey: event.event_subtype,
     startDateIso: event.start_date,
+    overrides: overrides as Record<string, {
+      status?: "done" | "dismissed";
+      custom_date_iso?: string;
+      custom_time?: string;
+      sort_order?: number;
+    }>,
+    customMilestones,
   });
+
+  const dismissedSeedKeys = Object.entries(overrides)
+    .filter(([, v]) => (v as { status?: string })?.status === "dismissed")
+    .map(([k]) => k);
 
   // PAYWALL DISABLED FOR DEV (2026-05-11, Jason directive).
   // All paid features (Guests sheet, Travel modal, Cue beyond 5, day-of) are
@@ -175,7 +193,13 @@ export default async function OrgnzDashboardPage() {
         daysOut={days}
         guestCount={event.guest_count}
       />
-      <TimelineRail pins={pins} />
+      <TimelineRail
+        pins={pins}
+        eventId={event.id}
+        startDateIso={event.start_date}
+        subtypeKey={event.event_subtype}
+        dismissedSeedKeys={dismissedSeedKeys}
+      />
       <Feed initial={welcomeCards} />
       <TileGrid
         budgetCents={event.budget_cents}

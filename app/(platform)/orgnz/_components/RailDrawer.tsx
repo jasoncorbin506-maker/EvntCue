@@ -1,9 +1,14 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import styles from "../orgnz.module.css";
 import type { RailPin } from "../_lib/timeline";
 import { showToast } from "../_lib/toast";
+import { updateSeedMilestone } from "../_actions/update-seed-milestone";
+import { deleteCustomMilestone } from "../_actions/delete-custom-milestone";
+import { findTradition } from "@/data/cultural-traditions";
+import { DateTimePickerModal } from "./DateTimePickerModal";
+import { CustomMilestoneForm } from "./CustomMilestoneForm";
 
 const DRAWER_ICONS: Record<string, string> = {
   pulse:
@@ -22,16 +27,37 @@ const DRAWER_ICONS: Record<string, string> = {
     '<svg viewBox="0 0 24 24" stroke-width="1.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M2 12l8-1L14 4l3 1-2 7 7 3-1 3-8-2-3 6-3-1 1-7-7-3 1-3z"/></svg>',
   camera:
     '<svg viewBox="0 0 24 24" stroke-width="1.4" fill="none" stroke="currentColor" stroke-linecap="round"><rect x="3" y="6" width="18" height="14" rx="2"/><circle cx="12" cy="13" r="3.5"/><path d="M9 6l1.5-2h3L15 6"/></svg>',
+  check:
+    '<svg viewBox="0 0 24 24" stroke-width="1.6" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12l5 5L20 7"/></svg>',
+  x:
+    '<svg viewBox="0 0 24 24" stroke-width="1.6" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+  edit:
+    '<svg viewBox="0 0 24 24" stroke-width="1.4" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M4 20h4l10-10-4-4L4 16v4z"/><path d="M14 6l4 4"/></svg>',
+  up:
+    '<svg viewBox="0 0 24 24" stroke-width="1.6" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M6 14l6-6 6 6"/></svg>',
+  down:
+    '<svg viewBox="0 0 24 24" stroke-width="1.6" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M6 10l6 6 6-6"/></svg>',
+  trash:
+    '<svg viewBox="0 0 24 24" stroke-width="1.4" fill="none" stroke="currentColor" stroke-linecap="round"><path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M6 6l1 14a2 2 0 002 2h6a2 2 0 002-2l1-14"/></svg>',
 };
 
 type Props = {
   pin: RailPin | null;
+  eventId: string;
+  startDateIso: string;
   onClose: () => void;
 };
 
-export function RailDrawer({ pin, onClose }: Props) {
+export function RailDrawer({ pin, eventId, startDateIso, onClose }: Props) {
+  const [editing, setEditing] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   useEffect(() => {
-    if (!pin) return;
+    if (!pin) {
+      setEditing(false);
+      setPickerOpen(false);
+      return;
+    }
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
     };
@@ -45,7 +71,112 @@ export function RailDrawer({ pin, onClose }: Props) {
 
   if (!pin) return null;
 
-  const isGate = pin.state === "gate";
+  const isToday = pin.origin === "today";
+  const isSeed = pin.origin === "seed";
+  const isCustom = pin.origin === "custom";
+  const traditionLabel = pin.traditionKey ? findTradition(pin.traditionKey)?.label : null;
+
+  async function toggleDone() {
+    if (!isSeed || !pin?.milestoneKey) return;
+    const next = pin.isDone ? null : "done";
+    const res = await updateSeedMilestone({
+      eventId,
+      milestoneKey: pin.milestoneKey,
+      patch: { status: next },
+    });
+    if (!res.ok) {
+      showToast(`Couldn’t update: ${res.error}`);
+      return;
+    }
+    showToast(
+      pin.isDone
+        ? `<em>${pin.label}</em> back on your list.`
+        : `<em>${pin.label}</em> marked complete.`,
+    );
+    onClose();
+  }
+
+  async function dismiss() {
+    if (!isSeed || !pin?.milestoneKey) return;
+    const res = await updateSeedMilestone({
+      eventId,
+      milestoneKey: pin.milestoneKey,
+      patch: { status: "dismissed" },
+    });
+    if (!res.ok) {
+      showToast(`Couldn’t update: ${res.error}`);
+      return;
+    }
+    showToast(`<em>${pin.label}</em> hidden. Cue won’t bring it up again.`);
+    onClose();
+  }
+
+  async function bumpSort(delta: number) {
+    if (!pin) return;
+    const current = pin.sortOrder;
+    const next = (current ?? 0) + delta;
+    if (isSeed && pin.milestoneKey) {
+      const res = await updateSeedMilestone({
+        eventId,
+        milestoneKey: pin.milestoneKey,
+        patch: { sortOrder: next },
+      });
+      if (!res.ok) {
+        showToast(`Couldn’t reorder: ${res.error}`);
+        return;
+      }
+    } else if (isCustom && pin.customId) {
+      // Imported here to avoid circular imports.
+      const { updateCustomMilestone } = await import("../_actions/update-custom-milestone");
+      const res = await updateCustomMilestone({ id: pin.customId, sortOrder: next });
+      if (!res.ok) {
+        showToast(`Couldn’t reorder: ${res.error}`);
+        return;
+      }
+    }
+    onClose();
+  }
+
+  async function handlePickerConfirm(iso: string, time: string | null) {
+    if (!pin) return;
+    if (isSeed && pin.milestoneKey) {
+      const res = await updateSeedMilestone({
+        eventId,
+        milestoneKey: pin.milestoneKey,
+        patch: { customDateIso: iso, customTime: time },
+      });
+      if (!res.ok) {
+        showToast(`Couldn’t reschedule: ${res.error}`);
+        return;
+      }
+      showToast(`<em>${pin.label}</em> rescheduled.`);
+    } else if (isCustom && pin.customId) {
+      const { updateCustomMilestone } = await import("../_actions/update-custom-milestone");
+      const res = await updateCustomMilestone({
+        id: pin.customId,
+        customDateIso: iso,
+        customTime: time,
+      });
+      if (!res.ok) {
+        showToast(`Couldn’t reschedule: ${res.error}`);
+        return;
+      }
+      showToast(`<em>${pin.label}</em> rescheduled.`);
+    }
+    setPickerOpen(false);
+    onClose();
+  }
+
+  async function deleteCustom() {
+    if (!isCustom || !pin?.customId) return;
+    const res = await deleteCustomMilestone({ id: pin.customId });
+    if (!res.ok) {
+      showToast(`Couldn’t delete: ${res.error}`);
+      return;
+    }
+    showToast(`<em>${pin.label}</em> removed from your timeline.`);
+    onClose();
+  }
 
   return (
     <>
@@ -55,98 +186,203 @@ export function RailDrawer({ pin, onClose }: Props) {
         <div className={styles.drawerHead}>
           <div className={styles.drawerHeadL}>
             <div className={styles.drawerEye}>
-              {pin.when} {pin.sub ? `· ${pin.sub}` : ""}
+              {pin.when}
+              {pin.whenTime ? ` · ${pin.whenTime}` : ""}
+              {pin.sub ? ` · ${pin.sub}` : ""}
             </div>
             <h3 className={styles.drawerTitle}>
               <em>{pin.label}</em>
+              {pin.isDone && <span className={styles.drawerDoneFlag}> · Done</span>}
             </h3>
+            {traditionLabel && (
+              <div className={styles.drawerTraditionChip}>{traditionLabel}</div>
+            )}
           </div>
-          <button
-            type="button"
-            className={styles.drawerClose}
-            onClick={onClose}
-            aria-label="Close"
-          >
-            ×
-          </button>
+          <button type="button" className={styles.drawerClose} onClick={onClose} aria-label="Close">×</button>
         </div>
-        <div className={styles.drawerBody}>
-          {pin.body.length > 0 ? (
-            <div className={styles.drSection}>
-              <div className={styles.drSectionL}>What&rsquo;s on this day</div>
-              {pin.body.map((item, i) => (
-                <div key={i} className={styles.drItem}>
-                  <div
-                    className={styles.drItemIco}
-                    dangerouslySetInnerHTML={{
-                      __html: DRAWER_ICONS[item.ico] ?? DRAWER_ICONS.note,
-                    }}
-                  />
-                  <div className={styles.drItemBody}>
-                    <div className={styles.drItemT}>{item.t}</div>
-                    {item.d && (
-                      <div
-                        className={styles.drItemD}
-                        dangerouslySetInnerHTML={{ __html: item.d }}
-                      />
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : (
-            <div className={styles.drEmpty}>
-              Nothing scheduled. <em>A quiet day.</em>
-            </div>
-          )}
 
-          {isGate && (
-            <div className={styles.drSection}>
-              <div className={styles.drSectionL}>Move it forward</div>
-              <button
-                type="button"
-                className={styles.drItem}
-                style={{ width: "100%", textAlign: "left", cursor: "pointer", background: "rgba(255,255,255,0.018)" }}
-                onClick={() => {
-                  showToast(`<em>${pin.label}</em> marked complete.`);
-                  onClose();
-                }}
-              >
-                <div
-                  className={styles.drItemIco}
-                  dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.note }}
-                />
-                <div className={styles.drItemBody}>
-                  <div className={styles.drItemT}>Mark complete</div>
-                  <div className={styles.drItemD}>
-                    Tells Cue this is handled. Stops the reminders.
+        <div className={styles.drawerBody}>
+          {editing && isCustom && pin.customId ? (
+            <CustomMilestoneForm
+              eventId={eventId}
+              defaultDateIso={startDateIso}
+              initial={{
+                customId: pin.customId,
+                label: pin.label === "Reserved time" ? null : pin.label,
+                detail: pin.sub,
+                dateIso: pin.dateIso,
+                time: pin.time,
+                traditionKey: pin.traditionKey ?? null,
+              }}
+              onDone={onClose}
+            />
+          ) : (
+            <>
+              {pin.body.length > 0 && !isToday && (
+                <div className={styles.drSection}>
+                  <div className={styles.drSectionL}>What this is</div>
+                  {pin.body.map((item, i) => (
+                    <div key={i} className={styles.drItem}>
+                      <div
+                        className={styles.drItemIco}
+                        dangerouslySetInnerHTML={{ __html: DRAWER_ICONS[item.ico] ?? DRAWER_ICONS.note }}
+                      />
+                      <div className={styles.drItemBody}>
+                        <div className={styles.drItemT}>{item.t}</div>
+                        {item.d && (
+                          <div
+                            className={styles.drItemD}
+                            dangerouslySetInnerHTML={{ __html: item.d }}
+                          />
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {isToday && (
+                <div className={styles.drSection}>
+                  <div className={styles.drSectionL}>Right now</div>
+                  <div className={styles.drEmpty}>
+                    You’re looking at your dashboard. <em>It’s about time.</em>
                   </div>
                 </div>
-              </button>
-              <button
-                type="button"
-                className={styles.drItem}
-                style={{ width: "100%", textAlign: "left", cursor: "pointer", background: "rgba(255,255,255,0.018)" }}
-                onClick={() => {
-                  showToast(`<em>${pin.label}</em> hidden from your timeline.`);
-                  onClose();
-                }}
-              >
-                <div
-                  className={styles.drItemIco}
-                  dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.users }}
-                />
-                <div className={styles.drItemBody}>
-                  <div className={styles.drItemT}>Not for us</div>
-                  <div className={styles.drItemD}>
-                    Skip this milestone. Cue won&rsquo;t bring it up again.
+              )}
+
+              {!isToday && (
+                <div className={styles.drSection}>
+                  <div className={styles.drSectionL}>Move it</div>
+
+                  {isSeed && (
+                    <button
+                      type="button"
+                      className={styles.drActionRow}
+                      onClick={toggleDone}
+                    >
+                      <div
+                        className={styles.drItemIco}
+                        dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.check }}
+                      />
+                      <div className={styles.drItemBody}>
+                        <div className={styles.drItemT}>
+                          {pin.isDone ? "Mark not done" : "Mark complete"}
+                        </div>
+                        <div className={styles.drItemD}>
+                          {pin.isDone
+                            ? "Move it back to your active list."
+                            : "Tells Cue this is handled. Stops the reminders."}
+                        </div>
+                      </div>
+                    </button>
+                  )}
+
+                  <button
+                    type="button"
+                    className={styles.drActionRow}
+                    onClick={() => setPickerOpen(true)}
+                  >
+                    <div
+                      className={styles.drItemIco}
+                      dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.edit }}
+                    />
+                    <div className={styles.drItemBody}>
+                      <div className={styles.drItemT}>Reschedule</div>
+                      <div className={styles.drItemD}>
+                        Change date or set a specific time. Useful for day-of ceremonies.
+                      </div>
+                    </div>
+                  </button>
+
+                  <div className={styles.drSortRow}>
+                    <span className={styles.drSortL}>Order on the same time</span>
+                    <button
+                      type="button"
+                      className={styles.drSortBtn}
+                      onClick={() => bumpSort(-1)}
+                      aria-label="Bump earlier"
+                      dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.up }}
+                    />
+                    <button
+                      type="button"
+                      className={styles.drSortBtn}
+                      onClick={() => bumpSort(1)}
+                      aria-label="Bump later"
+                      dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.down }}
+                    />
                   </div>
+
+                  {isCustom && (
+                    <button
+                      type="button"
+                      className={styles.drActionRow}
+                      onClick={() => setEditing(true)}
+                    >
+                      <div
+                        className={styles.drItemIco}
+                        dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.edit }}
+                      />
+                      <div className={styles.drItemBody}>
+                        <div className={styles.drItemT}>Edit details</div>
+                        <div className={styles.drItemD}>
+                          Change the name, notes, or cultural tag.
+                        </div>
+                      </div>
+                    </button>
+                  )}
+
+                  {isSeed && (
+                    <button
+                      type="button"
+                      className={styles.drActionRow}
+                      onClick={dismiss}
+                    >
+                      <div
+                        className={styles.drItemIco}
+                        dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.x }}
+                      />
+                      <div className={styles.drItemBody}>
+                        <div className={styles.drItemT}>Not for us</div>
+                        <div className={styles.drItemD}>
+                          Hide this from your timeline. You can re-add it from the traditions picker.
+                        </div>
+                      </div>
+                    </button>
+                  )}
+
+                  {isCustom && (
+                    <button
+                      type="button"
+                      className={`${styles.drActionRow} ${styles.drActionDanger}`}
+                      onClick={deleteCustom}
+                    >
+                      <div
+                        className={styles.drItemIco}
+                        dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.trash }}
+                      />
+                      <div className={styles.drItemBody}>
+                        <div className={styles.drItemT}>Delete</div>
+                        <div className={styles.drItemD}>
+                          Remove from your timeline.
+                        </div>
+                      </div>
+                    </button>
+                  )}
                 </div>
-              </button>
-            </div>
+              )}
+            </>
           )}
         </div>
       </aside>
+
+      <DateTimePickerModal
+        open={pickerOpen}
+        selectedDateIso={pin.dateIso}
+        selectedTime={pin.time}
+        allowPast
+        onConfirm={handlePickerConfirm}
+        onClose={() => setPickerOpen(false)}
+      />
     </>
   );
 }
