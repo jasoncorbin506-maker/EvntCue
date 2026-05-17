@@ -15,6 +15,7 @@ import {
   prettyEventType,
 } from "./_lib/load-context";
 import { buildRailPins, formatStartLongDate } from "./_lib/timeline";
+import { checkSubscription } from "@/lib/subscriptions/check";
 import styles from "./orgnz.module.css";
 
 export const metadata = { title: "Dashboard · EvntCue" };
@@ -134,15 +135,13 @@ export default async function OrgnzDashboardPage() {
     .filter(([, v]) => (v as { status?: string })?.status === "dismissed")
     .map(([k]) => k);
 
-  // PAYWALL DISABLED FOR DEV (2026-05-11, Jason directive).
-  // All paid features (Guests sheet, Travel modal, Cue beyond 5, day-of) are
-  // ungated until launch so review/approval can move fast. The full-tile gate
-  // (PARKING_LOT #19) is still the design lock — it just isn't exercised in
-  // the UI right now. Before public launch, flip back to a real check:
-  //   const isPaidTier = await checkSubscription(user.id);
-  // This needs to happen alongside Phase 4 Stripe wiring; do not ship to prod
-  // with `true` hardcoded.
-  const isPaidTier = true;
+  // Lock 3 closure (2026-05-16, session 15) — real subscription check.
+  // RLS-scoped read against the subscriptions table (migration 026). Returns
+  // 'orgnz_paid' when an active orgnz_19_99 row matches ctx.user. Stripe webhook
+  // writes land in Phase 4; until then, dev rows are inserted manually.
+  // PARKING_LOT #34 closed.
+  const tier = await checkSubscription(ctx.user.id, ctx.tenantId);
+  const isPaidTier = tier === "orgnz_paid";
 
   // No live data for these yet — placeholders until Phase 4+/5+ wires them.
   const vendorCount = 0;
