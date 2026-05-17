@@ -107,6 +107,8 @@
   border-radius: 12px;
   margin-bottom: 28px;
   border: 0.5px solid;
+  position: relative;
+  overflow: hidden;
 }
 
 .cueWarning {
@@ -149,6 +151,32 @@
 
 .cueDotPulse.cueDotWarn { animation: cuePulseWarn 1.6s ease-in-out infinite; }
 .cueDotPulse.cueDotDanger { animation: cuePulseDanger 1.2s ease-in-out infinite; }
+
+/* Lock 16 (2026-05-16) — Proceed: earned-radiance state. Gold thread, no animation. */
+.cueProceed {
+  background: rgba(245, 200, 112, 0.05);
+  border-color: rgba(201, 138, 26, 0.35);
+}
+
+.cueProceed::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(201, 138, 26, 0.5) 25%,
+    rgba(245, 200, 112, 0.95) 50%,
+    rgba(201, 138, 26, 0.5) 75%,
+    transparent 100%
+  );
+}
+
+.cueDotProceed { background: #C98A1A; }
+.cueProceed .cueLine em { color: #854F0B; font-style: italic; }
 
 .cueBody {
   flex: 1;

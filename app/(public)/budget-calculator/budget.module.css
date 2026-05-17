@@ -323,13 +323,23 @@
 }
 
 .sliderTicks {
-  display: flex;
-  justify-content: space-between;
+  position: relative;
+  height: 14px;
   font-family: var(--font-ui);
   font-size: 10px;
   letter-spacing: 0.06em;
   color: var(--txt3);
 }
+
+.sliderTicks > span {
+  position: absolute;
+  top: 0;
+  transform: translateX(-50%);
+  white-space: nowrap;
+}
+
+.sliderTicks > span:first-child { transform: translateX(0); }
+.sliderTicks > span:last-child { transform: translateX(-100%); }
 
 /* ---------- Subtype grid ---------- */
 .subtypeGrid {
@@ -743,7 +753,7 @@
   line-height: 1.55;
 }
 
-/* ---------- Lead-time confirmation/warning box (3 states) ---------- */
+/* ---------- Lead-time confirmation/warning box (4 states inc. Proceed) ---------- */
 .leadWarning {
   margin-top: 14px;
   padding: 12px 14px;
@@ -755,6 +765,8 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  position: relative;
+  overflow: hidden;
 }
 
 .leadCol { flex: 1; min-width: 0; }
@@ -813,6 +825,36 @@
 
 .leadDotPulse.leadDotWarn { animation: leadPulseWarn 1.6s ease-in-out infinite; }
 .leadDotPulse.leadDotDanger { animation: leadPulseDanger 1.2s ease-in-out infinite; }
+
+/* Lock 16 (2026-05-16) — Proceed: earned-radiance state. Gold thread, no animation. */
+.leadProceed {
+  background: rgba(245, 200, 112, 0.05);
+  border-color: rgba(201, 138, 26, 0.35);
+}
+
+.leadProceed::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1.5px;
+  background: linear-gradient(
+    90deg,
+    transparent 0%,
+    rgba(201, 138, 26, 0.5) 25%,
+    rgba(245, 200, 112, 0.95) 50%,
+    rgba(201, 138, 26, 0.5) 75%,
+    transparent 100%
+  );
+}
+
+.leadDotProceed {
+  background: #C98A1A;
+}
+
+.leadProceed .leadEyebrow { color: #854F0B; }
+.leadProceed .leadBody em { color: #854F0B; font-style: italic; }
 
 .leadEyebrow {
   font-family: var(--font-ui);

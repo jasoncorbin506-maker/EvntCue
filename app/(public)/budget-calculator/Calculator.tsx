@@ -367,7 +367,7 @@ function ScopeStep({
   const perGuest = state.guestCount > 0 ? subtotal / state.guestCount : 0;
   const anchorTotalForBudget = subtype?.recommendedTotal ?? category.recommendedTotal;
   const typicalPerGuest = typicalGuests > 0 ? anchorTotalForBudget / typicalGuests : 0;
-  const lead = leadTimeSeverity(state.dateHorizon, recLead);
+  const lead = leadTimeSeverity(state.dateHorizon, recLead, Math.round(subtotal * 100));
   const cover = coverSeverity(state.guestCount, typicalGuests);
   const budget = budgetSeverity(perGuest, typicalPerGuest);
   const overall = combinedSeverity(lead, cover.severity, budget.severity);
@@ -392,11 +392,11 @@ function ScopeStep({
           onChange={(e) => dispatch({ type: "setGuestCount", count: Number(e.target.value) })}
         />
         <div className={s.sliderTicks}>
-          <span>{GUEST_SLIDER.min}</span>
-          <span>50</span>
-          <span>100</span>
-          <span>250</span>
-          <span>{GUEST_SLIDER.max}+</span>
+          {[GUEST_SLIDER.min, 50, 100, 250, GUEST_SLIDER.max].map((g, i, arr) => {
+            const pct = ((g - GUEST_SLIDER.min) / (GUEST_SLIDER.max - GUEST_SLIDER.min)) * 100;
+            const label = i === arr.length - 1 ? `${g}+` : g;
+            return <span key={g} style={{ left: `${pct}%` }}>{label}</span>;
+          })}
         </div>
         {isMega && (
           <div className={s.megaHint}>{t("megaHint")}</div>
@@ -422,11 +422,16 @@ function ScopeStep({
           }
         />
         <div className={s.sliderTicks}>
-          <span>$1K</span>
-          <span>$5K</span>
-          <span>$25K</span>
-          <span>$100K</span>
-          <span>$500K+</span>
+          {[
+            { value: 1000, label: "$1K" },
+            { value: 5000, label: "$5K" },
+            { value: 25_000, label: "$25K" },
+            { value: 100_000, label: "$100K" },
+            { value: BUDGET_SLIDER.dollarMax, label: "$500K+" },
+          ].map((t) => {
+            const pct = (budgetToSlider(t.value) / BUDGET_SLIDER.units) * 100;
+            return <span key={t.value} style={{ left: `${pct}%` }}>{t.label}</span>;
+          })}
         </div>
       </div>
 
@@ -510,10 +515,16 @@ function ScopeWarning({
 }) {
   const t = useTranslations("calculator.warning");
   const cls =
-    overall === "danger" ? s.leadDanger : overall === "warn" ? s.leadWarn : s.leadCalm;
+    overall === "danger" ? s.leadDanger
+    : overall === "warn" ? s.leadWarn
+    : overall === "proceed" ? s.leadProceed
+    : s.leadCalm;
   const dotCls =
-    overall === "danger" ? s.leadDotDanger : overall === "warn" ? s.leadDotWarn : s.leadDotCalm;
-  const pulse = overall !== "calm" ? s.leadDotPulse : "";
+    overall === "danger" ? s.leadDotDanger
+    : overall === "warn" ? s.leadDotWarn
+    : overall === "proceed" ? s.leadDotProceed
+    : s.leadDotCalm;
+  const pulse = overall === "warn" || overall === "danger" ? s.leadDotPulse : "";
 
   // Eyebrow reflects the strongest signal
   let eyebrow: string;
@@ -527,11 +538,29 @@ function ScopeWarning({
     else if (budget.severity === "warn") {
       eyebrow = budget.direction === "low" ? t("budgetLean") : t("budgetAbove");
     } else eyebrow = t("coverAtypical");
+  } else if (overall === "proceed") {
+    eyebrow = t("proceedLabel");
   } else {
     eyebrow = t("calm");
   }
 
   const strong = (chunks: React.ReactNode) => <strong>{chunks}</strong>;
+
+  // Lock 16: proceed state is invitational, not informational — short editorial body
+  // instead of the multi-signal concatenation used for calm/warn/danger.
+  if (overall === "proceed") {
+    return (
+      <div className={`${s.leadWarning} ${cls}`}>
+        <div className={`${s.leadDot} ${dotCls}`} aria-hidden="true" />
+        <div className={s.leadCol}>
+          <div className={s.leadEyebrow}>{eyebrow}</div>
+          <div className={s.leadBody}>
+            <em>{t("proceedHeadline")}</em> {t("proceedSupport")}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`${s.leadWarning} ${cls}`}>

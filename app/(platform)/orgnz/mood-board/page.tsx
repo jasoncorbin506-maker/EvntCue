@@ -27,7 +27,7 @@ export default async function MoodBoardPage() {
       </p>
       <p>
         {hasEvent ? (
-          <Link href="/orgnz" className={styles.pageBodyLink}>
+          <Link href="/orgnz" replace className={styles.pageBodyLink}>
             Back to dashboard →
           </Link>
         ) : (

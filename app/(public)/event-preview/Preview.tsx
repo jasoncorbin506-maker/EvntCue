@@ -10,7 +10,7 @@ import { DatePickerModal } from "./DatePickerModal";
 import { updateSelectedDate } from "./_actions/update-selected-date";
 import { LangToggle } from "@/app/_components/LangToggle";
 
-import { DATE_HORIZONS } from "@/data/budget-presets";
+import { DATE_HORIZONS, type LeadTimeSeverity } from "@/data/budget-presets";
 
 function useFormatUSD() {
   const locale = useLocale();
@@ -120,10 +120,30 @@ function CueWarning({ data }: { data: PreviewData }) {
   } = data;
 
   const cls =
-    severity === "danger" ? s.cueDanger : severity === "warn" ? s.cueWarning : s.cueCalm;
+    severity === "danger" ? s.cueDanger
+    : severity === "warn" ? s.cueWarning
+    : severity === "proceed" ? s.cueProceed
+    : s.cueCalm;
   const dotCls =
-    severity === "danger" ? s.cueDotDanger : severity === "warn" ? s.cueDotWarn : s.cueDotCalm;
-  const pulse = severity !== "calm" ? s.cueDotPulse : "";
+    severity === "danger" ? s.cueDotDanger
+    : severity === "warn" ? s.cueDotWarn
+    : severity === "proceed" ? s.cueDotProceed
+    : s.cueDotCalm;
+  const pulse = severity === "warn" || severity === "danger" ? s.cueDotPulse : "";
+
+  // Lock 16 (2026-05-16): proceed is invitational — short editorial body, no multi-signal chain.
+  if (severity === "proceed") {
+    return (
+      <div className={`${s.cueWarn} ${cls}`}>
+        <div className={`${s.cueDot} ${dotCls}`} aria-hidden="true" />
+        <div className={s.cueBody}>
+          <div className={s.cueLine}>
+            <em>{t("cueProceedHeadline")}</em> {t("cueProceedSupport")}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   let headlineKey: string;
   if (severity === "calm") {
@@ -274,14 +294,20 @@ function CueCard({
   severity,
   eventNoun,
 }: {
-  severity: "calm" | "warn" | "danger";
+  severity: LeadTimeSeverity;
   eventNoun: string;
 }) {
   const t = useTranslations("preview");
   const dotClass =
-    severity === "danger" ? s.cueDotDanger : severity === "warn" ? s.cueDotWarn : s.cueDotCalm;
+    severity === "danger" ? s.cueDotDanger
+    : severity === "warn" ? s.cueDotWarn
+    : severity === "proceed" ? s.cueDotProceed
+    : s.cueDotCalm;
   const stateText =
-    severity === "danger" ? t("cueStateTight") : severity === "warn" ? t("cueStateShort") : t("cueStateReady");
+    severity === "danger" ? t("cueStateTight")
+    : severity === "warn" ? t("cueStateShort")
+    : severity === "proceed" ? t("cueStateProceed")
+    : t("cueStateReady");
   return (
     <div className={s.card}>
       <div className={s.cueHead}>

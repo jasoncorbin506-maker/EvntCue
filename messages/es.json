@@ -78,7 +78,10 @@
       "above": "por encima",
       "perGuestSuffix": "del típico de DFW (~${typical}/invitado).",
       "budgetLowTail": "Las opciones de proveedores se inclinarán al nivel económico; algunas opciones especializadas quedarán fuera.",
-      "budgetHighTail": "Cue puede armar opciones de proveedores de gama premium y lujo a ese gasto por invitado."
+      "budgetHighTail": "Cue puede armar opciones de proveedores de gama premium y lujo a ese gasto por invitado.",
+      "proceedLabel": "Adelante",
+      "proceedHeadline": "Tiempo de sobra. Presupuesto sólido.",
+      "proceedSupport": "La combinación rara — el horizonte largo y el espacio para hacerlo bien."
     }
   },
   "preview": {
@@ -123,6 +126,9 @@
     "cueStateTight": "apretado",
     "cueStateShort": "poco tiempo",
     "cueStateReady": "listo",
+    "cueStateProceed": "adelante",
+    "cueProceedHeadline": "Tiempo de sobra. Presupuesto sólido.",
+    "cueProceedSupport": "La combinación rara — el horizonte largo y el espacio para hacerlo bien.",
     "cueCardEm": "Ya te esbocé un plan inicial",
     "cueCardBody": " para tu {noun}. Inscríbete y voy a emparejar proveedores que se ajusten a tu presupuesto y estilo, armar tu cronograma, y enviarte cinco listas cortas armadas con tu mood board que puedes comparar lado a lado.",
     "plnrTitlePrefix": "Un Planificador —",

@@ -159,7 +159,7 @@ export default async function EventPreviewPage() {
     ? monthsUntilIso(parsed.selectedDateIso!)
     : horizonMonths;
 
-  const leadSeverity = leadTimeSeverityFromMonths(effectiveMonths, recLead);
+  const leadSeverity = leadTimeSeverityFromMonths(effectiveMonths, recLead, Math.round(parsed.grand * 100));
   const coverSig = coverSeverity(parsed.guestCount, typicalGuests);
   const budgetSig = budgetSeverity(perGuest, typicalPerGuest);
   const severity = combinedSeverity(leadSeverity, coverSig.severity, budgetSig.severity);

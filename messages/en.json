@@ -78,7 +78,10 @@
       "above": "above",
       "perGuestSuffix": "DFW typical (~${typical}/guest).",
       "budgetLowTail": "Vendor matches will skew budget-tier; some specialty options will be out of reach.",
-      "budgetHighTail": "Cue can scope premium and luxury-tier matches at this per-guest spend."
+      "budgetHighTail": "Cue can scope premium and luxury-tier matches at this per-guest spend.",
+      "proceedLabel": "Proceed",
+      "proceedHeadline": "Plenty of time. Ample budget.",
+      "proceedSupport": "The rare combination — the long horizon and the room to do it well."
     }
   },
   "preview": {
@@ -123,6 +126,9 @@
     "cueStateTight": "tight",
     "cueStateShort": "short notice",
     "cueStateReady": "ready",
+    "cueStateProceed": "proceed",
+    "cueProceedHeadline": "Plenty of time. Ample budget.",
+    "cueProceedSupport": "The rare combination — the long horizon and the room to do it well.",
     "cueCardEm": "I’ve sketched a starting plan",
     "cueCardBody": " for your {noun}. Sign up and I’ll match vendors who fit your budget and style, draft your timeline, and send you five board-matched shortlists you can compare side by side.",
     "plnrTitlePrefix": "A Planner —",

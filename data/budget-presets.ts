@@ -361,21 +361,27 @@ export const HORIZON_MONTHS: Record<DateHorizon, number> = Object.fromEntries(
   DATE_HORIZONS.map((h) => [h.value, h.months]),
 ) as Record<DateHorizon, number>;
 
-export type LeadTimeSeverity = "calm" | "warn" | "danger";
+export type LeadTimeSeverity = "proceed" | "calm" | "warn" | "danger";
+
+/** Lock 16 (2026-05-16): proceed gate. $40K matches master spec §28 Plnr full-service threshold. */
+const PROCEED_LEAD_MONTHS = 10;
+const PROCEED_BUDGET_CENTS = 4_000_000;
 
 /**
  * Compares user's date_horizon pick to the recommended lead time
  * for their event type. Maps to master spec §line 4556 calm/warn/danger urgency model.
  *
- * danger: < 50% of recommended lead time (very short notice)
- * warn:   < 80% of recommended lead time (short notice)
- * calm:   ≥ 80% (sufficient lead time)
+ * danger:  < 50% of recommended lead time (very short notice)
+ * warn:    < 80% of recommended lead time (short notice)
+ * calm:    ≥ 80% (sufficient lead time)
+ * proceed: ≥ 10 months AND ≥ $40K — earned-radiance state (Lock 16, 2026-05-16)
  */
 export function leadTimeSeverity(
   horizon: DateHorizon,
   recommendedLeadMonths: number,
+  grandTotalCents?: number,
 ): LeadTimeSeverity {
-  return leadTimeSeverityFromMonths(HORIZON_MONTHS[horizon], recommendedLeadMonths);
+  return leadTimeSeverityFromMonths(HORIZON_MONTHS[horizon], recommendedLeadMonths, grandTotalCents);
 }
 
 /**
@@ -386,11 +392,20 @@ export function leadTimeSeverity(
 export function leadTimeSeverityFromMonths(
   userMonths: number,
   recommendedLeadMonths: number,
+  grandTotalCents?: number,
 ): LeadTimeSeverity {
-  if (recommendedLeadMonths <= 0) return "calm";
-  const ratio = userMonths / recommendedLeadMonths;
-  if (ratio < 0.5) return "danger";
-  if (ratio < 0.8) return "warn";
+  if (recommendedLeadMonths > 0) {
+    const ratio = userMonths / recommendedLeadMonths;
+    if (ratio < 0.5) return "danger";
+    if (ratio < 0.8) return "warn";
+  }
+  if (
+    userMonths >= PROCEED_LEAD_MONTHS &&
+    grandTotalCents !== undefined &&
+    grandTotalCents >= PROCEED_BUDGET_CENTS
+  ) {
+    return "proceed";
+  }
   return "calm";
 }
 
@@ -436,6 +451,7 @@ export function budgetSeverity(userPerGuest: number, typicalPerGuest: number): B
 export function combinedSeverity(...signals: LeadTimeSeverity[]): LeadTimeSeverity {
   if (signals.includes("danger")) return "danger";
   if (signals.includes("warn")) return "warn";
+  if (signals.includes("proceed")) return "proceed";
   return "calm";
 }
 
