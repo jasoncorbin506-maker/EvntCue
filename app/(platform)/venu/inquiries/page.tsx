@@ -1,22 +1,19 @@
 import { Chrome } from "../_components/Chrome";
-import s from "../venu.module.css";
+import { InquiriesSegment } from "../_components/Segment";
 
 /**
- * Venu Inquiries tab — chunk B placeholder.
- * Chunk B lands: New / Quoted / Held / Closed segment, inquiry rows with SLA
- * dots and qualification badges. Uses lib/labels/inquiry-status.ts when wired
- * (PARKING_LOT #42 — Lock 15 audit: `inked` likely surfaces as `signed`).
+ * Venu Inquiries tab. Chunk B — visual port complete on stub demo data.
+ *
+ * Real reads against booking_inquiries land in a later chunk once the
+ * spec/DB enum gap closes (master spec v27.1 Lock 4+5b lifecycle vs. migration
+ * 003's vendor-response enum — flagged in PARKING_LOT). The Segment +
+ * InquiryRow components accept the same shape so the swap is mechanical.
  */
 export default function VenuInquiries() {
   return (
     <>
       <Chrome venueName="The Lantern Hall" roleLabel="Inquiries" />
-      <div className={s.placeholder}>
-        <div className={s.placeholderTitle}>Inquiries</div>
-        <div className={s.placeholderBody}>
-          New / Quoted / Held / Closed lands in chunk B.
-        </div>
-      </div>
+      <InquiriesSegment />
     </>
   );
 }
