@@ -37,7 +37,15 @@ export default async function VenuEventDetail({
 
       <div className={s.eventHero}>
         <div className={s.eventStatusRow}>
-          <div className={`${s.eventStatus} ${s.eventStatusConfirmed}`}>{event.statusLabel}</div>
+          <div
+            className={`${s.eventStatus} ${
+              event.status === "tentative" ? s.eventStatusTentative :
+              event.status === "completed" ? s.eventStatusCompleted :
+              s.eventStatusConfirmed
+            }`}
+          >
+            {event.statusLabel}
+          </div>
           <div className={s.eventId}>#{event.eventId}</div>
         </div>
         <div className={s.eventName}>{event.name}</div>

@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { inquiryStatusLabel, slaSeverityFor } from "@/lib/labels/inquiry-status";
 import {
   type DemoInquiry,
@@ -7,16 +8,15 @@ import {
 import s from "../venu.module.css";
 
 /**
- * Single inquiry row on the Inquiries tab. Renders:
- *  - SLA dot (left) — color from slaSeverityFor()
- *  - event title (Cormorant italic) + meta line (date · headcount · budget)
- *  - status pill (right) — Lock 15 display label via inquiryStatusLabel()
- *  - qualification badges below
+ * Single inquiry row on the Inquiries tab. Tappable — links to
+ * /venu/inquiries/[inquiry_id] for the detail view (placeholder in chunk B;
+ * real reply/quote/hold UI in a later chunk).
  *
- * Source mockup: built fresh from Venu_Locked_2026-05-13.md row 2 spec.
- * No direct HTML reference in the 3-screen mockup — visual language inherits
- * from the section / event-action / pill patterns established in chunks A
- * and the Tools/Money mockup screens.
+ * Visual: SLA dot (color from slaSeverityFor) + event meta + status pill
+ * (Lock 15 display label via inquiryStatusLabel) + qualification badges.
+ *
+ * Source: built fresh from Venu_Locked_2026-05-13.md row 2 spec. Visual
+ * language inherits from event-action / pill patterns established earlier.
  */
 export function InquiryRow({ inquiry }: { inquiry: DemoInquiry }) {
   const sla = slaSeverityFor(inquiry.status, inquiry.hoursSinceCreated);
@@ -27,7 +27,7 @@ export function InquiryRow({ inquiry }: { inquiry: DemoInquiry }) {
     s.slaDotClosed;
 
   return (
-    <div className={s.inqRow}>
+    <Link href={`/venu/inquiries/${inquiry.id}`} className={s.inqRow}>
       <div className={`${s.slaDot} ${dotCls}`} aria-label={`SLA ${sla}`} />
       <div className={s.inqBody}>
         <div className={s.inqHead}>
@@ -51,6 +51,6 @@ export function InquiryRow({ inquiry }: { inquiry: DemoInquiry }) {
           </div>
         )}
       </div>
-    </div>
+    </Link>
   );
 }

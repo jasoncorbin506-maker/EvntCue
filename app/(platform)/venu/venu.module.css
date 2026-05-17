@@ -606,6 +606,9 @@
   display: flex;
   align-items: flex-start;
   gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
 }
 
 .slaDot {
@@ -820,6 +823,18 @@
   background: rgba(26, 158, 130, 0.14);
   color: var(--teal);
   border: 0.5px solid rgba(26, 158, 130, 0.32);
+}
+
+.eventStatusTentative {
+  background: rgba(184, 144, 42, 0.14);
+  color: var(--gold);
+  border: 0.5px solid rgba(184, 144, 42, 0.32);
+}
+
+.eventStatusCompleted {
+  background: var(--ink3);
+  color: var(--txt2);
+  border: 0.5px solid var(--bdr);
 }
 
 .eventId {

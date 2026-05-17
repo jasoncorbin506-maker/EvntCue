@@ -230,85 +230,111 @@ export type EventActionRowData = {
   iconPath: string;
 };
 
+/* Action-row icon paths shared across event stubs. */
+const ICON_BEO =
+  "M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z M14 3v6h6 M9 13h6 M9 17h6";
+const ICON_SEAT =
+  "M4 4h16v16H4z M8 9 h0 M12 9 h0 M16 9 h0 M8 13 h0 M12 13 h0 M16 13 h0 M8 17 h0 M12 17 h0 M16 17 h0";
+const ICON_TIMELINE = "M12 7v5l3 2 M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0";
+const ICON_VENDORS =
+  "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M5 7a4 4 0 0 1 8 0 a4 4 0 0 1 -8 0 M22 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.7";
+const ICON_MONEY = "M12 4v16 M7 8h7a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h8";
+const ICON_MESSAGES =
+  "M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z";
+
+/* Each event keyed by its EVT-XXXXX id from DEMO_BOOKINGS above. Action rows
+ * vary slightly per event so the eyeball reads as distinct surfaces, not
+ * one stub repeated. */
+const EVENTS_BY_ID: Record<string, DemoEventDetail> = {
+  "EVT-04827": {
+    eventId: "EVT-04827",
+    name: "The Hartwell wedding",
+    status: "confirmed",
+    statusLabel: "Confirmed · Date locked",
+    eventDate: "2026-05-17",
+    startTime: "5:30 PM",
+    guestCount: 140,
+    spaceLabel: "Grand Ballroom",
+    netRevenueCents: 1_184_000,
+    actions: [
+      { key: "beo", name: "BEO acknowledgment", sub: "Sign off on the banquet event order", state: "todo", statusLabel: "Pending", iconPath: ICON_BEO },
+      { key: "seat", name: "Seat chart", sub: "14 tables · 140 seats · shared with Orgnz", state: "done", statusLabel: "Ready", iconPath: ICON_SEAT },
+      { key: "timeline", name: "Timeline", sub: "5:30 ceremony · 6:15 cocktails · 7:30 dinner", state: "done", statusLabel: "Signed", iconPath: ICON_TIMELINE },
+      { key: "vendors", name: "Vendor roster", sub: "4 confirmed · 1 awaiting COI", state: "todo", statusLabel: "1 open", iconPath: ICON_VENDORS },
+      { key: "money", name: "Money for this event", sub: "Rental · F&B · referral fees · platform fee", state: "done", statusLabel: "$11,840 net", iconPath: ICON_MONEY },
+      { key: "messages", name: "Messages with the Orgnz", sub: "Last reply: 2 days ago", iconPath: ICON_MESSAGES },
+    ],
+  },
+  "EVT-04831": {
+    eventId: "EVT-04831",
+    name: "Okafor Q2 offsite",
+    status: "confirmed",
+    statusLabel: "Confirmed · Date locked",
+    eventDate: "2026-05-21",
+    startTime: "9:00 AM",
+    guestCount: 60,
+    spaceLabel: "Lantern Loft",
+    netRevenueCents: 480_000,
+    actions: [
+      { key: "beo", name: "BEO acknowledgment", sub: "Corporate offsite — light AV, no catering", state: "done", statusLabel: "Signed", iconPath: ICON_BEO },
+      { key: "seat", name: "Seat chart", sub: "6 tables · 60 seats · round-table mix", state: "done", statusLabel: "Ready", iconPath: ICON_SEAT },
+      { key: "timeline", name: "Timeline", sub: "9:00 arrival · 9:30 keynote · 12:00 lunch · 4:00 wrap", state: "done", statusLabel: "Signed", iconPath: ICON_TIMELINE },
+      { key: "vendors", name: "Vendor roster", sub: "1 AV vendor confirmed", state: "done", statusLabel: "Ready", iconPath: ICON_VENDORS },
+      { key: "money", name: "Money for this event", sub: "Rental · AV add-on · platform fee", state: "done", statusLabel: "$4,800 net", iconPath: ICON_MONEY },
+      { key: "messages", name: "Messages with the Orgnz", sub: "Last reply: 5 hours ago", iconPath: ICON_MESSAGES },
+    ],
+  },
+  "EVT-04822": {
+    eventId: "EVT-04822",
+    name: "Mendoza milestone birthday",
+    status: "confirmed",
+    statusLabel: "Confirmed · Date locked",
+    eventDate: "2026-05-24",
+    startTime: "7:00 PM",
+    guestCount: 80,
+    spaceLabel: "Garden Terrace",
+    netRevenueCents: 620_000,
+    actions: [
+      { key: "beo", name: "BEO acknowledgment", sub: "Dinner service + DJ + signature bar", state: "todo", statusLabel: "Pending", iconPath: ICON_BEO },
+      { key: "seat", name: "Seat chart", sub: "8 tables · 80 seats · long-table option", state: "todo", statusLabel: "In progress", iconPath: ICON_SEAT },
+      { key: "timeline", name: "Timeline", sub: "7:00 cocktails · 8:00 dinner · 9:30 dancing", state: "done", statusLabel: "Signed", iconPath: ICON_TIMELINE },
+      { key: "vendors", name: "Vendor roster", sub: "DJ + florist + bar confirmed", state: "done", statusLabel: "Ready", iconPath: ICON_VENDORS },
+      { key: "money", name: "Money for this event", sub: "Rental · F&B · referral fees · platform fee", state: "done", statusLabel: "$6,200 net", iconPath: ICON_MONEY },
+      { key: "messages", name: "Messages with the Orgnz", sub: "Last reply: yesterday", iconPath: ICON_MESSAGES },
+    ],
+  },
+  "EVT-04836": {
+    eventId: "EVT-04836",
+    name: "Patel × Singh sangeet",
+    status: "tentative",
+    statusLabel: "Tentative · Hold expires 22 May",
+    eventDate: "2026-05-29",
+    startTime: "6:00 PM",
+    guestCount: 220,
+    spaceLabel: "Grand Ballroom",
+    netRevenueCents: 1_640_000,
+    actions: [
+      { key: "beo", name: "BEO acknowledgment", sub: "Pending hold conversion", state: "todo", statusLabel: "Blocked", iconPath: ICON_BEO },
+      { key: "seat", name: "Seat chart", sub: "22 tables · 220 seats · open-floor mix", state: "todo", statusLabel: "Pending", iconPath: ICON_SEAT },
+      { key: "timeline", name: "Timeline", sub: "6:00 baraat · 7:00 sangeet · 9:00 dinner", state: "todo", statusLabel: "Draft", iconPath: ICON_TIMELINE },
+      { key: "vendors", name: "Vendor roster", sub: "Awaiting Orgnz selections", state: "todo", statusLabel: "Pending", iconPath: ICON_VENDORS },
+      { key: "money", name: "Money for this event", sub: "Holds at quoted price until conversion", state: "todo", statusLabel: "$16,400 quoted", iconPath: ICON_MONEY },
+      { key: "messages", name: "Messages with the Orgnz", sub: "Awaiting deposit confirmation", iconPath: ICON_MESSAGES },
+    ],
+  },
+};
+
 /**
  * Stub for /venu/bookings/[event_id]. Per the spine-of-the-platform principle
  * (Operating Ritual decision #9), everything event_id-scoped lives inside
- * this view. The mockup's Screen 2 defines the six action rows.
+ * this view. The mockup's Screen 2 defines the six action rows; each event
+ * varies the sub-copy + status to feel like a real distinct booking.
+ *
+ * Returns null for unknown event IDs so the page can 404 cleanly.
  */
 export function getDemoEventDetail(eventId: string): DemoEventDetail | null {
-  // For chunk B we only have the canonical Hartwell stub; other event_ids
-  // fall through. Real reads in a later chunk replace this lookup.
-  if (eventId === "EVT-04827" || eventId === "demo") {
-    return HARTWELL_EVENT;
-  }
-  // Hand back the same stub data with the requested ID so any booking row
-  // tap renders coherently in the eyeball.
-  return { ...HARTWELL_EVENT, eventId };
+  return EVENTS_BY_ID[eventId] ?? null;
 }
-
-const HARTWELL_EVENT: DemoEventDetail = {
-  eventId: "EVT-04827",
-  name: "The Hartwell wedding",
-  status: "confirmed",
-  statusLabel: "Confirmed · Date locked",
-  eventDate: "2026-05-17",
-  startTime: "5:30 PM",
-  guestCount: 140,
-  spaceLabel: "Grand Ballroom",
-  netRevenueCents: 1_184_000,
-  actions: [
-    {
-      key: "beo",
-      name: "BEO acknowledgment",
-      sub: "Sign off on the banquet event order",
-      state: "todo",
-      statusLabel: "Pending",
-      iconPath:
-        "M14 3H6a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z M14 3v6h6 M9 13h6 M9 17h6",
-    },
-    {
-      key: "seat",
-      name: "Seat chart",
-      sub: "14 tables · 140 seats · shared with Orgnz",
-      state: "done",
-      statusLabel: "Ready",
-      iconPath:
-        "M4 4h16v16H4z M8 9 h0 M12 9 h0 M16 9 h0 M8 13 h0 M12 13 h0 M16 13 h0 M8 17 h0 M12 17 h0 M16 17 h0",
-    },
-    {
-      key: "timeline",
-      name: "Timeline",
-      sub: "5:30 ceremony · 6:15 cocktails · 7:30 dinner",
-      state: "done",
-      statusLabel: "Signed",
-      iconPath: "M12 7v5l3 2 M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0",
-    },
-    {
-      key: "vendors",
-      name: "Vendor roster",
-      sub: "4 confirmed · 1 awaiting COI",
-      state: "todo",
-      statusLabel: "1 open",
-      iconPath:
-        "M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2 M5 7a4 4 0 0 1 8 0 a4 4 0 0 1 -8 0 M22 21v-2a4 4 0 0 0-3-3.9 M16 3.1a4 4 0 0 1 0 7.7",
-    },
-    {
-      key: "money",
-      name: "Money for this event",
-      sub: "Rental · F&B · referral fees · platform fee",
-      state: "done",
-      statusLabel: "$11,840 net",
-      iconPath: "M12 4v16 M7 8h7a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h8",
-    },
-    {
-      key: "messages",
-      name: "Messages with the Orgnz",
-      sub: "Last reply: 2 days ago",
-      iconPath:
-        "M21 11.5a8.4 8.4 0 0 1-.9 3.8 8.5 8.5 0 0 1-7.6 4.7 8.4 8.4 0 0 1-3.8-.9L3 21l1.9-5.7a8.4 8.4 0 0 1-.9-3.8 8.5 8.5 0 0 1 4.7-7.6 8.4 8.4 0 0 1 3.8-.9h.5a8.5 8.5 0 0 1 8 8v.5z",
-    },
-  ],
-};
 
 /* ─────────────────────────── FORMATTERS ─────────────────────────── */
 
