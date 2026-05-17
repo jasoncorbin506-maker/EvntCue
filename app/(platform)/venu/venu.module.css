@@ -1016,6 +1016,655 @@
   padding: 8px 4px 6px;
 }
 
+/* ── TOOLS TAB (chunk C) ────────────────────────────────────────────────── */
+
+.toolsHero {
+  margin: 14px 16px 0;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, rgba(42, 107, 219, 0.10), rgba(42, 107, 219, 0.02));
+  border: 0.5px solid var(--blub);
+  border-radius: 18px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.toolsHeroIco {
+  width: 42px;
+  height: 42px;
+  border-radius: 11px;
+  flex-shrink: 0;
+  background: rgba(42, 107, 219, 0.18);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blut);
+}
+
+.toolsHeroIco svg {
+  width: 22px;
+  height: 22px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+}
+
+.toolsHeroBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.toolsHeroEyebrow {
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--blut);
+  font-weight: 600;
+  margin-bottom: 3px;
+}
+
+.toolsHeroH {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.3;
+  color: #fff;
+  letter-spacing: -0.2px;
+}
+
+.toolsHeroH b {
+  font-style: normal;
+  font-family: var(--font-body);
+  font-weight: 500;
+  font-size: 15px;
+  color: var(--blut);
+}
+
+/* Tool category header */
+.toolCat {
+  margin: 22px 16px 0;
+}
+
+.toolCatH {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 10px;
+}
+
+.toolCatT {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--txt);
+  font-weight: 600;
+}
+
+.toolCatLine {
+  flex: 1;
+  height: 0.5px;
+  background: var(--bdr);
+}
+
+/* Tool list rows */
+.toolList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.toolRow {
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+  padding: 13px 14px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  text-decoration: none;
+  color: inherit;
+  cursor: pointer;
+}
+
+.toolRowIco {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  background: var(--blul);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--blut);
+}
+
+.toolRowIco svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.toolRowBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.toolRowName {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: #fff;
+  line-height: 1.25;
+  margin-bottom: 2px;
+}
+
+.toolRowSub {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--txt2);
+  line-height: 1.4;
+}
+
+.toolRowMeta {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-shrink: 0;
+}
+
+.toolRowBadge {
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  padding: 3px 7px;
+  border-radius: 5px;
+  font-weight: 600;
+}
+
+.toolRowBadgeLive {
+  background: rgba(212, 119, 138, 0.11);
+  color: var(--rose);
+  border: 0.5px solid rgba(212, 119, 138, 0.32);
+}
+
+.toolRowBadgeAlert {
+  background: rgba(184, 144, 42, 0.12);
+  color: var(--gold);
+  border: 0.5px solid rgba(184, 144, 42, 0.32);
+}
+
+.toolRowBadgeNeutral {
+  background: var(--ink3);
+  color: var(--txt2);
+  border: 0.5px solid var(--bdr);
+}
+
+.toolRowArrow {
+  color: var(--txt3);
+  font-size: 18px;
+}
+
+/* ── PRO UPSELL BLOCK (chunk C) ─────────────────────────────────────────── */
+
+.proBlock {
+  margin: 24px 16px 0;
+  background: linear-gradient(160deg, rgba(184, 144, 42, 0.14) 0%, rgba(184, 144, 42, 0.04) 40%, transparent 100%);
+  border: 0.5px solid rgba(184, 144, 42, 0.32);
+  border-radius: 20px;
+  overflow: hidden;
+  position: relative;
+}
+
+.proBlock::before {
+  content: '';
+  position: absolute;
+  top: -60px;
+  right: -60px;
+  width: 200px;
+  height: 200px;
+  background: radial-gradient(circle, rgba(184, 144, 42, 0.20), transparent 70%);
+  pointer-events: none;
+}
+
+.proHead {
+  padding: 22px 22px 0;
+  position: relative;
+}
+
+.proEyebrow {
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.proEyebrow::before {
+  content: '';
+  width: 14px;
+  height: 0.5px;
+  background: var(--gold);
+}
+
+.proH {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.25;
+  color: #fff;
+  letter-spacing: -0.4px;
+  margin-bottom: 8px;
+}
+
+.proH i {
+  color: var(--gold);
+}
+
+.proSub {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--txt2);
+  line-height: 1.55;
+  margin-bottom: 18px;
+}
+
+.proFeatures {
+  padding: 0 16px 6px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.proFeature {
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid rgba(184, 144, 42, 0.18);
+  border-radius: 13px;
+  padding: 14px;
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.proFeatureIco {
+  width: 34px;
+  height: 34px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  background: rgba(184, 144, 42, 0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+}
+
+.proFeatureIco svg {
+  width: 17px;
+  height: 17px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.proFeatureBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.proFeatureName {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 600;
+  color: #fff;
+  line-height: 1.25;
+  margin-bottom: 4px;
+}
+
+.proFeatureDesc {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  color: var(--txt2);
+  line-height: 1.5;
+}
+
+.proPricing {
+  margin: 18px 16px 0;
+  padding: 14px;
+  background: rgba(0, 0, 0, 0.25);
+  border-radius: 13px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.proPriceMain {
+  flex: 1;
+}
+
+.proPriceAmt {
+  font-family: var(--font-display);
+  font-size: 30px;
+  font-weight: 400;
+  color: #fff;
+  line-height: 1;
+  display: flex;
+  align-items: baseline;
+  gap: 2px;
+}
+
+.proPriceAmt i {
+  font-style: italic;
+  color: var(--gold);
+}
+
+.proPricePer {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt2);
+  font-style: normal;
+  letter-spacing: 0;
+  margin-left: 3px;
+}
+
+.proPriceAlt {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  margin-top: 5px;
+  font-weight: 600;
+}
+
+.proPriceAlt b {
+  color: var(--gold);
+  font-weight: 700;
+}
+
+.proCtas {
+  padding: 14px 16px 22px;
+  display: flex;
+  gap: 8px;
+}
+
+.proCta {
+  flex: 1;
+  padding: 13px;
+  border-radius: 12px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  border: 0.5px solid;
+  transition: all 0.2s;
+}
+
+.proCtaPrimary {
+  background: var(--gold);
+  border-color: var(--gold);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(184, 144, 42, 0.36);
+}
+
+.proCtaSecondary {
+  background: transparent;
+  border-color: rgba(184, 144, 42, 0.32);
+  color: var(--gold);
+}
+
+/* ── MONEY TAB (chunk C) ────────────────────────────────────────────────── */
+
+.moneyHero {
+  margin: 14px 16px 0;
+  padding: 22px 20px;
+  background: linear-gradient(135deg, rgba(42, 107, 219, 0.10), rgba(42, 107, 219, 0.02));
+  border: 0.5px solid var(--blub);
+  border-radius: 20px;
+  text-align: center;
+}
+
+.moneyEyebrow {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--blut);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.moneyBig {
+  font-family: var(--font-display);
+  font-size: 42px;
+  font-weight: 300;
+  font-style: italic;
+  color: #fff;
+  line-height: 1;
+  letter-spacing: -1px;
+}
+
+.moneyBigCents {
+  font-size: 24px;
+  color: var(--txt2);
+  font-style: italic;
+}
+
+.moneyDelta {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--teal);
+  font-weight: 600;
+  margin-top: 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.moneyDelta::before {
+  content: '↑';
+  font-size: 11px;
+}
+
+.moneyPeriod {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  margin-top: 5px;
+  font-weight: 600;
+}
+
+/* Period segments */
+.moneyTabs {
+  margin: 14px 16px 0;
+  display: flex;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 11px;
+  padding: 3px;
+  gap: 2px;
+}
+
+.moneyTab {
+  flex: 1;
+  padding: 8px;
+  text-align: center;
+  border-radius: 8px;
+  cursor: pointer;
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  font-weight: 600;
+  background: transparent;
+  border: 0.5px solid transparent;
+}
+
+.moneyTabActive {
+  background: var(--blul);
+  color: var(--blut);
+  border-color: var(--blub);
+}
+
+/* Breakdown rows */
+.breakdown {
+  margin: 14px 16px 0;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  padding: 16px;
+}
+
+.bdRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 9px 0;
+  border-bottom: 0.5px solid var(--bdr);
+}
+
+.bdRow:last-child {
+  border-bottom: none;
+}
+
+.bdRowTotal {
+  margin-top: 5px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--bdr);
+  border-bottom: none;
+}
+
+.bdName {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--txt);
+  font-weight: 400;
+}
+
+.bdMuted {
+  color: var(--txt2);
+}
+
+.bdVal {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-style: italic;
+  color: #fff;
+  font-weight: 400;
+}
+
+.bdValMuted {
+  color: var(--txt2);
+  font-size: 14px;
+}
+
+.bdValMinus {
+  color: var(--rose);
+}
+
+.bdRowTotal .bdName {
+  font-weight: 600;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--blut);
+}
+
+.bdRowTotal .bdVal {
+  font-size: 22px;
+  color: var(--blut);
+}
+
+/* Pro hint inside Money */
+.moneyProHint {
+  margin: 14px 16px 0;
+  padding: 14px 16px;
+  background: rgba(184, 144, 42, 0.06);
+  border: 0.5px dashed rgba(184, 144, 42, 0.32);
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  cursor: pointer;
+  width: calc(100% - 32px);
+  text-align: left;
+  color: inherit;
+  font: inherit;
+}
+
+.moneyProHintIco {
+  width: 32px;
+  height: 32px;
+  border-radius: 9px;
+  flex-shrink: 0;
+  background: rgba(184, 144, 42, 0.10);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--gold);
+}
+
+.moneyProHintIco svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.5;
+}
+
+.moneyProHintBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.moneyProHintLbl {
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--gold);
+  font-weight: 700;
+  margin-bottom: 3px;
+}
+
+.moneyProHintName {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: #fff;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.moneyProHintSub {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--txt2);
+  line-height: 1.4;
+  margin-top: 2px;
+}
+
 /* Placeholder body (other tabs in chunk A — chunks B/C land real content). */
 .placeholder {
   margin: 18px 16px 0;
