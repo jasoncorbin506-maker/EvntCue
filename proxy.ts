@@ -1,8 +1,20 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
 
-const ROLE_PATHS = ["orgnz", "plnr", "vndr", "catr", "venue", "admin"] as const;
-type Role = (typeof ROLE_PATHS)[number];
+// URL path segment (UI side, "Venu" per Lock 1).
+const ROLE_PATHS = ["orgnz", "plnr", "vndr", "catr", "venu", "admin"] as const;
+type UrlRolePath = (typeof ROLE_PATHS)[number];
+
+// DB enum value (user_roles.role). The URL says "venu", the DB says "venue".
+// Lock 15 in spirit: schema speaks engineer-talk, UI speaks customer-talk.
+const URL_PATH_TO_DB_ROLE: Record<UrlRolePath, string> = {
+  orgnz: "orgnz",
+  plnr: "plnr",
+  vndr: "vndr",
+  catr: "catr",
+  venu: "venue",
+  admin: "admin",
+};
 
 export async function proxy(request: NextRequest) {
   let response = NextResponse.next({ request });
@@ -47,9 +59,9 @@ export async function proxy(request: NextRequest) {
       .select("role")
       .eq("user_id", user.id);
 
-    const roles = (roleRows ?? []).map((r) => r.role as Role);
-    const allowed =
-      roles.includes(firstSeg as Role) || roles.includes("admin" as Role);
+    const roles = (roleRows ?? []).map((r) => r.role as string);
+    const requiredDbRole = URL_PATH_TO_DB_ROLE[firstSeg as UrlRolePath];
+    const allowed = roles.includes(requiredDbRole) || roles.includes("admin");
     if (!allowed) {
       const redirect = request.nextUrl.clone();
       redirect.pathname = "/login";
