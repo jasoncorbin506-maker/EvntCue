@@ -33,7 +33,12 @@ export function Chrome({ venueName, roleLabel, right, backHref }: ChromeProps) {
             ‹
           </Link>
         ) : (
-          <Link href="/venu/discover" className={s.chromeMark} aria-label="EvntCue Venu home" />
+          // Decorative logo only — NOT a tap target. Earlier port had this as
+          // a <Link> to /venu/discover; users on tab roots read the top-left
+          // position as a back button and got dumped on Discover when they
+          // expected to go up one level. Bottom nav is the navigation;
+          // back-arrow (chromeBack) only renders on detail pages.
+          <div className={s.chromeMark} aria-hidden="true" />
         )}
         <div className={s.chromeName} style={backHref ? { marginLeft: 8 } : undefined}>
           <div className={s.chromeVenue}>{venueName}</div>
