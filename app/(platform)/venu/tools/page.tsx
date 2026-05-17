@@ -38,7 +38,7 @@ export default function VenuTools() {
 
   return (
     <>
-      <Chrome venueName="The Lantern Hall" roleLabel="Tools" right={<LivePill />} />
+      <Chrome venueName="The Lantern Hall" roleLabel="Tools" right={<LivePill />} backHref="/venu/discover" />
 
       {/* Tools hero — "For everything that spans bookings" */}
       <section className={s.toolsHero}>

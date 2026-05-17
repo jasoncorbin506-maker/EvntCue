@@ -37,7 +37,7 @@ const ACTIVE_SEGMENT = "This month";
 export default function VenuMoney() {
   return (
     <>
-      <Chrome venueName="The Lantern Hall" roleLabel="Money" right={<LivePill />} />
+      <Chrome venueName="The Lantern Hall" roleLabel="Money" right={<LivePill />} backHref="/venu/discover" />
 
       {/* Hero number */}
       <section className={s.moneyHero}>

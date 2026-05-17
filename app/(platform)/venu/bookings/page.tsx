@@ -21,7 +21,7 @@ export default function VenuBookings() {
 
   return (
     <>
-      <Chrome venueName="The Lantern Hall" roleLabel="Bookings" />
+      <Chrome venueName="The Lantern Hall" roleLabel="Bookings" backHref="/venu/discover" />
       {groups.map((group) => (
         <section key={group.key} className={s.section}>
           <div className={s.sectionH}>

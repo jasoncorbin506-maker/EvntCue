@@ -12,7 +12,7 @@ import { InquiriesSegment } from "../_components/Segment";
 export default function VenuInquiries() {
   return (
     <>
-      <Chrome venueName="The Lantern Hall" roleLabel="Inquiries" />
+      <Chrome venueName="The Lantern Hall" roleLabel="Inquiries" backHref="/venu/discover" />
       <InquiriesSegment />
     </>
   );
