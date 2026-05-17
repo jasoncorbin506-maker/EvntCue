@@ -1,8 +1,9 @@
 "use server";
 
-import { headers } from "next/headers";
+import { cookies, headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { createAdminClient } from "@/lib/supabase/admin";
 import { postAuthSeed } from "@/lib/auth/post-auth-seed";
 
 async function buildCallbackUrl(intent: string | null, role: string | null): Promise<string> {
@@ -35,6 +36,35 @@ export async function signUpAction(formData: FormData): Promise<AuthResult> {
   if (!email) return { ok: false, error: "Enter a valid email." };
   if (password.length < 8) {
     return { ok: false, error: "Password must be at least 8 characters." };
+  }
+
+  // PARKING_LOT #12 + #15 fix (session 15): persist email + calc state to the
+  // LCS row BEFORE auth.signUp. Two reasons:
+  //   1. If the user abandons after signup (never confirms), the row still has
+  //      email_captured + pending_calc_state for future re-engagement.
+  //   2. If the user confirms on a different device, /auth/callback's fallback
+  //      path looks up the LCS row by email + converted_user_id IS NULL and
+  //      seeds the event from pending_calc_state. See migration 027.
+  const c = await cookies();
+  const sessionToken = c.get("evntcue_capture_session")?.value;
+  const stateRaw = c.get("evntcue_calc_state")?.value;
+  if (sessionToken) {
+    let pendingCalcState: unknown = null;
+    if (stateRaw) {
+      try {
+        pendingCalcState = JSON.parse(stateRaw);
+      } catch {
+        // malformed cookie — leave column NULL
+      }
+    }
+    const admin = createAdminClient();
+    await admin
+      .from("landing_capture_sessions")
+      .update({
+        email_captured: email,
+        ...(pendingCalcState !== null && { pending_calc_state: pendingCalcState }),
+      })
+      .eq("session_token", sessionToken);
   }
 
   const supabase = await createClient();

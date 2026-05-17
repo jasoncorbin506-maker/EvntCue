@@ -123,7 +123,16 @@ export async function postAuthSeed(args: {
     if (roleErr) throw new Error("Could not assign role.");
   }
 
-  // 3. Consume calculator cookies, if present
+  // 3. Seed event from calc state. Two sources:
+  //    (a) Cookies on this device (same-device email-confirm or direct signin).
+  //    (b) PARKING_LOT #12 fallback: cross-device email-confirm — cookies are
+  //        on the signup device, not the confirming one. signUpAction wrote
+  //        email_captured + pending_calc_state to the LCS row pre-signUp
+  //        (migration 027); look it up by email here.
+  //
+  //    If cookies present → cookie path wins (most recent). If not, try DB.
+  //    Never double-seed: setting converted_user_id on the LCS row is the
+  //    natural deduplication — postAuthSeed only runs at confirm/signin time.
   const c = await cookies();
   const sessionToken = c.get("evntcue_capture_session")?.value;
   const stateRaw = c.get("evntcue_calc_state")?.value;
@@ -135,77 +144,33 @@ export async function postAuthSeed(args: {
     } catch {
       state = null;
     }
-
     if (state) {
-      const category = CATEGORIES.find((cat) => cat.key === state.category);
-      if (category) {
-        const subtype = getSubtype(state.category, state.subtypeKey);
-        const eventTypeEnum: EventTypeEnum =
-          subtype?.eventTypeEnum ?? category.eventTypeEnum;
-        const eventName = subtype
-          ? `${subtype.label} · draft`
-          : `${category.label} · draft`;
-
-        // Prefer the user-picked date if /event-preview captured one; otherwise
-        // fall back to the horizon midpoint.
-        const isPickedDate =
-          typeof state.selectedDateIso === "string" &&
-          /^\d{4}-\d{2}-\d{2}$/.test(state.selectedDateIso);
-        const startDate = isPickedDate
-          ? state.selectedDateIso!
-          : horizonToStartDate(state.dateHorizon);
-
-        const { data: event, error: eventErr } = await admin
-          .from("events")
-          .insert({
-            name: eventName,
-            event_type: eventTypeEnum,
-            event_subtype: state.subtypeKey,  // 3.2.C — drives milestone rail subtype lookup
-            orgnz_tenant_id: tenantId,
-            start_date: startDate,
-            guest_count: state.guestCount,
-            budget_cents: Math.round(state.grand * 100),
-            contingency_pct: state.contingencyPct,
-            tax_pct: state.taxPct,
-            status: "draft",
-          })
-          .select("id")
-          .single();
-
-        if (!eventErr && event) {
-          const itemLabels: Record<string, string> = {};
-          for (const it of category.items) itemLabels[it.key] = it.label;
-
-          const lineRows = Object.entries(state.amounts)
-            .filter(([, v]) => Number.isFinite(v) && v > 0)
-            .map(([key, dollars], idx) => ({
-              event_id: event.id as string,
-              line_key: key,
-              label: itemLabels[key] ?? key,
-              amount_cents: Math.round(dollars * 100),
-              sort_order: idx,
-            }));
-
-          if (lineRows.length > 0) {
-            await admin.from("event_budgets").insert(lineRows);
-          }
-        }
-      }
-
-      // Update landing_capture_sessions to attach the now-real user.
-      await admin
-        .from("landing_capture_sessions")
-        .update({
-          converted_user_id: args.userId,
-          email_captured: args.email,
-          date_horizon: dbHorizonFromUi(state.dateHorizon),
-          event_subtype: state.subtypeKey,  // 3.2.C — also persist on capture session
-        })
-        .eq("session_token", sessionToken);
+      await seedEventFromCalcState(admin, args, tenantId, state, sessionToken);
     }
-
     c.delete("evntcue_capture_session");
     c.delete("evntcue_calc_state");
+  } else if (args.email) {
+    // No cookies — cross-device fallback. Look up the most-recent unconverted
+    // LCS row by email. signUpAction wrote pending_calc_state here pre-signUp.
+    const { data: lcsRow } = await admin
+      .from("landing_capture_sessions")
+      .select("session_token, pending_calc_state")
+      .eq("email_captured", args.email)
+      .is("converted_user_id", null)
+      .order("created_at", { ascending: false })
+      .limit(1)
+      .maybeSingle();
+
+    if (lcsRow?.pending_calc_state) {
+      const state = lcsRow.pending_calc_state as CalcCookieState;
+      await seedEventFromCalcState(
+        admin,
+        args,
+        tenantId,
+        state,
+        lcsRow.session_token as string,
+      );
+    }
   }
 
   // Make sure auth session is hydrated for the redirect target
@@ -213,4 +178,91 @@ export async function postAuthSeed(args: {
 
   if (args.intent === "mood_board") return "/orgnz/mood-board";
   return "/orgnz";
+}
+
+/**
+ * Internal helper — insert events + event_budgets rows from a CalcCookieState,
+ * then attach the landing_capture_sessions row to the user (set
+ * converted_user_id, clear pending_calc_state, mirror date_horizon +
+ * event_subtype). Idempotent on its inputs but should be called at most once
+ * per signup (caller guarantees this via the cookie-or-DB branch in postAuthSeed).
+ *
+ * Used by both the cookie path (same-device) and the DB fallback path
+ * (cross-device email-confirm — PARKING_LOT #12).
+ */
+async function seedEventFromCalcState(
+  admin: ReturnType<typeof createAdminClient>,
+  args: { userId: string; email: string },
+  tenantId: string,
+  state: CalcCookieState,
+  sessionToken: string,
+): Promise<void> {
+  const category = CATEGORIES.find((cat) => cat.key === state.category);
+  if (category) {
+    const subtype = getSubtype(state.category, state.subtypeKey);
+    const eventTypeEnum: EventTypeEnum =
+      subtype?.eventTypeEnum ?? category.eventTypeEnum;
+    const eventName = subtype
+      ? `${subtype.label} · draft`
+      : `${category.label} · draft`;
+
+    // Prefer the user-picked date if /event-preview captured one; otherwise
+    // fall back to the horizon midpoint.
+    const isPickedDate =
+      typeof state.selectedDateIso === "string" &&
+      /^\d{4}-\d{2}-\d{2}$/.test(state.selectedDateIso);
+    const startDate = isPickedDate
+      ? state.selectedDateIso!
+      : horizonToStartDate(state.dateHorizon);
+
+    const { data: event, error: eventErr } = await admin
+      .from("events")
+      .insert({
+        name: eventName,
+        event_type: eventTypeEnum,
+        event_subtype: state.subtypeKey,  // 3.2.C — drives milestone rail subtype lookup
+        orgnz_tenant_id: tenantId,
+        start_date: startDate,
+        guest_count: state.guestCount,
+        budget_cents: Math.round(state.grand * 100),
+        contingency_pct: state.contingencyPct,
+        tax_pct: state.taxPct,
+        status: "draft",
+      })
+      .select("id")
+      .single();
+
+    if (!eventErr && event) {
+      const itemLabels: Record<string, string> = {};
+      for (const it of category.items) itemLabels[it.key] = it.label;
+
+      const lineRows = Object.entries(state.amounts)
+        .filter(([, v]) => Number.isFinite(v) && v > 0)
+        .map(([key, dollars], idx) => ({
+          event_id: event.id as string,
+          line_key: key,
+          label: itemLabels[key] ?? key,
+          amount_cents: Math.round(dollars * 100),
+          sort_order: idx,
+        }));
+
+      if (lineRows.length > 0) {
+        await admin.from("event_budgets").insert(lineRows);
+      }
+    }
+  }
+
+  // Attach LCS row to the now-real user. pending_calc_state cleared per the
+  // migration 027 COMMENT — once converted, the data lives on events +
+  // event_budgets and a stale copy here would drift.
+  await admin
+    .from("landing_capture_sessions")
+    .update({
+      converted_user_id: args.userId,
+      email_captured: args.email,
+      date_horizon: dbHorizonFromUi(state.dateHorizon),
+      event_subtype: state.subtypeKey,  // 3.2.C — also persist on capture session
+      pending_calc_state: null,
+    })
+    .eq("session_token", sessionToken);
 }
