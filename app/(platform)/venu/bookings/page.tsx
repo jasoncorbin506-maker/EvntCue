@@ -1,11 +1,21 @@
-// Venu Bookings tab — placeholder.
-// Session 15: Today / This week / Rest of month vertical scroll groups.
-// No calendar grid on mobile per Venu_Locked_2026-05-13.md nav row 3.
+import { Chrome } from "../_components/Chrome";
+import s from "../venu.module.css";
+
+/**
+ * Venu Bookings tab — chunk B placeholder.
+ * Chunk B lands: Today / This week / Rest of month vertical scroll groups.
+ * No calendar grid on mobile per Venu_Locked_2026-05-13.md nav row 3.
+ */
 export default function VenuBookings() {
   return (
-    <main style={{ padding: 24 }}>
-      <h1>Venu · Bookings</h1>
-      <p>Today / This week / Rest of month — vertical scroll, no calendar grid.</p>
-    </main>
+    <>
+      <Chrome venueName="The Lantern Hall" roleLabel="Bookings" />
+      <div className={s.placeholder}>
+        <div className={s.placeholderTitle}>Bookings</div>
+        <div className={s.placeholderBody}>
+          Today / This week / Rest of month — vertical scroll, no calendar grid. Lands in chunk B.
+        </div>
+      </div>
+    </>
   );
 }

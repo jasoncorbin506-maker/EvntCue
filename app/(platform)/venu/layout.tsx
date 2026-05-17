@@ -1,20 +1,23 @@
 import type { CSSProperties, ReactNode } from "react";
+import { BottomNav } from "./_components/BottomNav";
+import s from "./venu.module.css";
 
 /**
- * Venu portal layout.
+ * Venu portal layout (chunk A — chrome + bottom-nav shell shipped 2026-05-17).
  *
- * Sets the per-portal accent (`--prime`) to bay-blue per Lock 9 portal-color
- * map. Chrome, BottomNav, and other surface components land in session 15
- * (per the Venu_Locked_2026-05-13.md CC port handoff section).
+ * Renders the phone frame on desktop, edge-to-edge on mobile. BottomNav is
+ * persistent across all five tabs (Discover / Inquiries / Bookings / Tools
+ * / Money) and the event-detail route under bookings/[event_id] — the lock
+ * doc keeps the nav visible everywhere except auth gates.
+ *
+ * Sets the per-portal accent (--prime) to bay-blue per Lock 9 portal-color
+ * map. Cross-portal components reference var(--prime) so they paint in the
+ * portal they're rendered into.
  *
  * Auth/role check happens upstream in proxy.ts — this layout assumes the
  * request has already been gated to a user with role='venue' or 'admin'.
  */
 const venuTheme: CSSProperties = {
-  // Bay-blue maps to the existing --blue token family in tokens.css.
-  // Per-portal --prime convention: components reference var(--prime) and
-  // its tints so cross-portal components render in whichever portal's color
-  // they're embedded in.
   ["--prime" as string]: "var(--blue)",
   ["--prime-light" as string]: "var(--blul)",
   ["--prime-bold" as string]: "var(--blub)",
@@ -24,8 +27,9 @@ const venuTheme: CSSProperties = {
 
 export default function VenuLayout({ children }: { children: ReactNode }) {
   return (
-    <div id="venu-app" style={venuTheme}>
-      {children}
+    <div id="venu-app" style={venuTheme} className={s.phone}>
+      <div className={s.scroll}>{children}</div>
+      <BottomNav />
     </div>
   );
 }
