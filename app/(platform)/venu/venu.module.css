@@ -35,11 +35,18 @@
   }
 }
 
-/* Scrollable content area between chrome (sticky top) and nav (sticky bottom). */
+/* Scrollable content area between chrome (sticky top) and nav (sticky bottom).
+ * Scrollbar hidden per Lock 9 editorial-luxe direction — touch + wheel still work. */
 .scroll {
   flex: 1;
   overflow-y: auto;
   padding-bottom: 24px;
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* legacy Edge / IE */
+}
+
+.scroll::-webkit-scrollbar {
+  display: none; /* WebKit — Chrome, Safari, modern Edge */
 }
 
 /* ── CHROME ─────────────────────────────────────────────────────────────── */

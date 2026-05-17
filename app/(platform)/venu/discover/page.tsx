@@ -91,8 +91,11 @@ export default function VenuDiscover() {
               <path d="M12 4v16M7 8h7a3 3 0 0 1 0 6H9a3 3 0 0 0 0 6h8" />
             </svg>
           </div>
-          <div className={s.tileLabel}>Take-home this month</div>
-          <div className={s.tileSub}>See the breakdown.</div>
+          {/* Lock 14b register — professional financial language. Chunk C carries the same
+              terminology into the Money tab's hero (was "take-home" in the mockup; "Revenue"
+              + "Net revenue" for the post-fee figure). */}
+          <div className={s.tileLabel}>Revenue this month</div>
+          <div className={s.tileSub}>Breakdown by event, fees, and payouts.</div>
         </Link>
       </section>
 
