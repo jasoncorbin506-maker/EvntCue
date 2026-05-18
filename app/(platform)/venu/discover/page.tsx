@@ -19,9 +19,15 @@ import s from "../venu.module.css";
  * - Match score 87 → illustrative, no formula yet.
  * - Per-space detail view → tile exits stub-routed.
  */
-export default function VenuDiscover() {
+export default async function VenuDiscover({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>;
+}) {
+  const { welcome } = await searchParams;
   const venueName = "The Lantern Hall";
   const isLive = false;
+  const isFirstTimeClaim = welcome === "claim";
 
   return (
     <>
@@ -32,11 +38,26 @@ export default function VenuDiscover() {
       />
 
       <section className={s.welcomeStrip}>
-        <div className={s.welcomeEyebrow}>Welcome back</div>
-        <div className={s.welcomeHeadline}>You&apos;re ready for the week.</div>
-        <p className={s.welcomeBody}>
-          Two new inquiries are waiting. Saturday&apos;s booking goes live in 4 days.
-        </p>
+        {isFirstTimeClaim ? (
+          <>
+            <div className={s.welcomeEyebrow}>You&apos;re in</div>
+            <div className={s.welcomeHeadline}>
+              Welcome to EvntCue, <i>{venueName}</i>.
+            </div>
+            <p className={s.welcomeBody}>
+              Your dashboard is live. Take a look around — inquiries, bookings, and
+              tools are ready when you are.
+            </p>
+          </>
+        ) : (
+          <>
+            <div className={s.welcomeEyebrow}>Welcome back</div>
+            <div className={s.welcomeHeadline}>You&apos;re ready for the week.</div>
+            <p className={s.welcomeBody}>
+              Two new inquiries are waiting. Saturday&apos;s booking goes live in 4 days.
+            </p>
+          </>
+        )}
       </section>
 
       <section className={s.statBlock}>
