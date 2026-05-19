@@ -1,5 +1,7 @@
 import Link from "next/link";
+import { redirect } from "next/navigation";
 import { Chrome, LivePill } from "../_components/Chrome";
+import { getCurrentVenue } from "@/lib/venu/current-venue";
 import s from "../venu.module.css";
 
 /**
@@ -25,7 +27,9 @@ export default async function VenuDiscover({
   searchParams: Promise<{ welcome?: string }>;
 }) {
   const { welcome } = await searchParams;
-  const venueName = "The Lantern Hall";
+  const venue = await getCurrentVenue();
+  if (!venue) redirect("/venues");
+  const venueName = venue.displayName;
   const isLive = false;
   const isFirstTimeClaim = welcome === "claim";
 
@@ -135,7 +139,7 @@ export default async function VenuDiscover({
             <div className={s.boardThumb} />
           </div>
           <div className={s.boardBody}>
-            <div className={s.boardName}>Lantern Hall · Winter palette</div>
+            <div className={s.boardName}>{venueName} · Winter palette</div>
             <div className={s.boardMeta}>12 owned images · last updated 3 days ago</div>
           </div>
         </Link>

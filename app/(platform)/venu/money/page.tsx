@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { Chrome, LivePill } from "../_components/Chrome";
 import { commissionFlowLabel } from "@/lib/labels/commission-flows";
 import { formatUSDCents } from "../_lib/demo-data";
+import { getCurrentVenue } from "@/lib/venu/current-venue";
 import s from "../venu.module.css";
 
 /**
@@ -34,10 +36,13 @@ const NET_REVENUE_CENTS = BREAKDOWN_ROWS.reduce((sum, r) => sum + r.cents, 0);
 const SEGMENTS = ["This event", "This month", "YTD", "Trends"] as const;
 const ACTIVE_SEGMENT = "This month";
 
-export default function VenuMoney() {
+export default async function VenuMoney() {
+  const venue = await getCurrentVenue();
+  if (!venue) redirect("/venues");
+
   return (
     <>
-      <Chrome venueName="The Lantern Hall" roleLabel="Money" right={<LivePill />} backHref="/venu/discover" />
+      <Chrome venueName={venue.displayName} roleLabel="Money" right={<LivePill />} backHref="/venu/discover" />
 
       {/* Hero number */}
       <section className={s.moneyHero}>

@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { Chrome } from "../_components/Chrome";
 import { BookingRow } from "../_components/BookingRow";
 import { DEMO_BOOKINGS, groupBookings } from "../_lib/demo-data";
+import { getCurrentVenue } from "@/lib/venu/current-venue";
 import s from "../venu.module.css";
 
 /**
@@ -14,14 +16,17 @@ import s from "../venu.module.css";
  * Chunk B uses stub demo data. Real reads against bookings + events land in
  * a later chunk; the groupBookings() helper accepts the same shape.
  */
-export default function VenuBookings() {
+export default async function VenuBookings() {
+  const venue = await getCurrentVenue();
+  if (!venue) redirect("/venues");
+
   // Use a stable "today" so the grouping is deterministic in the eyeball.
   const today = new Date(2026, 4, 17); // 2026-05-17, matches Hartwell wedding
   const groups = groupBookings(DEMO_BOOKINGS, today);
 
   return (
     <>
-      <Chrome venueName="The Lantern Hall" roleLabel="Bookings" backHref="/venu/discover" />
+      <Chrome venueName={venue.displayName} roleLabel="Bookings" backHref="/venu/discover" />
       {groups.map((group) => (
         <section key={group.key} className={s.section}>
           <div className={s.sectionH}>

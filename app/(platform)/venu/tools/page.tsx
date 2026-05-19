@@ -1,6 +1,8 @@
+import { redirect } from "next/navigation";
 import { Chrome, LivePill } from "../_components/Chrome";
 import { ToolRow } from "../_components/ToolRow";
 import { commissionFlowLabel } from "@/lib/labels/commission-flows";
+import { getCurrentVenue } from "@/lib/venu/current-venue";
 import s from "../venu.module.css";
 
 /**
@@ -26,7 +28,10 @@ import s from "../venu.module.css";
  * (2026-05-16). The mockup's $149/$129 was a placeholder per PARKING_LOT
  * #21 — superseded.
  */
-export default function VenuTools() {
+export default async function VenuTools() {
+  const venue = await getCurrentVenue();
+  if (!venue) redirect("/venues");
+
   // Commission flows row sub-text — Lock 15 demonstration. The four flows a
   // venue typically lives in, routed through the canonical label map.
   const venueFlows = [
@@ -38,7 +43,7 @@ export default function VenuTools() {
 
   return (
     <>
-      <Chrome venueName="The Lantern Hall" roleLabel="Tools" right={<LivePill />} backHref="/venu/discover" />
+      <Chrome venueName={venue.displayName} roleLabel="Tools" right={<LivePill />} backHref="/venu/discover" />
 
       {/* Tools hero — "For everything that spans bookings" */}
       <section className={s.toolsHero}>
