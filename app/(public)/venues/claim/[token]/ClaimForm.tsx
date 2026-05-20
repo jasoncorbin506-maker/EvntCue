@@ -10,15 +10,17 @@ type Props = {
   token: string;
   venueDisplayName: string;
   venueCity: string | null;
+  signedInEmail: string | null;
 };
 
-export function ClaimForm({ token, venueDisplayName, venueCity }: Props) {
+export function ClaimForm({ token, venueDisplayName, venueCity, signedInEmail }: Props) {
   const [state, formAction, pending] = useActionState<ClaimResult | null, FormData>(
     async (_prev, formData) => submitClaim(formData),
     initial,
   );
 
   const error = state && state.ok === false ? state.error : null;
+  const isSignedIn = !!signedInEmail;
 
   return (
     <main className={s.phone}>
@@ -37,38 +39,49 @@ export function ClaimForm({ token, venueDisplayName, venueCity }: Props) {
           Welcome, <i>{venueDisplayName}</i>
         </h1>
         <p className={s.formSub}>
-          We&apos;ve pre-built your dashboard{venueCity ? ` for ${venueCity}` : ""}. Set a
-          password to take ownership — you&apos;ll be inside in seconds.
+          {isSignedIn ? (
+            <>
+              We&apos;ve pre-built your dashboard{venueCity ? ` for ${venueCity}` : ""}. One
+              tap to add it to your account ({signedInEmail}).
+            </>
+          ) : (
+            <>
+              We&apos;ve pre-built your dashboard{venueCity ? ` for ${venueCity}` : ""}. Set
+              a password to take ownership — you&apos;ll be inside in seconds.
+            </>
+          )}
         </p>
 
         <form action={formAction} noValidate>
           <input type="hidden" name="token" value={token} />
 
-          <div className={s.formFields}>
-            <label className={s.formField}>
-              <div className={s.formFieldLbl}>Your email · this becomes your login</div>
-              <input
-                className={s.formFieldInput}
-                type="email"
-                name="email"
-                autoComplete="email"
-                required
-                placeholder="manager@thelanternhall.com"
-              />
-            </label>
-            <label className={s.formField}>
-              <div className={s.formFieldLbl}>Set a password · 8+ characters</div>
-              <input
-                className={s.formFieldInput}
-                type="password"
-                name="password"
-                autoComplete="new-password"
-                required
-                minLength={8}
-                placeholder="••••••••"
-              />
-            </label>
-          </div>
+          {!isSignedIn && (
+            <div className={s.formFields}>
+              <label className={s.formField}>
+                <div className={s.formFieldLbl}>Your email · this becomes your login</div>
+                <input
+                  className={s.formFieldInput}
+                  type="email"
+                  name="email"
+                  autoComplete="email"
+                  required
+                  placeholder="manager@thelanternhall.com"
+                />
+              </label>
+              <label className={s.formField}>
+                <div className={s.formFieldLbl}>Set a password · 8+ characters</div>
+                <input
+                  className={s.formFieldInput}
+                  type="password"
+                  name="password"
+                  autoComplete="new-password"
+                  required
+                  minLength={8}
+                  placeholder="••••••••"
+                />
+              </label>
+            </div>
+          )}
 
           {error ? (
             <div
@@ -91,7 +104,11 @@ export function ClaimForm({ token, venueDisplayName, venueCity }: Props) {
           ) : null}
 
           <button type="submit" className={s.formSubmit} disabled={pending}>
-            {pending ? "…" : "Claim my dashboard"}
+            {pending
+              ? "…"
+              : isSignedIn
+                ? `Add ${venueDisplayName} to my account`
+                : "Claim my dashboard"}
           </button>
         </form>
 

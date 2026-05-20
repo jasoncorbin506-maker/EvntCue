@@ -39,14 +39,10 @@ function hashToken(token: string): string {
 
 export async function submitClaimAction(formData: FormData): Promise<ClaimResult> {
   const token = String(formData.get("token") ?? "").trim();
-  const email = validateEmail(String(formData.get("email") ?? ""));
   const password = String(formData.get("password") ?? "");
+  const rawEmail = String(formData.get("email") ?? "");
 
   if (!token) return { ok: false, error: "This claim link is missing its token." };
-  if (!email) return { ok: false, error: "Enter a valid email." };
-  if (password.length < 8) {
-    return { ok: false, error: "Password must be at least 8 characters." };
-  }
 
   const admin = createAdminClient();
   const tokenHash = hashToken(token);
@@ -77,30 +73,62 @@ export async function submitClaimAction(formData: FormData): Promise<ClaimResult
     return { ok: false, error: "This claim link has expired." };
   }
 
-  // 2. Create the auth user. signUp also signs them in (confirm-email is off
-  // per session 15 close — see PARKING_LOT #13).
+  // 2. Auth resolution. Three cases:
+  //   (a) Already signed in (e.g., an Orgnz who also owns a venue) — skip
+  //       signUp, claim under the existing user.
+  //   (b) Not signed in, email new — signUp (auto-signs in since confirm
+  //       email is off per session 15).
+  //   (c) Not signed in, email already exists — signUp silently returns
+  //       no session (Supabase anti-enumeration). Surface a clear error
+  //       rather than half-claiming.
   const supabase = await createClient();
-  const h = await headers();
-  const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
-  const proto =
-    h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
-  const emailRedirectTo = `${proto}://${host}/venu/discover?welcome=claim`;
+  const { data: existingAuth } = await supabase.auth.getUser();
 
-  const { data: authData, error: authErr } = await supabase.auth.signUp({
-    email,
-    password,
-    options: { emailRedirectTo },
-  });
+  let userId: string;
+  let email: string;
 
-  if (authErr) return { ok: false, error: authErr.message };
-  if (!authData.user) {
-    // Confirm-email re-enabled. Surface the message but don't half-claim.
-    return {
-      ok: false,
-      error: `We sent a confirmation link to ${email}. Click it to finish claiming your venue.`,
-    };
+  if (existingAuth.user) {
+    userId = existingAuth.user.id;
+    email = existingAuth.user.email ?? rawEmail;
+  } else {
+    const validated = validateEmail(rawEmail);
+    if (!validated) return { ok: false, error: "Enter a valid email." };
+    if (password.length < 8) {
+      return { ok: false, error: "Password must be at least 8 characters." };
+    }
+    email = validated;
+
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+    const proto =
+      h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+    const emailRedirectTo = `${proto}://${host}/venu/discover?welcome=claim`;
+
+    const { data: authData, error: authErr } = await supabase.auth.signUp({
+      email,
+      password,
+      options: { emailRedirectTo },
+    });
+
+    if (authErr) return { ok: false, error: authErr.message };
+    if (!authData.user) {
+      return {
+        ok: false,
+        error: `We sent a confirmation link to ${email}. Click it to finish claiming your venue.`,
+      };
+    }
+    // Case (c): existing email — Supabase returns a user object but no
+    // session. Without a session, the post-redirect middleware will bounce
+    // to /login and we'd silently create an orphan tenant + role. Bail.
+    if (!authData.session) {
+      return {
+        ok: false,
+        error: `${email} already has an account. Sign in first, then re-open this link from the email.`,
+      };
+    }
+    userId = authData.user.id;
   }
-  const userId = authData.user.id;
+
   const locale = await getLocale();
 
   // 3. Mirror auth.users → public.users.

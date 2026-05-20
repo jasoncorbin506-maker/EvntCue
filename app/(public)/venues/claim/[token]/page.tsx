@@ -1,6 +1,7 @@
 import { createHash } from "node:crypto";
 import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { createClient } from "@/lib/supabase/server";
 import { ClaimForm } from "./ClaimForm";
 import s from "../../venues.module.css";
 
@@ -60,11 +61,16 @@ export default async function VenuClaim({
   const outcome = await evaluate(token);
 
   if (outcome.kind === "valid") {
+    // If the visitor is already signed in (e.g. an existing Orgnz also owns a
+    // venue), skip the credential form — they only need to confirm.
+    const supabase = await createClient();
+    const { data: existing } = await supabase.auth.getUser();
     return (
       <ClaimForm
         token={token}
         venueDisplayName={outcome.displayName}
         venueCity={outcome.city}
+        signedInEmail={existing.user?.email ?? null}
       />
     );
   }
