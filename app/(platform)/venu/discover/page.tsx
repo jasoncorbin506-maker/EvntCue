@@ -127,9 +127,6 @@ export default async function VenuDiscover({
       <section className={s.boardStrip}>
         <div className={s.sectionH}>
           <h2 className={s.sectionT}>Atmosphere Board</h2>
-          <Link href="/venu/tools" className={s.sectionA}>
-            Edit →
-          </Link>
         </div>
         <Link href="/venu/tools" className={s.boardStripBody}>
           <div className={s.boardThumbs}>
