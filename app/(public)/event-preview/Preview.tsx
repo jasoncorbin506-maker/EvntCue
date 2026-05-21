@@ -28,6 +28,13 @@ export function Preview({ data, isAuthed }: { data: PreviewData; isAuthed: boole
   const locale = useLocale();
   const formatUSD = useFormatUSD();
   const [emailOpen, setEmailOpen] = useState(false);
+  const [committing, startCommit] = useTransition();
+
+  const handleAddEvent = () => {
+    startCommit(async () => {
+      await commitEventForAuthedUserAction();
+    });
+  };
 
   const HORIZON_LABELS: Record<string, string> = Object.fromEntries(
     DATE_HORIZONS.map((h) => [
@@ -97,11 +104,14 @@ export function Preview({ data, isAuthed }: { data: PreviewData; isAuthed: boole
                 <a href="/orgnz" className={s.btnGhost}>
                   {t("goToDashboard")}
                 </a>
-                <form action={commitEventForAuthedUserAction}>
-                  <button type="submit" className={s.btnPrimary}>
-                    {t("addToDashboard")}
-                  </button>
-                </form>
+                <button
+                  type="button"
+                  className={s.btnPrimary}
+                  onClick={handleAddEvent}
+                  disabled={committing}
+                >
+                  {committing ? "…" : t("addToDashboard")}
+                </button>
               </>
             ) : (
               <>
