@@ -585,6 +585,197 @@ async function testCrossTenantMoodBoardIsolation() {
   }
 }
 
+/**
+ * Cross-tenant mood_board_pins isolation.
+ *
+ * Peer-policy audit per PARKING_LOT #60 follow-up. mbp_select has an
+ * inline EXISTS chain through mood_boards (and via mb_select clause 5,
+ * could reach mood_board_members pre-035 — that path now goes through
+ * the SECURITY DEFINER helper). Test verifies no recursion + no leak
+ * for cross-tenant pin access.
+ */
+async function testCrossTenantMoodBoardPinsIsolation() {
+  const orgnzA = await seedTestUser("orgnz");
+  const orgnzB = await seedTestUser("orgnz");
+
+  const { data: board } = await adminClient
+    .from("mood_boards")
+    .insert({
+      owner_id: orgnzA.userId,
+      tenant_id: orgnzA.tenantId,
+      title: `RLS pins test board ${TEST_RUN_ID}`,
+      visibility: "private",
+    })
+    .select("id")
+    .single();
+
+  const { data: pin, error: pinErr } = await adminClient
+    .from("mood_board_pins")
+    .insert({
+      board_id: board.id,
+      source: "upload",
+      url: "https://example.test/rls-test-pin.jpg",
+      added_by: orgnzA.userId,
+    })
+    .select("id")
+    .single();
+  if (pinErr) throw new Error(`pin seed failed: ${pinErr.message}`);
+
+  // Orgnz B queries mood_board_pins — should NOT see Orgnz A's pin.
+  const { data: bView, error: bErr } = await orgnzB.authedClient
+    .from("mood_board_pins")
+    .select("id")
+    .eq("id", pin.id);
+
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant mood_board_pins query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from orgnz B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B saw orgnz A's pin (${bView.length} rows)`);
+  }
+
+  // Positive control: Orgnz A CAN see their pin.
+  const { data: aView, error: aErr } = await orgnzA.authedClient
+    .from("mood_board_pins")
+    .select("id")
+    .eq("id", pin.id);
+  if (aErr) throw new Error(`orgnz A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`orgnz A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+/**
+ * Cross-tenant mood_board_comments isolation.
+ *
+ * Peer-policy audit per PARKING_LOT #60. mbc_select has the deepest
+ * nested EXISTS chain — queries mood_boards which queries mood_board_members.
+ * If any future change re-introduces the mb→mbm cycle, this is the test
+ * that would catch it first because mbc_select forces both levels.
+ */
+async function testCrossTenantMoodBoardCommentsIsolation() {
+  const orgnzA = await seedTestUser("orgnz");
+  const orgnzB = await seedTestUser("orgnz");
+
+  const { data: board } = await adminClient
+    .from("mood_boards")
+    .insert({
+      owner_id: orgnzA.userId,
+      tenant_id: orgnzA.tenantId,
+      title: `RLS comments test board ${TEST_RUN_ID}`,
+      visibility: "private",
+    })
+    .select("id")
+    .single();
+
+  const { data: comment, error: commentErr } = await adminClient
+    .from("mood_board_comments")
+    .insert({
+      board_id: board.id,
+      user_id: orgnzA.userId,
+      body: `RLS test comment ${TEST_RUN_ID}`,
+    })
+    .select("id")
+    .single();
+  if (commentErr) throw new Error(`comment seed failed: ${commentErr.message}`);
+
+  // Orgnz B queries mood_board_comments — should NOT see Orgnz A's comment.
+  const { data: bView, error: bErr } = await orgnzB.authedClient
+    .from("mood_board_comments")
+    .select("id")
+    .eq("id", comment.id);
+
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant mood_board_comments query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from orgnz B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B saw orgnz A's comment (${bView.length} rows)`);
+  }
+
+  // Positive control: Orgnz A CAN see their comment.
+  const { data: aView, error: aErr } = await orgnzA.authedClient
+    .from("mood_board_comments")
+    .select("id")
+    .eq("id", comment.id);
+  if (aErr) throw new Error(`orgnz A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`orgnz A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+/**
+ * Cross-tenant mood_board_vendor_briefs isolation.
+ *
+ * Peer-policy audit per PARKING_LOT #60. mbvb_select gates on
+ * vendor_tenant_id OR mood_boards ownership. An orgnz from a foreign
+ * tenant (neither the vendor target nor a board member) should see
+ * nothing.
+ */
+async function testCrossTenantMoodBoardVendorBriefsIsolation() {
+  const orgnzA = await seedTestUser("orgnz");
+  const venue = await seedTestUser("venue"); // the brief's vendor target
+  const orgnzB = await seedTestUser("orgnz"); // the unrelated foreign tenant
+
+  const { data: board } = await adminClient
+    .from("mood_boards")
+    .insert({
+      owner_id: orgnzA.userId,
+      tenant_id: orgnzA.tenantId,
+      title: `RLS briefs test board ${TEST_RUN_ID}`,
+      visibility: "private",
+    })
+    .select("id")
+    .single();
+
+  const { data: brief, error: briefErr } = await adminClient
+    .from("mood_board_vendor_briefs")
+    .insert({
+      board_id: board.id,
+      vendor_tenant_id: venue.tenantId,
+      vndr_category: "venue",
+      brief_text: `RLS test brief ${TEST_RUN_ID}`,
+    })
+    .select("id")
+    .single();
+  if (briefErr) throw new Error(`brief seed failed: ${briefErr.message}`);
+
+  // Orgnz B (unrelated tenant) queries vendor briefs — should NOT see it.
+  const { data: bView, error: bErr } = await orgnzB.authedClient
+    .from("mood_board_vendor_briefs")
+    .select("id")
+    .eq("id", brief.id);
+
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant mood_board_vendor_briefs query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from orgnz B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B saw vendor brief (${bView.length} rows)`);
+  }
+
+  // Positive control #1: Orgnz A (board owner) CAN see the brief.
+  const { data: aView, error: aErr } = await orgnzA.authedClient
+    .from("mood_board_vendor_briefs")
+    .select("id")
+    .eq("id", brief.id);
+  if (aErr) throw new Error(`orgnz A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`orgnz A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+
+  // Positive control #2: the vendor target CAN see the brief.
+  const { data: vView, error: vErr } = await venue.authedClient
+    .from("mood_board_vendor_briefs")
+    .select("id")
+    .eq("id", brief.id);
+  if (vErr) throw new Error(`vendor positive control failed: ${vErr.message}`);
+  if (!vView || vView.length !== 1) {
+    throw new Error(`vendor positive control: expected 1 row, got ${vView?.length ?? 0}`);
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
@@ -596,6 +787,9 @@ const TESTS = [
   { name: "Plnr accepted on event CAN read event (event_participants path)", fn: testPlnrParticipantCanReadEvent },
   { name: "Plnr NOT on event CANNOT read it (negative control)", fn: testPlnrNotParticipantCannotReadEvent },
   { name: "Cross-tenant mood_boards isolation (orgnz A vs orgnz B, private board)", fn: testCrossTenantMoodBoardIsolation },
+  { name: "Cross-tenant mood_board_pins isolation (orgnz A vs orgnz B)", fn: testCrossTenantMoodBoardPinsIsolation },
+  { name: "Cross-tenant mood_board_comments isolation (orgnz A vs orgnz B)", fn: testCrossTenantMoodBoardCommentsIsolation },
+  { name: "Cross-tenant mood_board_vendor_briefs isolation (orgnz B vs vendor target)", fn: testCrossTenantMoodBoardVendorBriefsIsolation },
 ];
 
 // -----------------------------------------------------------------------------
