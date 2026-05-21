@@ -39,7 +39,7 @@ export function RunOfShow() {
           <div className={styles.rosNowT}>{ROS_NOW.title}</div>
           <div className={styles.rosNowD}>{ROS_NOW.detail}</div>
         </div>
-        <div className={styles.rosNowTime}>
+        <div className={styles.rosNowTime} suppressHydrationWarning>
           {clock.time}
           <small>{clock.period}</small>
         </div>
