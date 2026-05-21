@@ -6,7 +6,11 @@ import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { postAuthSeed } from "@/lib/auth/post-auth-seed";
 
-async function buildCallbackUrl(intent: string | null, role: string | null): Promise<string> {
+async function buildCallbackUrl(
+  intent: string | null,
+  role: string | null,
+  next: string | null,
+): Promise<string> {
   const h = await headers();
   const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
   const proto =
@@ -14,6 +18,7 @@ async function buildCallbackUrl(intent: string | null, role: string | null): Pro
   const cb = new URL("/auth/callback", `${proto}://${host}`);
   if (intent) cb.searchParams.set("intent", intent);
   if (role) cb.searchParams.set("role", role);
+  if (next) cb.searchParams.set("next", next);
   return cb.toString();
 }
 
@@ -27,11 +32,22 @@ const validateEmail = (email: string): string | null => {
   return v;
 };
 
+// PARKING_LOT #58 — same-origin path guard for `next`. proxy.ts only
+// writes app paths, but a hand-crafted /login?next=//evil.com would
+// otherwise escape on submit. Mirror the guard in login/page.tsx.
+const safeNext = (n: string | null): string | null => {
+  if (!n) return null;
+  if (!n.startsWith("/")) return null;
+  if (n.startsWith("//")) return null;
+  return n;
+};
+
 export async function signUpAction(formData: FormData): Promise<AuthResult> {
   const email = validateEmail(String(formData.get("email") ?? ""));
   const password = String(formData.get("password") ?? "");
   const intent = (formData.get("intent") as string | null) || null;
   const role = (formData.get("role") as string | null) || null;
+  const next = safeNext((formData.get("next") as string | null) ?? null);
 
   if (!email) return { ok: false, error: "Enter a valid email." };
   if (password.length < 8) {
@@ -68,7 +84,7 @@ export async function signUpAction(formData: FormData): Promise<AuthResult> {
   }
 
   const supabase = await createClient();
-  const emailRedirectTo = await buildCallbackUrl(intent, role);
+  const emailRedirectTo = await buildCallbackUrl(intent, role, next);
   const { data, error } = await supabase.auth.signUp({
     email,
     password,
@@ -89,14 +105,14 @@ export async function signUpAction(formData: FormData): Promise<AuthResult> {
     };
   }
 
-  const redirectTo = await postAuthSeed({
+  const seedRedirect = await postAuthSeed({
     userId: data.user.id,
     email: data.user.email ?? email,
     intent,
     role,
   });
 
-  return { ok: true, redirectTo };
+  return { ok: true, redirectTo: next ?? seedRedirect };
 }
 
 export async function signInAction(formData: FormData): Promise<AuthResult> {
@@ -104,6 +120,7 @@ export async function signInAction(formData: FormData): Promise<AuthResult> {
   const password = String(formData.get("password") ?? "");
   const intent = (formData.get("intent") as string | null) || null;
   const role = (formData.get("role") as string | null) || null;
+  const next = safeNext((formData.get("next") as string | null) ?? null);
 
   if (!email) return { ok: false, error: "Enter a valid email." };
   if (!password) return { ok: false, error: "Enter your password." };
@@ -118,14 +135,14 @@ export async function signInAction(formData: FormData): Promise<AuthResult> {
     return { ok: false, error: "Email or password didn't match. Try again." };
   }
 
-  const redirectTo = await postAuthSeed({
+  const seedRedirect = await postAuthSeed({
     userId: data.user.id,
     email: data.user.email ?? email,
     intent,
     role,
   });
 
-  return { ok: true, redirectTo };
+  return { ok: true, redirectTo: next ?? seedRedirect };
 }
 
 /**

@@ -18,7 +18,17 @@ type SearchParams = {
   mode?: "signin" | "signup";
   intent?: string;
   role?: string;
+  next?: string;
 };
+
+// Same-origin path guard for `next` — must start with "/" and not "//"
+// (which would resolve to a foreign origin). Prevents open-redirect.
+function safeNext(next: string | null | undefined): string | null {
+  if (!next) return null;
+  if (!next.startsWith("/")) return null;
+  if (next.startsWith("//")) return null;
+  return next;
+}
 
 export default async function LoginPage(props: {
   searchParams: Promise<SearchParams>;
@@ -26,6 +36,7 @@ export default async function LoginPage(props: {
   const sp = await props.searchParams;
   const intent = sp.intent ?? null;
   const role = sp.role ?? null;
+  const next = safeNext(sp.next);
   // Default to signup when arriving from the ghost-event CTA — these users
   // are converting for the first time. Returning users override with ?mode=signin.
   const mode: "signin" | "signup" =
@@ -40,7 +51,7 @@ export default async function LoginPage(props: {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) {
-    redirect(intent === "mood_board" ? "/orgnz/mood-board" : "/orgnz");
+    redirect(next ?? (intent === "mood_board" ? "/orgnz/mood-board" : "/orgnz"));
   }
 
   const t = await getTranslations("login");
@@ -82,12 +93,12 @@ export default async function LoginPage(props: {
             and the user clicks "Sign in" to back out, the confirm screen
             keeps rendering even though mode === "signin".
           */}
-          <LoginForm key={mode} mode={mode} intent={intent} role={role} />
+          <LoginForm key={mode} mode={mode} intent={intent} role={role} next={next} />
 
           <p className={styles.swap}>
             {swapPrompt}{" "}
             <Link
-              href={`/login?mode=${otherMode}${intent ? `&intent=${intent}` : ""}${role ? `&role=${role}` : ""}`}
+              href={`/login?mode=${otherMode}${intent ? `&intent=${intent}` : ""}${role ? `&role=${role}` : ""}${next ? `&next=${encodeURIComponent(next)}` : ""}`}
               className={styles.swapLink}
             >
               {otherLabel}

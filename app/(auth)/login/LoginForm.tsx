@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { useActionState } from "react";
 import { useTranslations } from "next-intl";
 import { submitAuth, type AuthResult } from "./_actions/auth";
@@ -9,11 +10,12 @@ type Props = {
   mode: "signin" | "signup";
   intent: string | null;
   role: string | null;
+  next: string | null;
 };
 
 const initial: AuthResult | null = null;
 
-export function LoginForm({ mode, intent, role }: Props) {
+export function LoginForm({ mode, intent, role, next }: Props) {
   const t = useTranslations("login");
   const [state, formAction, pending] = useActionState<AuthResult | null, FormData>(
     async (_prev, formData) => submitAuth(formData),
@@ -53,6 +55,7 @@ export function LoginForm({ mode, intent, role }: Props) {
       <input type="hidden" name="mode" value={mode} />
       {intent ? <input type="hidden" name="intent" value={intent} /> : null}
       {role ? <input type="hidden" name="role" value={role} /> : null}
+      {next ? <input type="hidden" name="next" value={next} /> : null}
 
       <label className={styles.field}>
         <span className={styles.label}>{t("emailLabel")}</span>
@@ -77,6 +80,11 @@ export function LoginForm({ mode, intent, role }: Props) {
           className={styles.input}
           placeholder={mode === "signup" ? t("passwordPlaceholderSignup") : t("passwordPlaceholderSignin")}
         />
+        {mode === "signin" ? (
+          <Link href="/login/recover" className={styles.forgotLink}>
+            {t("forgotPassword")}
+          </Link>
+        ) : null}
       </label>
 
       {error ? (

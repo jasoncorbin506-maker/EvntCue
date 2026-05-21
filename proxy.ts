@@ -50,7 +50,12 @@ export async function proxy(request: NextRequest) {
   if (requiresRole) {
     if (!user) {
       const redirect = request.nextUrl.clone();
+      const original = request.nextUrl.pathname + request.nextUrl.search;
       redirect.pathname = "/login";
+      redirect.search = "";
+      // PARKING_LOT #58 — preserve deep-link destination through signin.
+      // signInAction reads `next` and routes there after postAuthSeed.
+      redirect.searchParams.set("next", original);
       return NextResponse.redirect(redirect);
     }
 
@@ -65,6 +70,7 @@ export async function proxy(request: NextRequest) {
     if (!allowed) {
       const redirect = request.nextUrl.clone();
       redirect.pathname = "/login";
+      redirect.search = "";
       return NextResponse.redirect(redirect);
     }
   }

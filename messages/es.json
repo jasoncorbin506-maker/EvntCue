@@ -172,12 +172,36 @@
     "passwordLabel": "Contraseña",
     "passwordPlaceholderSignup": "8+ caracteres",
     "passwordPlaceholderSignin": "Tu contraseña",
+    "forgotPassword": "¿Olvidaste tu contraseña?",
     "swapToSignin": "¿Ya tienes cuenta?",
     "swapToSignup": "¿Nuevo en EvntCue?",
     "confirmTitleEm": "Revisa tu correo.",
     "confirmHint": "Abre el enlace en este dispositivo para que podamos terminar de conectar tu evento al espacio de trabajo. El enlace caduca en una hora.",
     "footTerms": "Al continuar aceptas los términos de EvntCue.",
     "footBack": "Volver al inicio"
+  },
+  "recover": {
+    "metaTitle": "Restablecer contraseña · EvntCue",
+    "headline": "Restablece tu contraseña.",
+    "sub": "Escribe tu correo y te enviamos un enlace para crear una nueva.",
+    "emailLabel": "Correo",
+    "emailPlaceholder": "tu@correo.com",
+    "sendLink": "Enviar enlace",
+    "sentTitleEm": "Revisa tu correo.",
+    "sentBody": "Si ese correo está registrado, ya va en camino un enlace para restablecer tu contraseña. Ábrelo en este dispositivo.",
+    "sentHint": "El enlace caduca en una hora. Si no llega en unos minutos, revisa la carpeta de spam.",
+    "backToSignIn": "Volver a iniciar sesión",
+    "footBack": "Volver al inicio"
+  },
+  "recoverSet": {
+    "metaTitle": "Nueva contraseña · EvntCue",
+    "headline": "Crea una nueva contraseña.",
+    "sub": "Elige algo que recuerdes. Mínimo ocho caracteres.",
+    "passwordLabel": "Nueva contraseña",
+    "passwordPlaceholder": "8+ caracteres",
+    "confirmLabel": "Confirma la contraseña",
+    "confirmPlaceholder": "Escríbela otra vez",
+    "submit": "Guardar nueva contraseña"
   },
   "dashboard": {
     "heroEyebrow": "Tu celebración",

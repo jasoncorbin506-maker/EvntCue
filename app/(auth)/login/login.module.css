@@ -118,6 +118,20 @@
   background: var(--rl);
 }
 
+.forgotLink {
+  align-self: flex-end;
+  margin-top: 2px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt2);
+  text-decoration: none;
+  transition: color 140ms ease;
+}
+
+.forgotLink:hover {
+  color: var(--rt);
+}
+
 .notice {
   border-radius: 8px;
   padding: 10px 12px;

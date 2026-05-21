@@ -16,6 +16,10 @@ export async function GET(request: NextRequest) {
   const code = url.searchParams.get("code");
   const intent = url.searchParams.get("intent");
   const role = url.searchParams.get("role");
+  const nextRaw = url.searchParams.get("next");
+  // Same-origin path guard — PARKING_LOT #58. Mirrors login/page.tsx + auth.ts.
+  const next =
+    nextRaw && nextRaw.startsWith("/") && !nextRaw.startsWith("//") ? nextRaw : null;
   const errorDesc = url.searchParams.get("error_description");
 
   if (errorDesc) {
@@ -39,12 +43,12 @@ export async function GET(request: NextRequest) {
     return NextResponse.redirect(back);
   }
 
-  const target = await postAuthSeed({
+  const seedTarget = await postAuthSeed({
     userId: data.user.id,
     email: data.user.email ?? "",
     intent,
     role,
   });
 
-  return NextResponse.redirect(new URL(target, url));
+  return NextResponse.redirect(new URL(next ?? seedTarget, url));
 }
