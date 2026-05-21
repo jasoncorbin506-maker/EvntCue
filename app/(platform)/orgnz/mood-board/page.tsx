@@ -1,41 +1,47 @@
-import Link from "next/link";
 import { redirect } from "next/navigation";
-import { loadOrgnzContext } from "../_lib/load-context";
-import styles from "../orgnz.module.css";
+import { getTranslations } from "next-intl/server";
+import { loadOrCreateBoard } from "./_lib/load-board";
+import { MoodBoardCanvas } from "./_components/MoodBoardCanvas";
 
 export const metadata = { title: "Mood Board · EvntCue" };
 
+/**
+ * Orgnz mood board surface — Chunk A (foundation: corkboard canvas + image
+ * upload + drag-position persistence). Chunks B–E add chip palette taxonomy,
+ * Apify Pinterest import, Flux 2 Pro render pipeline, and Web Share API.
+ *
+ * Auth-gated by middleware (proxy.ts). If the loader returns null the user
+ * has no orgnz tenant — bounce back through login to seed one.
+ */
 export default async function MoodBoardPage() {
-  const ctx = await loadOrgnzContext();
-  if (!ctx) redirect("/login?role=orgnz&intent=mood_board");
+  const board = await loadOrCreateBoard();
+  if (!board) {
+    redirect("/login?role=orgnz&intent=mood_board");
+  }
 
-  const hasEvent = ctx.event != null;
+  const t = await getTranslations("dashboard.moodBoard");
 
   return (
-    <div className={styles.pageBody}>
-      <h1 className={styles.pageBodyTitle}>
-        <em>
-          {hasEvent
-            ? "Your visual brief — coming up next."
-            : "Let&rsquo;s pick up where you left off."}
-        </em>
-      </h1>
-      <p className={styles.pageBodyText}>
-        {hasEvent
-          ? "The Curator (URL paste, file upload, color-thief palette extraction) is the next CC chunk after the dashboard sheets land. Your event is already saved — when this page goes live, your draft will be here waiting."
-          : "Looks like you confirmed your email on a different device than you signed up from, so your budget didn’t carry over. Re-run the calculator and we’ll attach it to your account."}
-      </p>
-      <p>
-        {hasEvent ? (
-          <Link href="/orgnz" replace className={styles.pageBodyLink}>
-            Back to dashboard →
-          </Link>
-        ) : (
-          <Link href="/budget-calculator" className={styles.pageBodyLink}>
-            Open the Budget Calculator →
-          </Link>
-        )}
-      </p>
-    </div>
+    <MoodBoardCanvas
+      boardId={board.board_id}
+      initialPins={board.pins}
+      initialCanvasState={board.canvas_state}
+      labels={{
+        title: t("title"),
+        emptyHint: t("emptyHint"),
+        uploadButton: t("uploadButton"),
+        renderButton: t("renderButton"),
+        renderDisabledTooltip: t("renderDisabledTooltip"),
+        bringItIn: t("bringItIn"),
+        bringItInNote: t("bringItInNote"),
+        palette: t("palette"),
+        paletteStub: t("paletteStub"),
+        urlPaste: t("urlPaste"),
+        urlPasteDisabled: t("urlPasteDisabled"),
+        tidyBoard: t("tidyBoard"),
+        boardName: t("boardName"),
+        privacyBadge: t("privacyBadge"),
+      }}
+    />
   );
 }

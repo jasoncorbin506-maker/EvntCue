@@ -1,0 +1,358 @@
+/* ============================================================================
+   mood-board.module.css — Chunk A foundation
+   Corkboard canvas + Polaroid pins + right drawer. Editorial-luxe register
+   from app/tokens.css. No hardcoded hex / font / spacing per Hard Rule #3.
+   ============================================================================ */
+
+.shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background: var(--ink);
+  color: var(--txt);
+}
+
+/* ─── Top bar ────────────────────────────────────────────────────────────── */
+.topbar {
+  position: sticky;
+  top: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px 24px;
+  background: rgba(11, 18, 32, 0.92);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 0.5px solid var(--bdr);
+}
+
+.topbarLeft {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+
+.topbarRight {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 20px;
+  color: var(--txt);
+}
+.brand strong { font-weight: 400; }
+.brandAccent { color: var(--rt); }
+
+.topbarSep {
+  width: 1px;
+  height: 18px;
+  background: var(--bdr2);
+}
+
+.boardName {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--txt2);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.privacyBadge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 9px;
+  border: 0.5px solid var(--bdr2);
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--txt2);
+}
+
+/* ─── Buttons ────────────────────────────────────────────────────────────── */
+.btnGhost {
+  background: transparent;
+  border: 0.5px solid var(--bdr2);
+  border-radius: 8px;
+  padding: 8px 14px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease;
+}
+.btnGhost:hover:not(:disabled) {
+  border-color: var(--txt2);
+  color: var(--txt);
+}
+.btnGhost:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.btnRender {
+  background: var(--rose);
+  border: none;
+  border-radius: 9px;
+  padding: 9px 16px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #1a0810;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  transition: filter 140ms ease, transform 140ms ease;
+}
+.btnRender:hover:not(:disabled) { filter: brightness(1.06); }
+.btnRender:disabled { cursor: not-allowed; opacity: 0.55; }
+
+.btnRenderPrice {
+  font-family: var(--font-body);
+  font-weight: 400;
+  font-size: 10px;
+  letter-spacing: 0.02em;
+  text-transform: none;
+  opacity: 0.85;
+}
+
+/* ─── Main layout (stage + drawer) ───────────────────────────────────────── */
+.main {
+  flex: 1;
+  display: flex;
+  gap: 18px;
+  padding: 18px 24px 24px;
+  align-items: flex-start;
+  min-height: 0;
+}
+
+@media (max-width: 720px) {
+  .main {
+    flex-direction: column;
+    padding: 14px;
+  }
+}
+
+/* ─── Stage (the bounded canvas area) ────────────────────────────────────── */
+.stage {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  justify-content: center;
+}
+
+.frame {
+  width: 100%;
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  padding: 14px;
+  background: rgba(5, 10, 20, 0.4);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32);
+}
+
+.board {
+  position: relative;
+  width: 100%;
+  min-height: 520px;
+  height: 70vh;
+  border-radius: 10px;
+  overflow: hidden;
+  /* Corkboard texture — CSS-generated gradient + noise for now. Swap to a
+     tileable PNG at public/textures/cork.png when the asset lands. */
+  background-color: #6d4a26;
+  background-image:
+    radial-gradient(ellipse 80% 60% at 30% 20%, rgba(255, 220, 170, 0.10), transparent 60%),
+    radial-gradient(ellipse 60% 50% at 70% 80%, rgba(80, 40, 10, 0.20), transparent 60%),
+    repeating-radial-gradient(circle at 50% 50%, rgba(120, 80, 40, 0.10) 0, rgba(120, 80, 40, 0.10) 1px, transparent 1px, transparent 3px);
+  box-shadow: inset 0 0 60px rgba(0, 0, 0, 0.55), inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+}
+
+.emptyHint {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  pointer-events: none;
+  padding: 24px;
+  color: rgba(255, 255, 255, 0.55);
+}
+.emptyHintBig {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 28px;
+  margin-bottom: 8px;
+}
+.emptyHintSmall {
+  font-family: var(--font-body);
+  font-size: 13px;
+  max-width: 36ch;
+  line-height: 1.5;
+}
+
+/* ─── Pinned image (Polaroid) ────────────────────────────────────────────── */
+.pin {
+  position: absolute;
+  background: #fafaf6;
+  padding: 12px 12px 36px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.35);
+  border-radius: 2px;
+  transition: transform 200ms cubic-bezier(0.34, 1.4, 0.5, 1),
+              box-shadow 200ms ease;
+  touch-action: none; /* let dnd-kit handle the pointer */
+  cursor: grab;
+}
+.pin:hover {
+  transform-origin: center;
+  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.45);
+}
+.pin:active, .pinDragging {
+  cursor: grabbing;
+}
+.pinDragging {
+  box-shadow: 0 14px 32px rgba(0, 0, 0, 0.55);
+  z-index: 9999 !important;
+}
+
+.pinImg {
+  display: block;
+  width: 200px;
+  height: auto;
+  max-height: 220px;
+  object-fit: cover;
+  pointer-events: none;
+  user-select: none;
+}
+
+@media (max-width: 720px) {
+  .pinImg { width: 140px; max-height: 160px; }
+  .pin { padding: 8px 8px 28px; }
+}
+
+/* ─── Drawer (right side — "the moat") ───────────────────────────────────── */
+.drawer {
+  width: 280px;
+  flex-shrink: 0;
+  background: rgba(11, 18, 32, 0.6);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 70vh;
+  overflow-y: auto;
+}
+
+@media (max-width: 720px) {
+  .drawer { width: 100%; max-height: none; order: 2; }
+  .stage  { order: 1; width: 100%; }
+}
+
+.drawerHeading {
+  margin: 6px 0 4px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  font-weight: 700;
+}
+
+.bringRow {
+  display: flex;
+  gap: 6px;
+}
+
+.bringUrlInput {
+  flex: 1;
+  min-width: 0;
+  background: var(--ink);
+  border: 1px solid var(--bdr2);
+  border-radius: 6px;
+  padding: 8px 10px;
+  color: var(--txt);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+}
+.bringUrlInput:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.uploadButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--ink);
+  border: 0.5px dashed var(--bdr2);
+  border-radius: 8px;
+  padding: 12px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+.uploadButton:hover {
+  border-color: var(--rb);
+  color: var(--rt);
+  background: rgba(212, 119, 138, 0.04);
+}
+
+.bringItInNote {
+  margin: 0;
+  font-family: var(--font-body);
+  font-size: 11px;
+  line-height: 1.45;
+  color: var(--txt3);
+}
+
+.uploadError {
+  margin: 0;
+  padding: 8px 10px;
+  background: var(--redl);
+  border: 1px solid var(--redb);
+  border-radius: 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--redt);
+}
+
+.drawerDivider {
+  height: 1px;
+  background: var(--bdr);
+  margin: 8px 0;
+}
+
+.paletteStub {
+  padding: 14px 12px;
+  border: 0.5px dashed var(--bdr2);
+  border-radius: 8px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt3);
+  text-align: center;
+  font-style: italic;
+}

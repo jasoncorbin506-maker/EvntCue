@@ -1428,6 +1428,105 @@ async function testNonParticipantCannotReadGuestAccommodations() {
   }
 }
 
+/**
+ * Mood Board Chunk A write-path test — authed-client INSERT/UPDATE/cross-tenant denial.
+ *
+ * Test #7 (testCrossTenantMoodBoardIsolation) seeds boards via admin client
+ * and tests SELECT isolation. This test exercises the WRITE path Chunk A
+ * introduces — the user's authed client creating their own mood_board via
+ * the mb_insert policy, updating it via mb_update, and being denied on
+ * cross-tenant writes.
+ *
+ * Policies under test (from 005_mood_boards.sql):
+ *   mb_insert: WITH CHECK (tenant_id IN current_user_tenants() AND owner_id = auth.uid())
+ *   mb_update: USING (is_admin() OR owner_id = auth.uid() OR member role IN ('owner','editor'))
+ *
+ * Assertions:
+ *   1. Orgnz A's authed client CAN insert a mood_board on their own tenant.
+ *   2. Orgnz A's authed client CAN update their own board.
+ *   3. Orgnz B's authed client CANNOT insert a board with owner_id pointing to A
+ *      (mb_insert WITH CHECK fails on owner_id != auth.uid()).
+ *   4. Orgnz B's authed client CANNOT update Orgnz A's board (mb_update USING fails).
+ */
+async function testMoodBoardWritePathChunkA() {
+  const orgnzA = await seedTestUser("orgnz");
+  const orgnzB = await seedTestUser("orgnz");
+
+  // 1. Orgnz A creates their own board via authed client.
+  const { data: aBoard, error: aInsertErr } = await orgnzA.authedClient
+    .from("mood_boards")
+    .insert({
+      owner_id: orgnzA.userId,
+      tenant_id: orgnzA.tenantId,
+      title: `RLS Chunk A write test ${TEST_RUN_ID}`,
+      visibility: "private",
+    })
+    .select("id")
+    .single();
+  if (aInsertErr) {
+    throw new Error(`orgnz A self-insert failed (mb_insert should grant): ${aInsertErr.message}`);
+  }
+  if (!aBoard?.id) throw new Error(`orgnz A insert returned no id`);
+
+  // 2. Orgnz A updates their own board.
+  const { error: aUpdateErr } = await orgnzA.authedClient
+    .from("mood_boards")
+    .update({ title: `RLS Chunk A renamed ${TEST_RUN_ID}` })
+    .eq("id", aBoard.id);
+  if (aUpdateErr) {
+    throw new Error(`orgnz A self-update failed (mb_update should grant): ${aUpdateErr.message}`);
+  }
+
+  // 3. Orgnz B cannot insert with owner_id pointing to A's user.
+  //    mb_insert WITH CHECK requires owner_id = auth.uid() — should fail.
+  const { data: bSpoofInsert, error: bSpoofErr } = await orgnzB.authedClient
+    .from("mood_boards")
+    .insert({
+      owner_id: orgnzA.userId,         // attempting to spoof owner
+      tenant_id: orgnzB.tenantId,
+      title: `RLS spoof attempt ${TEST_RUN_ID}`,
+      visibility: "private",
+    })
+    .select("id");
+
+  if (bSpoofErr && bSpoofErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant mb_insert: ${bSpoofErr.message}`);
+  }
+  // Expect either an RLS error (preferred) OR a silent zero-rows return.
+  // Postgres RLS WITH CHECK failures surface as PostgREST error code 42501
+  // ("new row violates row-level security policy") — that's success here.
+  if (!bSpoofErr && bSpoofInsert && bSpoofInsert.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B spoof-insert succeeded with owner_id=A`);
+  }
+
+  // 4. Orgnz B cannot update Orgnz A's board.
+  //    mb_update USING denies (B is not admin, not owner, not a member).
+  //    Update with eq() filter returns zero rows on RLS denial (no error).
+  const { data: bUpdate, error: bUpdateErr } = await orgnzB.authedClient
+    .from("mood_boards")
+    .update({ title: `RLS HIJACK ATTEMPT ${TEST_RUN_ID}` })
+    .eq("id", aBoard.id)
+    .select("id");
+
+  if (bUpdateErr && bUpdateErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant mb_update: ${bUpdateErr.message}`);
+  }
+  if (bUpdate && bUpdate.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B updated orgnz A's board (${bUpdate.length} rows affected)`);
+  }
+
+  // 5. Sanity: re-read the board as A and confirm the title wasn't hijacked.
+  const { data: aReread, error: aRereadErr } = await orgnzA.authedClient
+    .from("mood_boards")
+    .select("title")
+    .eq("id", aBoard.id)
+    .single();
+  if (aRereadErr) throw new Error(`orgnz A re-read failed: ${aRereadErr.message}`);
+  if (!aReread || aReread.title.includes("HIJACK")) {
+    throw new Error(`RLS LEAK: B's hijack attempt actually mutated A's board title`);
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
@@ -1452,6 +1551,7 @@ const TESTS = [
   { name: "Cross-plnr plnr_clients isolation (Bucket-3 PII)", fn: testCrossPlnrClientsIsolation },
   { name: "Cross-tenant commission_flows isolation (orgnz A vs orgnz B; money table)", fn: testCrossTenantCommissionFlowsIsolation },
   { name: "Non-participant cannot read guest_accommodations (Bucket-3 PII)", fn: testNonParticipantCannotReadGuestAccommodations },
+  { name: "Mood Board Chunk A write path — authed INSERT/UPDATE + cross-tenant denial", fn: testMoodBoardWritePathChunkA },
 ];
 
 // -----------------------------------------------------------------------------

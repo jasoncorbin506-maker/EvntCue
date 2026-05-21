@@ -208,6 +208,22 @@
     "submit": "Save new password"
   },
   "dashboard": {
+    "moodBoard": {
+      "title": "Your board",
+      "emptyHint": "Drag pieces around. Upload a photo from the right. Nothing leaves this board until you say so.",
+      "uploadButton": "Upload image",
+      "renderButton": "See your event in frames",
+      "renderDisabledTooltip": "Render lands in a future chunk.",
+      "bringItIn": "Bring it in",
+      "bringItInNote": "Upload a JPG, PNG, WEBP, or HEIC up to 10 MB. Whatever you bring in is re-hosted privately to your board — never linked back out.",
+      "palette": "The palette",
+      "paletteStub": "Chip palette lands in the next chunk.",
+      "urlPaste": "Paste an image link…",
+      "urlPasteDisabled": "Image-link paste lands in a future chunk.",
+      "tidyBoard": "Tidy board",
+      "boardName": "Your mood board",
+      "privacyBadge": "Private"
+    },
     "heroEyebrow": "Your celebration",
     "chromeEventDefault": "Your celebration",
     "chromeDaysToday": "today",

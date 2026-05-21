@@ -208,6 +208,22 @@
     "submit": "Guardar nueva contraseña"
   },
   "dashboard": {
+    "moodBoard": {
+      "title": "Tu tablero",
+      "emptyHint": "Mueve las piezas. Sube una foto desde la derecha. Nada sale de este tablero hasta que tú decidas.",
+      "uploadButton": "Subir imagen",
+      "renderButton": "Mira tu evento en cuadros",
+      "renderDisabledTooltip": "El render llega en un próximo bloque.",
+      "bringItIn": "Tráelo aquí",
+      "bringItInNote": "Sube un JPG, PNG, WEBP o HEIC de hasta 10 MB. Lo que subes se aloja en privado en tu tablero — nunca con enlace de regreso.",
+      "palette": "La paleta",
+      "paletteStub": "La paleta de chips llega en el siguiente bloque.",
+      "urlPaste": "Pega un enlace de imagen…",
+      "urlPasteDisabled": "Pegar enlaces llega en un próximo bloque.",
+      "tidyBoard": "Ordenar tablero",
+      "boardName": "Tu mood board",
+      "privacyBadge": "Privado"
+    },
     "heroEyebrow": "Tu celebración",
     "chromeEventDefault": "Tu celebración",
     "chromeDaysToday": "hoy",
