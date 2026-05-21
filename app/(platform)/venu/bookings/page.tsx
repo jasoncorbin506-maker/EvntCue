@@ -1,28 +1,27 @@
 import { redirect } from "next/navigation";
 import { Chrome } from "../_components/Chrome";
 import { BookingRow } from "../_components/BookingRow";
-import { DEMO_BOOKINGS, groupBookings } from "../_lib/demo-data";
 import { getCurrentVenue } from "@/lib/venu/current-venue";
+import { getVenueBookings, groupVenuBookings } from "@/lib/venu/bookings";
 import s from "../venu.module.css";
 
 /**
  * Venu Bookings tab — Today / This week / Rest of month vertical scroll
  * groups per Venu_Locked_2026-05-13.md row 3. No calendar grid on mobile.
  *
- * Empty groups render their header + a one-line empty hint; non-empty groups
- * render the BookingRow list. Tapping any row drills into the event detail
- * view at /venu/bookings/[event_id] per the spine principle.
- *
- * Chunk B uses stub demo data. Real reads against bookings + events land in
- * a later chunk; the groupBookings() helper accepts the same shape.
+ * Wire-DB: reads `bookings` joined to `events` filtered by current venue's
+ * tenant (RLS-scoped). Empty groups render their header + a one-line empty
+ * hint; non-empty groups render the BookingRow list. Tapping any row drills
+ * into `/venu/bookings/[event_id]` per the spine principle.
  */
 export default async function VenuBookings() {
   const venue = await getCurrentVenue();
   if (!venue) redirect("/venues");
 
-  // Use a stable "today" so the grouping is deterministic in the eyeball.
-  const today = new Date(2026, 4, 17); // 2026-05-17, matches Hartwell wedding
-  const groups = groupBookings(DEMO_BOOKINGS, today);
+  // For v1, spaceLabel falls back to the venue display name. Per-space
+  // granularity (the open Venu-lock item #45) lands when venue_spaces wires.
+  const bookings = await getVenueBookings(venue.tenantId, venue.displayName);
+  const groups = groupVenuBookings(bookings, new Date());
 
   return (
     <>
@@ -37,7 +36,10 @@ export default async function VenuBookings() {
           </div>
           {group.rows.length === 0 ? (
             <div className={s.emptyStateInline}>
-              {group.key === "today" ? "Nothing scheduled today." : "Nothing this week."}
+              {group.key === "today" ? "Nothing scheduled today."
+                : group.key === "thisWeek" ? "Nothing this week."
+                : group.key === "restOfMonth" ? "Nothing else this month."
+                : "No bookings beyond this month yet."}
             </div>
           ) : (
             <div className={s.bookingList}>

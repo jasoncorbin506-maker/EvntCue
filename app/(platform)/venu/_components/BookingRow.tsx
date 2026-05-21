@@ -1,9 +1,7 @@
 import Link from "next/link";
-import {
-  type DemoBooking,
-  formatEventDate,
-  formatUSDCents,
-} from "../_lib/demo-data";
+import { formatEventDate, formatUSDCents } from "../_lib/demo-data";
+import type { VenuBooking } from "@/lib/venu/bookings";
+import { bookingStatusLabel, bookingStatusTone } from "@/lib/labels/booking-status";
 import s from "../venu.module.css";
 
 /**
@@ -12,19 +10,20 @@ import s from "../venu.module.css";
  * principle (every event_id-scoped surface lives inside that one view).
  *
  * Visual: status pill (left) + event title + meta line (time · space · headcount)
- * + net revenue on the right. Mockup reference: shares the visual language
- * of the event-action row from Screen 2.
+ * + net revenue on the right. Status label + tone route through
+ * `lib/labels/booking-status.ts` per Lock 15.
  */
-export function BookingRow({ booking }: { booking: DemoBooking }) {
-  const statusCls =
-    booking.status === "confirmed" ? s.bookingPillConfirmed :
-    booking.status === "tentative" ? s.bookingPillTentative :
+export function BookingRow({ booking }: { booking: VenuBooking }) {
+  const tone = bookingStatusTone(booking.status);
+  const pillCls =
+    tone === "confirmed" ? s.bookingPillConfirmed :
+    tone === "tentative" ? s.bookingPillTentative :
     s.bookingPillCompleted;
 
   return (
     <Link href={`/venu/bookings/${booking.eventId}`} className={s.bookingRow}>
-      <div className={`${s.bookingPill} ${statusCls}`}>
-        {booking.status === "tentative" ? "Tentative" : booking.status === "completed" ? "Done" : "Confirmed"}
+      <div className={`${s.bookingPill} ${pillCls}`}>
+        {bookingStatusLabel(booking.status)}
       </div>
       <div className={s.bookingBody}>
         <div className={s.bookingName}>{booking.eventName}</div>
