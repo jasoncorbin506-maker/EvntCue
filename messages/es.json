@@ -14,7 +14,9 @@
     "vndrName": "Vndr",
     "vndrPitch": "Sé uno de los más contratados de DFW.",
     "venuName": "Venu",
-    "venuPitch": "Date a conocer entre quienes están reservando."
+    "venuPitch": "Date a conocer entre quienes están reservando.",
+    "signInPrompt": "¿Ya tienes cuenta?",
+    "signInLink": "Inicia sesión"
   },
   "comingSoon": {
     "vndrTitle": "Vndr",

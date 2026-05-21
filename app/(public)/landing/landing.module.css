@@ -239,6 +239,33 @@
 .cardVndr:hover  .arrow { color: var(--coral); }
 .cardVenu:hover  .arrow { color: var(--blue); }
 
+.signInRow {
+  text-align: center;
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--txt2);
+  margin-top: 20px;
+  letter-spacing: 0;
+}
+
+.signInPrompt {
+  color: var(--txt3);
+  font-style: italic;
+}
+
+.signInLink {
+  color: var(--rose);
+  text-decoration: none;
+  font-style: italic;
+  transition: opacity 160ms;
+}
+
+.signInLink:hover {
+  opacity: 0.75;
+  text-decoration: underline;
+}
+
 .foot {
   text-align: center;
   font-family: var(--font-ui);

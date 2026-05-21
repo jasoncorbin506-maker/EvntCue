@@ -14,7 +14,9 @@
     "vndrName": "Vndr",
     "vndrPitch": "Be one of DFW’s most-booked.",
     "venuName": "Venu",
-    "venuPitch": "Get discovered by who’s booking."
+    "venuPitch": "Get discovered by who’s booking.",
+    "signInPrompt": "Already have an account?",
+    "signInLink": "Sign in"
   },
   "comingSoon": {
     "vndrTitle": "Vndr",

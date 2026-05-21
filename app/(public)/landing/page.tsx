@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { getTranslations } from "next-intl/server";
 import styles from "./landing.module.css";
 import { RoleStack } from "./RoleStack";
@@ -55,6 +56,13 @@ export default async function LandingPage() {
           <p className={styles.sub}>{t("sub")}</p>
 
           <RoleStack />
+
+          <div className={styles.signInRow}>
+            <span className={styles.signInPrompt}>{t("signInPrompt")}</span>{" "}
+            <Link href="/login" className={styles.signInLink}>
+              {t("signInLink")} →
+            </Link>
+          </div>
 
           <div className={styles.foot}>{t("foot")}</div>
         </div>

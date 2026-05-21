@@ -131,13 +131,30 @@ export async function postAuthSeed(args: {
   //        (migration 027); look it up by email here.
   //
   //    If cookies present → cookie path wins (most recent). If not, try DB.
-  //    Never double-seed: setting converted_user_id on the LCS row is the
-  //    natural deduplication — postAuthSeed only runs at confirm/signin time.
+  //    Never double-seed: PARKING_LOT #56 (locked 2026-05-21) — gate
+  //    on `tenant has no existing events`. Catches both stale-cookie
+  //    re-signin AND "cleared cookies + reran calc + signed in" cases.
+  //    The LCS row's converted_user_id is the second-line defense for
+  //    the cross-device DB path.
   const c = await cookies();
   const sessionToken = c.get("evntcue_capture_session")?.value;
   const stateRaw = c.get("evntcue_calc_state")?.value;
 
-  if (sessionToken && stateRaw) {
+  const { data: existingEvents } = await admin
+    .from("events")
+    .select("id")
+    .eq("orgnz_tenant_id", tenantId)
+    .limit(1);
+  const hasExistingEvents = (existingEvents?.length ?? 0) > 0;
+
+  if (hasExistingEvents) {
+    // Returning signin with leftover capture cookies, or user reran the
+    // calculator then signed back in. Either way, they already have at
+    // least one event on this tenant — don't seed another. Clear cookies
+    // so the next signin doesn't re-hit this branch.
+    if (sessionToken) c.delete("evntcue_capture_session");
+    if (stateRaw) c.delete("evntcue_calc_state");
+  } else if (sessionToken && stateRaw) {
     let state: CalcCookieState | null = null;
     try {
       state = JSON.parse(stateRaw) as CalcCookieState;
