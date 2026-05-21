@@ -1,44 +1,91 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Chrome, LivePill } from "../_components/Chrome";
 import { commissionFlowLabel } from "@/lib/labels/commission-flows";
 import { formatUSDCents } from "../_lib/demo-data";
 import { getCurrentVenue } from "@/lib/venu/current-venue";
+import { getVenueMoney, isValidPeriod, type MoneyPeriod } from "@/lib/venu/money";
 import s from "../venu.module.css";
 
 /**
- * Venu Money tab — chunk C visual port.
+ * Venu Money tab — wire-DB.
  *
- * Per Venu_Locked_2026-05-13.md row 5: hero take-home number, segmented
- * period control, breakdown, Pro hint at bottom.
+ * Period segment is URL-param-driven (`?period=this-month|ytd|all-time`) so
+ * segments are real links — deep-linkable, refresh-safe, no client state.
+ * Default is "This month."
  *
- * Lock 14b register fix applied: "Take-home" replaced with "Net revenue"
- * throughout. Carries the terminology shift forward from chunk A's tile
- * copy fix. Numbers are stub for chunk C; real reads aggregate from
- * `bookings` + `commission_flows` in a later chunk.
+ * "Trends" segment renders disabled (charts feature, post-Phase 4).
  *
- * Source mockup: Screen 3 (lines ~729–823).
- *
- * Period segments are visual-only for chunk C (no filter wiring) — "This
- * month" stays active. Real period switching is post-DB-wire.
+ * Breakdown aggregates from `bookings` columns directly. Per-flow detail
+ * via `commission_flows` lands when those rows populate (Phase 4 Stripe).
  */
 
-// Stub breakdown rows. Real reads sum from commission_flows + bookings.
-const BREAKDOWN_ROWS: Array<{ name: string; cents: number; muted?: boolean; minus?: boolean }> = [
-  { name: commissionFlowLabel.venue_in_house, cents: 1_840_000 },
-  { name: `${commissionFlowLabel.venue_fb_surcharge} captured`, cents: 792_000 },
-  { name: `${commissionFlowLabel.venue_kickback}s received`, cents: 126_000 },
-  { name: commissionFlowLabel.platform_fee, cents: -68_000, muted: true, minus: true },
-  { name: `${commissionFlowLabel.venue_referral} paid`, cents: -272_000, muted: true, minus: true },
+const SEGMENT_DEFS: Array<{
+  key: MoneyPeriod | "trends";
+  label: string;
+  disabled?: true;
+}> = [
+  { key: "this-month", label: "This month" },
+  { key: "ytd", label: "YTD" },
+  { key: "all-time", label: "All time" },
+  { key: "trends", label: "Trends", disabled: true },
 ];
 
-const NET_REVENUE_CENTS = BREAKDOWN_ROWS.reduce((sum, r) => sum + r.cents, 0);
-
-const SEGMENTS = ["This event", "This month", "YTD", "Trends"] as const;
-const ACTIVE_SEGMENT = "This month";
-
-export default async function VenuMoney() {
+export default async function VenuMoney({
+  searchParams,
+}: {
+  searchParams: Promise<{ period?: string }>;
+}) {
   const venue = await getCurrentVenue();
   if (!venue) redirect("/venues");
+
+  const { period: periodParam } = await searchParams;
+  const activePeriod: MoneyPeriod = isValidPeriod(periodParam) ? periodParam : "this-month";
+
+  const money = await getVenueMoney(venue.tenantId, activePeriod);
+
+  // Period-context line under the hero number — varies by which period the
+  // user is looking at, kept honest (no fake "+18% vs April" delta until
+  // historical-period comparison wires for real).
+  const periodContext =
+    activePeriod === "this-month"
+      ? `${money.bookingCount} ${money.bookingCount === 1 ? "booking" : "bookings"} this month`
+      : activePeriod === "ytd"
+        ? `${money.bookingCount} ${money.bookingCount === 1 ? "booking" : "bookings"} year-to-date`
+        : `${money.bookingCount} ${money.bookingCount === 1 ? "booking" : "bookings"} all-time`;
+
+  // Breakdown rows derived from the aggregation. Outgoing flows (platform
+  // fee, referrals, commissions) render muted + with minus sign per the
+  // original mockup convention. Zero-cents rows omitted to keep the surface
+  // honest — no fake placeholder rows for flows that don't exist yet.
+  const rows: Array<{ name: string; cents: number; muted?: boolean; minus?: boolean }> = [];
+  if (money.grossRevenueCents > 0) {
+    rows.push({ name: "Gross revenue", cents: money.grossRevenueCents });
+  }
+  if (money.platformFeeCents > 0) {
+    rows.push({
+      name: commissionFlowLabel.platform_fee,
+      cents: -money.platformFeeCents,
+      muted: true,
+      minus: true,
+    });
+  }
+  if (money.vendorReferralPaidCents > 0) {
+    rows.push({
+      name: `${commissionFlowLabel.venue_referral} paid`,
+      cents: -money.vendorReferralPaidCents,
+      muted: true,
+      minus: true,
+    });
+  }
+  if (money.commissionPaidCents > 0) {
+    rows.push({
+      name: "Other commissions paid",
+      cents: -money.commissionPaidCents,
+      muted: true,
+      minus: true,
+    });
+  }
 
   return (
     <>
@@ -46,47 +93,71 @@ export default async function VenuMoney() {
 
       {/* Hero number */}
       <section className={s.moneyHero}>
-        <div className={s.moneyEyebrow}>May · Net revenue</div>
+        <div className={s.moneyEyebrow}>{money.periodLabel} · Net revenue</div>
         <div className={s.moneyBig}>
-          {formatUSDCents(NET_REVENUE_CENTS).replace(/\.\d+$/, "")}
+          {formatUSDCents(money.netRevenueCents).replace(/\.\d+$/, "")}
           <span className={s.moneyBigCents}>.00</span>
         </div>
-        <div className={s.moneyDelta}>+18% vs April</div>
-        <div className={s.moneyPeriod}>Through May 17</div>
+        <div className={s.moneyPeriod}>{periodContext}</div>
       </section>
 
-      {/* Period segments */}
+      {/* Period segments — URL-param links */}
       <div className={s.moneyTabs} role="tablist" aria-label="Money period">
-        {SEGMENTS.map((seg) => (
-          <button
-            key={seg}
-            type="button"
-            role="tab"
-            aria-selected={seg === ACTIVE_SEGMENT}
-            className={`${s.moneyTab} ${seg === ACTIVE_SEGMENT ? s.moneyTabActive : ""}`}
-          >
-            {seg}
-          </button>
-        ))}
+        {SEGMENT_DEFS.map((seg) => {
+          const isActive = !seg.disabled && seg.key === activePeriod;
+          const cls = `${s.moneyTab} ${isActive ? s.moneyTabActive : ""}`;
+          if (seg.disabled) {
+            return (
+              <span
+                key={seg.key}
+                role="tab"
+                aria-disabled="true"
+                className={cls}
+                style={{ opacity: 0.4, cursor: "default" }}
+              >
+                {seg.label}
+              </span>
+            );
+          }
+          return (
+            <Link
+              key={seg.key}
+              href={`/venu/money?period=${seg.key}`}
+              role="tab"
+              aria-selected={isActive}
+              className={cls}
+            >
+              {seg.label}
+            </Link>
+          );
+        })}
       </div>
 
       {/* Breakdown */}
       <section className={s.breakdown}>
-        {BREAKDOWN_ROWS.map((row) => (
-          <div key={row.name} className={s.bdRow}>
-            <div className={`${s.bdName} ${row.muted ? s.bdMuted : ""}`}>{row.name}</div>
-            <div
-              className={`${s.bdVal} ${row.muted ? s.bdValMuted : ""} ${row.minus ? s.bdValMinus : ""}`}
-            >
-              {row.minus ? "−" : ""}
-              {formatUSDCents(Math.abs(row.cents))}
-            </div>
+        {rows.length === 0 ? (
+          <div className={s.emptyStateInline}>
+            No revenue {activePeriod === "this-month" ? "this month" : activePeriod === "ytd" ? "year-to-date" : "yet"}.
           </div>
-        ))}
-        <div className={`${s.bdRow} ${s.bdRowTotal}`}>
-          <div className={s.bdName}>Net revenue</div>
-          <div className={s.bdVal}>{formatUSDCents(NET_REVENUE_CENTS)}</div>
-        </div>
+        ) : (
+          <>
+            {rows.map((row) => (
+              <div key={row.name} className={s.bdRow}>
+                <div className={`${s.bdName} ${row.muted ? s.bdMuted : ""}`}>{row.name}</div>
+                <div
+                  className={`${s.bdVal} ${row.muted ? s.bdValMuted : ""} ${row.minus ? s.bdValMinus : ""}`}
+                >
+                  {row.minus ? "−" : ""}
+                  {formatUSDCents(Math.abs(row.cents))}
+                </div>
+              </div>
+            ))}
+            <div className={`${s.bdRow} ${s.bdRowTotal}`}>
+              <div className={s.bdName}>Net revenue</div>
+              <div className={s.bdVal}>{formatUSDCents(money.netRevenueCents)}</div>
+            </div>
+          </>
+        )}
       </section>
 
       {/* Pro hint */}
