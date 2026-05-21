@@ -8,6 +8,7 @@ import type { PreviewData } from "./page";
 import { EmailFallbackModal } from "./EmailFallbackModal";
 import { DatePickerModal } from "./DatePickerModal";
 import { updateSelectedDate } from "./_actions/update-selected-date";
+import { commitEventForAuthedUserAction } from "./_actions/commit-event-for-authed-user";
 import { LangToggle } from "@/app/_components/LangToggle";
 
 import { DATE_HORIZONS, type LeadTimeSeverity } from "@/data/budget-presets";
@@ -22,7 +23,7 @@ function useFormatUSD() {
     }).format(n);
 }
 
-export function Preview({ data }: { data: PreviewData }) {
+export function Preview({ data, isAuthed }: { data: PreviewData; isAuthed: boolean }) {
   const t = useTranslations("preview");
   const locale = useLocale();
   const formatUSD = useFormatUSD();
@@ -83,16 +84,35 @@ export function Preview({ data }: { data: PreviewData }) {
 
         <div className={s.ctaBar}>
           <div className={s.ctaCopy}>
-            <div className={s.ctaTitle}>{t("ctaTitle")}</div>
-            <div className={s.ctaSub}>{t("ctaSub")}</div>
+            <div className={s.ctaTitle}>
+              {isAuthed ? t("ctaTitleAuthed") : t("ctaTitle")}
+            </div>
+            <div className={s.ctaSub}>
+              {isAuthed ? t("ctaSubAuthed") : t("ctaSub")}
+            </div>
           </div>
           <div className={s.ctaActions}>
-            <button type="button" className={s.btnGhost} onClick={() => setEmailOpen(true)}>
-              {t("emailMe")}
-            </button>
-            <a href="/login?role=orgnz&intent=mood_board" className={s.btnPrimary}>
-              {t("buildMoodBoard")}
-            </a>
+            {isAuthed ? (
+              <>
+                <a href="/orgnz" className={s.btnGhost}>
+                  {t("goToDashboard")}
+                </a>
+                <form action={commitEventForAuthedUserAction}>
+                  <button type="submit" className={s.btnPrimary}>
+                    {t("addToDashboard")}
+                  </button>
+                </form>
+              </>
+            ) : (
+              <>
+                <button type="button" className={s.btnGhost} onClick={() => setEmailOpen(true)}>
+                  {t("emailMe")}
+                </button>
+                <a href="/login?role=orgnz&intent=mood_board" className={s.btnPrimary}>
+                  {t("buildMoodBoard")}
+                </a>
+              </>
+            )}
           </div>
         </div>
       </div>

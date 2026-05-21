@@ -14,7 +14,7 @@ import {
   type GuestBand,
 } from "@/data/budget-presets";
 
-type CalcCookieState = {
+export type CalcCookieState = {
   category: CategoryKey;
   subtypeKey: string | null;
   guestCount: number;
@@ -207,7 +207,7 @@ export async function postAuthSeed(args: {
  * Used by both the cookie path (same-device) and the DB fallback path
  * (cross-device email-confirm — PARKING_LOT #12).
  */
-async function seedEventFromCalcState(
+export async function seedEventFromCalcState(
   admin: ReturnType<typeof createAdminClient>,
   args: { userId: string; email: string },
   tenantId: string,

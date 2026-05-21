@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
+import { createClient } from "@/lib/supabase/server";
 import {
   CATEGORIES,
   DATE_HORIZONS,
@@ -180,6 +181,17 @@ export default async function EventPreviewPage() {
   const selectedDateIso = parsed.selectedDateIso ?? defaultDateIso;
   const horizonLabel = DATE_HORIZONS.find((h) => h.value === parsed.dateHorizon)?.label ?? "—";
 
+  // Auth-aware CTA. Funnel-while-already-signed-in users see "Add to your
+  // dashboard" (calls commitEventForAuthedUserAction) instead of the guest
+  // "Build Mood Board" CTA that routes through /login. Without this, an
+  // authed user's funnel data gets silently swallowed at the /login
+  // auto-redirect (no auth transition → no postAuthSeed → no event seeded).
+  const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const isAuthed = Boolean(user);
+
   const tNouns = await getTranslations("preview.eventNouns");
   const data: PreviewData = {
     ...parsed,
@@ -204,5 +216,5 @@ export default async function EventPreviewPage() {
     horizonLabel,
   };
 
-  return <Preview data={data} />;
+  return <Preview data={data} isAuthed={isAuthed} />;
 }

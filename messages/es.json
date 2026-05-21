@@ -154,8 +154,12 @@
     "vendorFootnote": "Catr y Vndr se desbloquean cuando tu Venu está reservado. Cada proveedor se ajusta a las reglas de catering del venue, al montaje de AV y a la fecha — cerrar el venue primero te ahorra rehacer trabajo.",
     "ctaTitle": "Empieza tu mood board",
     "ctaSub": "Inscríbete gratis — tu presupuesto se traslada, el catálogo de proveedores se abre, el escrow queda listo.",
+    "ctaTitleAuthed": "Agrega esto a tu dashboard",
+    "ctaSubAuthed": "Ya tienes sesión — guarda este evento en tu espacio y sigue planeando.",
     "emailMe": "Envíamelo por correo →",
     "buildMoodBoard": "Armar Mood Board →",
+    "goToDashboard": "Ir al dashboard",
+    "addToDashboard": "Agregar este evento →",
     "horizonOut": "{label} de anticipación",
     "horizonPlanning": "en planificación"
   },

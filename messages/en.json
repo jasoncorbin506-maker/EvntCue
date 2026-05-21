@@ -154,8 +154,12 @@
     "vendorFootnote": "Catr and Vndr matches unlock once your Venu is booked. Every other vendor scopes around the venue’s catering rules, AV setup, and date — so locking the venue first saves rework.",
     "ctaTitle": "Start your mood board",
     "ctaSub": "Sign up free — your budget carries over, vendor browsing unlocks, escrow is ready.",
+    "ctaTitleAuthed": "Add this to your dashboard",
+    "ctaSubAuthed": "You're signed in — drop this event onto your workspace and pick up planning.",
     "emailMe": "Email me this →",
     "buildMoodBoard": "Build Mood Board →",
+    "goToDashboard": "Go to dashboard",
+    "addToDashboard": "Add this event →",
     "horizonOut": "{label} out",
     "horizonPlanning": "in planning"
   },
