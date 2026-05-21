@@ -776,6 +776,210 @@ async function testCrossTenantMoodBoardVendorBriefsIsolation() {
   }
 }
 
+/**
+ * Cross-tenant bookings isolation — vndr A vs vndr B.
+ *
+ * Preemptive Vndr-port coverage per Hard Rule #8. Same code path as the
+ * venue cross-tenant test (clause 2: vndr_tenant_id IN current_user_tenants)
+ * but with vndr role specifically. If a future migration ever filters
+ * bookings_select by role-type, this test would surface the divergence.
+ */
+async function testCrossTenantBookingsVndrIsolation() {
+  const orgnz = await seedTestUser("orgnz");
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  const { data: event } = await adminClient
+    .from("events")
+    .insert({
+      name: `RLS vndr bookings test ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-05-30",
+      guest_count: 120,
+      budget_cents: 1_200_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+
+  const { data: aBooking, error: aBookingErr } = await adminClient
+    .from("bookings")
+    .insert({
+      event_id: event.id,
+      vndr_tenant_id: vndrA.tenantId,
+      vndr_type: "florist",
+      status: "confirmed",
+      subtotal_cents: 50_000,
+      platform_fee_cents: 1_250,
+      total_cents: 51_250,
+      deposit_pct: 25,
+      currency: "USD",
+    })
+    .select("id")
+    .single();
+  if (aBookingErr) throw new Error(`vndr A booking seed failed: ${aBookingErr.message}`);
+
+  // Vndr B queries bookings — should NOT see Vndr A's booking.
+  const { data: bView, error: bErr } = await vndrB.authedClient
+    .from("bookings")
+    .select("id")
+    .eq("id", aBooking.id);
+
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr bookings query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from vndr B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: vndr B saw vndr A's booking (${bView.length} rows)`);
+  }
+
+  // Positive control: Vndr A CAN see their own booking.
+  const { data: aView, error: aErr } = await vndrA.authedClient
+    .from("bookings")
+    .select("id")
+    .eq("id", aBooking.id);
+  if (aErr) throw new Error(`vndr A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`vndr A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+/**
+ * Cross-tenant booking_inquiries isolation — vndr A vs vndr B.
+ *
+ * booking_inquiries has vndr_tenant_id as the receiver. Migration 028
+ * renamed the status enum + added edge_flag column. Suite verifies the
+ * vndr-side read path works (vndr A sees their inquiry) and is isolated
+ * (vndr B doesn't see it).
+ */
+async function testCrossTenantBookingInquiriesVndrIsolation() {
+  const orgnz = await seedTestUser("orgnz");
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  const { data: event } = await adminClient
+    .from("events")
+    .insert({
+      name: `RLS vndr inq test ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-06-12",
+      guest_count: 90,
+      budget_cents: 900_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+
+  const { data: inquiry, error: inquiryErr } = await adminClient
+    .from("booking_inquiries")
+    .insert({
+      event_id: event.id,
+      orgnz_tenant_id: orgnz.tenantId,
+      vndr_tenant_id: vndrA.tenantId,
+      event_date: "2027-06-12",
+      guest_count: 90,
+      message: `RLS test inquiry ${TEST_RUN_ID}`,
+      status: "inquiry",
+    })
+    .select("id")
+    .single();
+  if (inquiryErr) throw new Error(`booking_inquiry seed failed: ${inquiryErr.message}`);
+
+  // Vndr B queries booking_inquiries — should NOT see Vndr A's inquiry.
+  const { data: bView, error: bErr } = await vndrB.authedClient
+    .from("booking_inquiries")
+    .select("id")
+    .eq("id", inquiry.id);
+
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr booking_inquiries query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from vndr B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: vndr B saw vndr A's inquiry (${bView.length} rows)`);
+  }
+
+  // Positive control: Vndr A CAN see their own inquiry.
+  const { data: aView, error: aErr } = await vndrA.authedClient
+    .from("booking_inquiries")
+    .select("id")
+    .eq("id", inquiry.id);
+  if (aErr) throw new Error(`vndr A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`vndr A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+
+  // Positive control: Orgnz who sent the inquiry CAN also see it.
+  const { data: oView, error: oErr } = await orgnz.authedClient
+    .from("booking_inquiries")
+    .select("id")
+    .eq("id", inquiry.id);
+  if (oErr) throw new Error(`orgnz positive control failed: ${oErr.message}`);
+  if (!oView || oView.length !== 1) {
+    throw new Error(`orgnz positive control: expected 1 row, got ${oView?.length ?? 0}`);
+  }
+}
+
+/**
+ * Vndr accepted on event_participants CAN read event.
+ *
+ * Parallel to test 5 (plnr_lead path) but with vndr role. Vndr is in
+ * event_role enum, so vndr-on-event_participants is a legal state. The
+ * test verifies events_select clause 3 (user_is_event_participant) grants
+ * vndr the same access as plnr when vndr's tenant is accepted on the event.
+ *
+ * This is a "doesn't short-circuit" case for vndr role — vndr's tenant
+ * fails clause 2 (orgnz match), so the planner forces evaluation of
+ * clause 3. Per Hard Rule #8, this is the kind of role configuration
+ * that historically surfaces latent recursion bugs.
+ */
+async function testVndrParticipantCanReadEvent() {
+  const orgnz = await seedTestUser("orgnz");
+  const vndr = await seedTestUser("vndr");
+
+  const { data: event } = await adminClient
+    .from("events")
+    .insert({
+      name: `RLS vndr participant test ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-08-08",
+      guest_count: 75,
+      budget_cents: 750_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+
+  const { error: epErr } = await adminClient.from("event_participants").insert({
+    event_id: event.id,
+    tenant_id: vndr.tenantId,
+    role: "vndr",
+    status: "accepted",
+  });
+  if (epErr) throw new Error(`event_participants seed failed: ${epErr.message}`);
+
+  // Vndr session queries the event. Clause 2 fails (vndr tenant != orgnz),
+  // clause 3 should grant via user_is_event_participant helper.
+  const { data, error } = await vndr.authedClient
+    .from("events")
+    .select("id")
+    .eq("id", event.id);
+
+  if (error && error.code === "42P17") {
+    throw new Error(`42P17 recursion on vndr-participant events query: ${error.message}`);
+  }
+  if (error) throw new Error(`unexpected error: ${error.message}`);
+  if (!data || data.length !== 1) {
+    throw new Error(`vndr should see event via participant; got ${data?.length ?? 0} rows`);
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
@@ -790,6 +994,9 @@ const TESTS = [
   { name: "Cross-tenant mood_board_pins isolation (orgnz A vs orgnz B)", fn: testCrossTenantMoodBoardPinsIsolation },
   { name: "Cross-tenant mood_board_comments isolation (orgnz A vs orgnz B)", fn: testCrossTenantMoodBoardCommentsIsolation },
   { name: "Cross-tenant mood_board_vendor_briefs isolation (orgnz B vs vendor target)", fn: testCrossTenantMoodBoardVendorBriefsIsolation },
+  { name: "Cross-tenant bookings isolation — vndr role (vndr A vs vndr B)", fn: testCrossTenantBookingsVndrIsolation },
+  { name: "Cross-tenant booking_inquiries isolation — vndr role (vndr A vs vndr B)", fn: testCrossTenantBookingInquiriesVndrIsolation },
+  { name: "Vndr accepted on event CAN read event (event_participants path)", fn: testVndrParticipantCanReadEvent },
 ];
 
 // -----------------------------------------------------------------------------
