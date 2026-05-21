@@ -389,6 +389,202 @@ async function testCrossTenantBookingsIsolation() {
   }
 }
 
+/**
+ * Cross-tenant venue_inquiries isolation — venue A cannot read venue B's inquiries.
+ *
+ * Different policy chain than bookings — venue_inquiries has its own RLS
+ * surface scoped by venue_tenant_id. Exercises the "doesn't short-circuit
+ * on earlier clauses" pattern: venue B's session fails the venue_tenant_id
+ * match clause and falls through to any remaining clauses. Assert no
+ * recursion + no cross-tenant leak.
+ */
+async function testCrossTenantVenueInquiriesIsolation() {
+  const venueA = await seedTestUser("venue");
+  const venueB = await seedTestUser("venue");
+
+  const { data: aInquiry, error: aInquiryErr } = await adminClient
+    .from("venue_inquiries")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      client_name: `RLS test client ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      event_date: "2027-08-15",
+      guest_count: 100,
+      est_revenue_cents: 5_000_000,
+      status: "reviewing",
+    })
+    .select("id")
+    .single();
+  if (aInquiryErr) throw new Error(`venue A inquiry seed failed: ${aInquiryErr.message}`);
+
+  // Venue B queries venue_inquiries — should NOT see Venue A's inquiry.
+  const { data: bView, error: bErr } = await venueB.authedClient
+    .from("venue_inquiries")
+    .select("id")
+    .eq("id", aInquiry.id);
+
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on venue_inquiries cross-tenant query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from venue B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: venue B saw venue A's inquiry (${bView.length} rows)`);
+  }
+
+  // Positive control: Venue A CAN see their own inquiry.
+  const { data: aView, error: aErr } = await venueA.authedClient
+    .from("venue_inquiries")
+    .select("id")
+    .eq("id", aInquiry.id);
+  if (aErr) throw new Error(`venue A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`venue A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+/**
+ * Plnr role accepted on event CAN read the event.
+ *
+ * Exercises the events_select clause 3 → user_is_event_participant path
+ * (which is now the SECURITY DEFINER helper, post-034). The Plnr's tenant
+ * fails clause 2 (orgnz_tenant_id mismatch), forcing the planner to
+ * evaluate clause 3 — historically the recursion source. Verifies the
+ * 034 fix supports the legitimate plnr-via-participant access pattern.
+ */
+async function testPlnrParticipantCanReadEvent() {
+  const orgnz = await seedTestUser("orgnz");
+  const plnr = await seedTestUser("plnr");
+
+  const { data: event, error: eventErr } = await adminClient
+    .from("events")
+    .insert({
+      name: `RLS plnr-access test ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-07-04",
+      guest_count: 200,
+      budget_cents: 2_000_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+  if (eventErr) throw new Error(`event seed failed: ${eventErr.message}`);
+
+  // Bind the Plnr to the event as accepted plnr_lead participant.
+  const { error: epErr } = await adminClient.from("event_participants").insert({
+    event_id: event.id,
+    tenant_id: plnr.tenantId,
+    role: "plnr_lead",
+    status: "accepted",
+  });
+  if (epErr) throw new Error(`event_participants seed failed: ${epErr.message}`);
+
+  // The Plnr's session queries the event. Clause 2 fails (Plnr tenant != orgnz
+  // tenant), clause 3 should grant via the participant helper.
+  const { data, error } = await plnr.authedClient
+    .from("events")
+    .select("id")
+    .eq("id", event.id);
+
+  if (error && error.code === "42P17") {
+    throw new Error(`42P17 recursion on plnr events query: ${error.message}`);
+  }
+  if (error) throw new Error(`unexpected error: ${error.message}`);
+  if (!data || data.length !== 1) {
+    throw new Error(`plnr should see event via participant; got ${data?.length ?? 0} rows`);
+  }
+}
+
+/**
+ * Plnr NOT on event CANNOT read it.
+ *
+ * Negative control for the prior test. A Plnr with no event_participants
+ * row should fail all events_select clauses for this event.
+ */
+async function testPlnrNotParticipantCannotReadEvent() {
+  const orgnz = await seedTestUser("orgnz");
+  const plnr = await seedTestUser("plnr");
+
+  const { data: event } = await adminClient
+    .from("events")
+    .insert({
+      name: `RLS plnr-denied test ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-03-21",
+      guest_count: 60,
+      budget_cents: 600_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+
+  // No event_participants row created — Plnr is unrelated to this event.
+
+  const { data, error } = await plnr.authedClient
+    .from("events")
+    .select("id")
+    .eq("id", event.id);
+
+  if (error && error.code === "42P17") {
+    throw new Error(`42P17 recursion on unrelated-plnr query: ${error.message}`);
+  }
+  if (error) throw new Error(`unexpected error: ${error.message}`);
+  if (data && data.length > 0) {
+    throw new Error(`RLS LEAK: unrelated plnr saw event (${data.length} rows)`);
+  }
+}
+
+/**
+ * Cross-tenant mood_boards isolation.
+ *
+ * Exercises a different policy family (mood_boards / mood_board_members)
+ * with its own visibility enum + complex EXISTS chains. Default visibility
+ * is 'private' — owner only. Orgnz A creates board, Orgnz B should not see it.
+ */
+async function testCrossTenantMoodBoardIsolation() {
+  const orgnzA = await seedTestUser("orgnz");
+  const orgnzB = await seedTestUser("orgnz");
+
+  const { data: board, error: boardErr } = await adminClient
+    .from("mood_boards")
+    .insert({
+      owner_id: orgnzA.userId,
+      tenant_id: orgnzA.tenantId,
+      title: `RLS test board ${TEST_RUN_ID}`,
+      visibility: "private",
+    })
+    .select("id")
+    .single();
+  if (boardErr) throw new Error(`mood_board seed failed: ${boardErr.message}`);
+
+  // Orgnz B queries mood_boards — should NOT see Orgnz A's private board.
+  const { data: bView, error: bErr } = await orgnzB.authedClient
+    .from("mood_boards")
+    .select("id")
+    .eq("id", board.id);
+
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant mood_boards query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from orgnz B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B saw orgnz A's private mood_board (${bView.length} rows)`);
+  }
+
+  // Positive control: Orgnz A CAN see their own board.
+  const { data: aView, error: aErr } = await orgnzA.authedClient
+    .from("mood_boards")
+    .select("id")
+    .eq("id", board.id);
+  if (aErr) throw new Error(`orgnz A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`orgnz A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
@@ -396,6 +592,10 @@ const TESTS = [
   { name: "Migration 034 regression (venue role + events join, no 42P17)", fn: testMigration034Regression },
   { name: "Cross-tenant events isolation (orgnz A vs orgnz B)", fn: testCrossTenantEventIsolation },
   { name: "Cross-tenant bookings isolation (venue A vs venue B)", fn: testCrossTenantBookingsIsolation },
+  { name: "Cross-tenant venue_inquiries isolation (venue A vs venue B)", fn: testCrossTenantVenueInquiriesIsolation },
+  { name: "Plnr accepted on event CAN read event (event_participants path)", fn: testPlnrParticipantCanReadEvent },
+  { name: "Plnr NOT on event CANNOT read it (negative control)", fn: testPlnrNotParticipantCannotReadEvent },
+  { name: "Cross-tenant mood_boards isolation (orgnz A vs orgnz B, private board)", fn: testCrossTenantMoodBoardIsolation },
 ];
 
 // -----------------------------------------------------------------------------
