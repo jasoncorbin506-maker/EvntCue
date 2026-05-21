@@ -980,6 +980,454 @@ async function testVndrParticipantCanReadEvent() {
   }
 }
 
+/**
+ * Catr accepted on event_participants CAN read event.
+ *
+ * Mirrors testVndrParticipantCanReadEvent for the catr role. tenant_type
+ * and event_role enums both have a literal 'catr' value (see
+ * 001_evntcue_consolidated_schema.sql lines 24, 34). This is the same
+ * "doesn't short-circuit" pattern Hard Rule #8 targets — catr's tenant
+ * fails events_select clause 2 (orgnz match), forcing the planner to
+ * evaluate clause 3 (user_is_event_participant). Catr coverage was a
+ * pre-launch gap until this test landed.
+ */
+async function testCatrParticipantCanReadEvent() {
+  const orgnz = await seedTestUser("orgnz");
+  const catr = await seedTestUser("catr");
+
+  const { data: event } = await adminClient
+    .from("events")
+    .insert({
+      name: `RLS catr participant test ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-09-04",
+      guest_count: 140,
+      budget_cents: 1_400_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+
+  const { error: epErr } = await adminClient.from("event_participants").insert({
+    event_id: event.id,
+    tenant_id: catr.tenantId,
+    role: "catr",
+    status: "accepted",
+  });
+  if (epErr) throw new Error(`event_participants seed failed: ${epErr.message}`);
+
+  const { data, error } = await catr.authedClient
+    .from("events")
+    .select("id")
+    .eq("id", event.id);
+
+  if (error && error.code === "42P17") {
+    throw new Error(`42P17 recursion on catr-participant events query: ${error.message}`);
+  }
+  if (error) throw new Error(`unexpected error: ${error.message}`);
+  if (!data || data.length !== 1) {
+    throw new Error(`catr should see event via participant; got ${data?.length ?? 0} rows`);
+  }
+}
+
+/**
+ * Catr NOT on event CANNOT read it.
+ *
+ * Negative control mirroring testPlnrNotParticipantCannotReadEvent. catr
+ * with no event_participants row should see zero rows when querying the
+ * event. Both clause 2 (orgnz match) and clause 3 (participant) must
+ * deny — if either leaks, the test fails.
+ */
+async function testCatrNotParticipantCannotReadEvent() {
+  const orgnz = await seedTestUser("orgnz");
+  const catr = await seedTestUser("catr");
+
+  const { data: event } = await adminClient
+    .from("events")
+    .insert({
+      name: `RLS catr denied test ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-10-15",
+      guest_count: 80,
+      budget_cents: 800_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+
+  // No event_participants row — catr has no relation to this event.
+
+  const { data, error } = await catr.authedClient
+    .from("events")
+    .select("id")
+    .eq("id", event.id);
+
+  if (error && error.code === "42P17") {
+    throw new Error(`42P17 recursion on catr-denied events query: ${error.message}`);
+  }
+  if (error) throw new Error(`unexpected error: ${error.message}`);
+  if (data && data.length > 0) {
+    throw new Error(`RLS LEAK: catr saw event with no participant row (${data.length} rows)`);
+  }
+}
+
+/**
+ * Cross-tenant bookings isolation — catr A vs catr B.
+ *
+ * Mirrors testCrossTenantBookingsVndrIsolation for catr role. Catr A
+ * has a confirmed booking on an orgnz event; catr B queries bookings
+ * and must see nothing. Positive control: catr A sees their own.
+ */
+async function testCrossTenantBookingsCatrIsolation() {
+  const orgnz = await seedTestUser("orgnz");
+  const catrA = await seedTestUser("catr");
+  const catrB = await seedTestUser("catr");
+
+  const { data: event } = await adminClient
+    .from("events")
+    .insert({
+      name: `RLS catr bookings test ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-11-06",
+      guest_count: 110,
+      budget_cents: 1_100_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+
+  const { data: aBooking, error: aBookingErr } = await adminClient
+    .from("bookings")
+    .insert({
+      event_id: event.id,
+      vndr_tenant_id: catrA.tenantId,
+      vndr_type: "catr",
+      status: "confirmed",
+      subtotal_cents: 80_000,
+      platform_fee_cents: 2_000,
+      total_cents: 82_000,
+      deposit_pct: 25,
+      currency: "USD",
+    })
+    .select("id")
+    .single();
+  if (aBookingErr) throw new Error(`catr A booking seed failed: ${aBookingErr.message}`);
+
+  // Catr B queries bookings — should NOT see Catr A's booking.
+  const { data: bView, error: bErr } = await catrB.authedClient
+    .from("bookings")
+    .select("id")
+    .eq("id", aBooking.id);
+
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-catr bookings query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from catr B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: catr B saw catr A's booking (${bView.length} rows)`);
+  }
+
+  // Positive control: Catr A CAN see their own booking.
+  const { data: aView, error: aErr } = await catrA.authedClient
+    .from("bookings")
+    .select("id")
+    .eq("id", aBooking.id);
+  if (aErr) throw new Error(`catr A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`catr A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+/**
+ * Cross-tenant booking_inquiries isolation — catr A vs catr B.
+ *
+ * Mirrors testCrossTenantBookingInquiriesVndrIsolation for catr role.
+ * Three assertions: (1) catr B cannot see catr A's inquiry, (2) catr A
+ * can see their own, (3) the sending orgnz can also see it (preserves
+ * the inquiry-thread visibility model).
+ */
+async function testCrossTenantBookingInquiriesCatrIsolation() {
+  const orgnz = await seedTestUser("orgnz");
+  const catrA = await seedTestUser("catr");
+  const catrB = await seedTestUser("catr");
+
+  const { data: event } = await adminClient
+    .from("events")
+    .insert({
+      name: `RLS catr inq test ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-12-04",
+      guest_count: 130,
+      budget_cents: 1_300_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+
+  const { data: inquiry, error: inquiryErr } = await adminClient
+    .from("booking_inquiries")
+    .insert({
+      event_id: event.id,
+      orgnz_tenant_id: orgnz.tenantId,
+      vndr_tenant_id: catrA.tenantId,
+      event_date: "2027-12-04",
+      guest_count: 130,
+      message: `RLS test catr inquiry ${TEST_RUN_ID}`,
+      status: "inquiry",
+    })
+    .select("id")
+    .single();
+  if (inquiryErr) throw new Error(`booking_inquiry seed failed: ${inquiryErr.message}`);
+
+  // Catr B queries booking_inquiries — should NOT see Catr A's inquiry.
+  const { data: bView, error: bErr } = await catrB.authedClient
+    .from("booking_inquiries")
+    .select("id")
+    .eq("id", inquiry.id);
+
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-catr booking_inquiries query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from catr B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: catr B saw catr A's inquiry (${bView.length} rows)`);
+  }
+
+  // Positive control: Catr A CAN see their own inquiry.
+  const { data: aView, error: aErr } = await catrA.authedClient
+    .from("booking_inquiries")
+    .select("id")
+    .eq("id", inquiry.id);
+  if (aErr) throw new Error(`catr A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`catr A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+
+  // Positive control: Orgnz who sent the inquiry CAN also see it.
+  const { data: oView, error: oErr } = await orgnz.authedClient
+    .from("booking_inquiries")
+    .select("id")
+    .eq("id", inquiry.id);
+  if (oErr) throw new Error(`orgnz positive control failed: ${oErr.message}`);
+  if (!oView || oView.length !== 1) {
+    throw new Error(`orgnz positive control: expected 1 row, got ${oView?.length ?? 0}`);
+  }
+}
+
+/**
+ * Cross-plnr plnr_clients isolation — Bucket-3 PII (names, contact, notes).
+ *
+ * pc_select policy: `is_admin() OR plnr_tenant_id IN current_user_tenants()`.
+ * Simple per-tenant filter, but plnr_clients carries Bucket-3 fields
+ * (client_email, client_phone, plnr_notes). A leak across plnr tenants
+ * would expose competitor CRM data. Test: plnr A inserts a client; plnr B
+ * queries → zero rows. Plnr A sees their own row.
+ */
+async function testCrossPlnrClientsIsolation() {
+  const plnrA = await seedTestUser("plnr");
+  const plnrB = await seedTestUser("plnr");
+
+  const { data: client, error: seedErr } = await adminClient
+    .from("plnr_clients")
+    .insert({
+      plnr_tenant_id: plnrA.tenantId,
+      client_name: `RLS test client ${TEST_RUN_ID}`,
+      client_email: `rls-client-${TEST_RUN_ID}@test.evntcue.local`,
+      plnr_notes: "Sensitive CRM notes — must not leak across plnr tenants.",
+    })
+    .select("id")
+    .single();
+  if (seedErr) throw new Error(`plnr_clients seed failed: ${seedErr.message}`);
+
+  // Plnr B queries plnr_clients — should see zero of plnr A's rows.
+  const { data: bView, error: bErr } = await plnrB.authedClient
+    .from("plnr_clients")
+    .select("id")
+    .eq("id", client.id);
+
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-plnr plnr_clients query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from plnr B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: plnr B saw plnr A's client row (${bView.length} rows)`);
+  }
+
+  // Positive control: plnr A CAN see their own client.
+  const { data: aView, error: aErr } = await plnrA.authedClient
+    .from("plnr_clients")
+    .select("id")
+    .eq("id", client.id);
+  if (aErr) throw new Error(`plnr A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`plnr A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+/**
+ * Cross-tenant commission_flows isolation — money table.
+ *
+ * Two SELECT policies on commission_flows (cf_select from 001, overlaid by
+ * commission_flows_read_own from 014). Both must combine to deny unrelated
+ * orgnz access. Test: orgnz A's event has a commission_flow row (from_party
+ * = orgnz A, to_party = vndr X). Orgnz B (unrelated tenant, no event
+ * participation, not a plnr) queries → zero rows. Positive: orgnz A sees it.
+ */
+async function testCrossTenantCommissionFlowsIsolation() {
+  const orgnzA = await seedTestUser("orgnz");
+  const orgnzB = await seedTestUser("orgnz");
+  const vndr = await seedTestUser("vndr");
+
+  const { data: event } = await adminClient
+    .from("events")
+    .insert({
+      name: `RLS commission test ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnzA.tenantId,
+      start_date: "2027-07-22",
+      guest_count: 100,
+      budget_cents: 1_000_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+
+  const { data: flow, error: flowErr } = await adminClient
+    .from("commission_flows")
+    .insert({
+      event_id: event.id,
+      type: "vndr_referral",
+      from_party: orgnzA.tenantId,
+      to_party: vndr.tenantId,
+      amount_cents: 5_000,
+      basis_amount_cents: 100_000,
+      is_disclosed: true,
+      status: "pending",
+    })
+    .select("id")
+    .single();
+  if (flowErr) throw new Error(`commission_flows seed failed: ${flowErr.message}`);
+
+  // Orgnz B queries commission_flows — should NOT see orgnz A's flow.
+  const { data: bView, error: bErr } = await orgnzB.authedClient
+    .from("commission_flows")
+    .select("id")
+    .eq("id", flow.id);
+
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant commission_flows query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from orgnz B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B saw orgnz A's commission flow (${bView.length} rows)`);
+  }
+
+  // Positive: orgnz A is the from_party → cf_select clause grants.
+  const { data: aView, error: aErr } = await orgnzA.authedClient
+    .from("commission_flows")
+    .select("id")
+    .eq("id", flow.id);
+  if (aErr) throw new Error(`orgnz A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`orgnz A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+
+  // Positive: vndr is the to_party → cf_select clause grants.
+  const { data: vView, error: vErr } = await vndr.authedClient
+    .from("commission_flows")
+    .select("id")
+    .eq("id", flow.id);
+  if (vErr) throw new Error(`vndr positive control failed: ${vErr.message}`);
+  if (!vView || vView.length !== 1) {
+    throw new Error(`vndr positive control (to_party): expected 1 row, got ${vView?.length ?? 0}`);
+  }
+}
+
+/**
+ * Non-participant cannot read guest_accommodations — Bucket-3 PII.
+ *
+ * ga_select uses on_event(event_id) helper: TRUE if user is the orgnz of
+ * the event OR an accepted event_participant OR is_admin. guest_accommodations
+ * carries dietary_restrictions, mobility_needs, accessibility_notes —
+ * Bucket-3 sensitive. Test: orgnz A's event has a guest + accommodation row.
+ * Orgnz B (no relation) queries → zero rows. Orgnz A sees it.
+ */
+async function testNonParticipantCannotReadGuestAccommodations() {
+  const orgnzA = await seedTestUser("orgnz");
+  const orgnzB = await seedTestUser("orgnz");
+
+  const { data: event } = await adminClient
+    .from("events")
+    .insert({
+      name: `RLS guest_accom test ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnzA.tenantId,
+      start_date: "2027-08-15",
+      guest_count: 60,
+      budget_cents: 600_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+
+  const { data: guest, error: guestErr } = await adminClient
+    .from("guests")
+    .insert({
+      event_id: event.id,
+      full_name: `RLS test guest ${TEST_RUN_ID}`,
+    })
+    .select("id")
+    .single();
+  if (guestErr) throw new Error(`guests seed failed: ${guestErr.message}`);
+
+  const { data: accom, error: accomErr } = await adminClient
+    .from("guest_accommodations")
+    .insert({
+      guest_id: guest.id,
+      event_id: event.id,
+      dietary_restrictions: ["vegan", "nut-allergy"],
+      mobility_needs: "Wheelchair-accessible seating",
+      accessibility_notes: "Sensitive PII — must not leak across tenants.",
+    })
+    .select("id")
+    .single();
+  if (accomErr) throw new Error(`guest_accommodations seed failed: ${accomErr.message}`);
+
+  // Orgnz B queries guest_accommodations — should NOT see orgnz A's row.
+  const { data: bView, error: bErr } = await orgnzB.authedClient
+    .from("guest_accommodations")
+    .select("id")
+    .eq("id", accom.id);
+
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant guest_accommodations query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from orgnz B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B saw orgnz A's guest accommodations (${bView.length} rows)`);
+  }
+
+  // Positive: orgnz A (event owner) CAN see via on_event() path.
+  const { data: aView, error: aErr } = await orgnzA.authedClient
+    .from("guest_accommodations")
+    .select("id")
+    .eq("id", accom.id);
+  if (aErr) throw new Error(`orgnz A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`orgnz A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
 // -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
@@ -997,6 +1445,13 @@ const TESTS = [
   { name: "Cross-tenant bookings isolation — vndr role (vndr A vs vndr B)", fn: testCrossTenantBookingsVndrIsolation },
   { name: "Cross-tenant booking_inquiries isolation — vndr role (vndr A vs vndr B)", fn: testCrossTenantBookingInquiriesVndrIsolation },
   { name: "Vndr accepted on event CAN read event (event_participants path)", fn: testVndrParticipantCanReadEvent },
+  { name: "Catr accepted on event CAN read event (event_participants path)", fn: testCatrParticipantCanReadEvent },
+  { name: "Catr NOT on event CANNOT read it (negative control)", fn: testCatrNotParticipantCannotReadEvent },
+  { name: "Cross-tenant bookings isolation — catr role (catr A vs catr B)", fn: testCrossTenantBookingsCatrIsolation },
+  { name: "Cross-tenant booking_inquiries isolation — catr role (catr A vs catr B)", fn: testCrossTenantBookingInquiriesCatrIsolation },
+  { name: "Cross-plnr plnr_clients isolation (Bucket-3 PII)", fn: testCrossPlnrClientsIsolation },
+  { name: "Cross-tenant commission_flows isolation (orgnz A vs orgnz B; money table)", fn: testCrossTenantCommissionFlowsIsolation },
+  { name: "Non-participant cannot read guest_accommodations (Bucket-3 PII)", fn: testNonParticipantCannotReadGuestAccommodations },
 ];
 
 // -----------------------------------------------------------------------------
