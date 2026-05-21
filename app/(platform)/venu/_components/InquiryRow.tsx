@@ -1,10 +1,7 @@
 import Link from "next/link";
 import { inquiryStatusLabel, slaSeverityFor } from "@/lib/labels/inquiry-status";
-import {
-  type DemoInquiry,
-  formatEventDate,
-  formatUSDCents,
-} from "../_lib/demo-data";
+import { formatEventDate, formatUSDCents } from "../_lib/demo-data";
+import type { VenuInquiry } from "@/lib/venu/inquiries";
 import s from "../venu.module.css";
 
 /**
@@ -18,7 +15,7 @@ import s from "../venu.module.css";
  * Source: built fresh from Venu_Locked_2026-05-13.md row 2 spec. Visual
  * language inherits from event-action / pill patterns established earlier.
  */
-export function InquiryRow({ inquiry }: { inquiry: DemoInquiry }) {
+export function InquiryRow({ inquiry }: { inquiry: VenuInquiry }) {
   const sla = slaSeverityFor(inquiry.status, inquiry.hoursSinceCreated);
   const dotCls =
     sla === "fresh" ? s.slaDotFresh :

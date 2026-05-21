@@ -1,21 +1,15 @@
 import { notFound } from "next/navigation";
 import { Chrome } from "../../_components/Chrome";
 import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
-import {
-  DEMO_INQUIRIES,
-  formatEventDate,
-  formatUSDCents,
-} from "../../_lib/demo-data";
+import { formatEventDate, formatUSDCents } from "../../_lib/demo-data";
+import { getVenueInquiry } from "@/lib/venu/inquiries";
 import s from "../../venu.module.css";
 
 /**
- * Inquiry detail — chunk-B-fix placeholder.
- *
- * Reads from the stub demo set so the back-and-forth from row tap → detail →
- * back nav is coherent. Real reply / quote / hold UI lands in a later chunk
- * (probably after the spec-aligned inquiry_status migration in PARKING_LOT
- * #49). For now: chrome back to /venu/inquiries + a meta-summary card +
- * "Reply / Quote / Hold lands in a later chunk" note.
+ * Inquiry detail. Wire-DB: single-row read against venue_inquiries.
+ * RLS scopes visibility to inquiries the current user can see, so an
+ * id from another venue's tenant returns null → notFound. Reply / Quote /
+ * Hold actions land in a later chunk.
  */
 export default async function VenuInquiryDetail({
   params,
@@ -23,14 +17,14 @@ export default async function VenuInquiryDetail({
   params: Promise<{ inquiry_id: string }>;
 }) {
   const { inquiry_id } = await params;
-  const inquiry = DEMO_INQUIRIES.find((i) => i.id === inquiry_id);
+  const inquiry = await getVenueInquiry(inquiry_id);
   if (!inquiry) notFound();
 
   return (
     <>
       <Chrome
         venueName={inquiry.eventName}
-        roleLabel={`Inquiry · #${inquiry.id}`}
+        roleLabel={`Inquiry · #${inquiry.id.slice(0, 8)}`}
         backHref="/venu/inquiries"
       />
 
@@ -39,7 +33,7 @@ export default async function VenuInquiryDetail({
           <div className={`${s.eventStatus} ${s.eventStatusConfirmed}`}>
             {inquiryStatusLabel(inquiry.status)}
           </div>
-          <div className={s.eventId}>#{inquiry.id}</div>
+          <div className={s.eventId}>#{inquiry.id.slice(0, 8)}</div>
         </div>
         <div className={s.eventName}>{inquiry.eventName}</div>
         <div className={s.eventMetaGrid}>
@@ -52,7 +46,7 @@ export default async function VenuInquiryDetail({
             <div className={s.eventMetaVal}>{inquiry.guestCount}</div>
           </div>
           <div className={s.eventMetaItem}>
-            <div className={s.eventMetaLbl}>Budget</div>
+            <div className={s.eventMetaLbl}>Est revenue</div>
             <div className={s.eventMetaVal}>{formatUSDCents(inquiry.budgetCents)}</div>
           </div>
           <div className={s.eventMetaItem}>
@@ -65,8 +59,7 @@ export default async function VenuInquiryDetail({
       <div className={s.placeholder}>
         <div className={s.placeholderTitle}>Reply · Quote · Hold</div>
         <div className={s.placeholderBody}>
-          Reply / quote / hold actions land in a later chunk, after the
-          spec-aligned inquiry_status migration (PARKING_LOT #49).
+          Reply / quote / hold actions land in a later chunk.
         </div>
       </div>
     </>

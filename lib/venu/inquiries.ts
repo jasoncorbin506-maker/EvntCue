@@ -1,0 +1,54 @@
+import { createClient } from "@/lib/supabase/server";
+import type { InquiryStatus } from "@/lib/labels/inquiry-status";
+
+export type VenuInquiry = {
+  id: string;
+  eventName: string;
+  eventDate: string;
+  guestCount: number;
+  budgetCents: number;
+  status: InquiryStatus;
+  hoursSinceCreated: number;
+  badges: string[];
+};
+
+function shape(row: Record<string, unknown>, now: number): VenuInquiry {
+  const createdMs = new Date(row.created_at as string).getTime();
+  const hoursSinceCreated = Math.max(0, Math.floor((now - createdMs) / 3_600_000));
+  return {
+    id: row.id as string,
+    eventName: (row.client_name as string | null) ?? "Unnamed inquiry",
+    eventDate: (row.event_date as string | null) ?? "",
+    guestCount: (row.guest_count as number | null) ?? 0,
+    budgetCents: (row.est_revenue_cents as number | null) ?? 0,
+    status: row.status as InquiryStatus,
+    hoursSinceCreated,
+    badges: [],
+  };
+}
+
+const COLS = "id, client_name, event_date, guest_count, est_revenue_cents, status, created_at";
+
+export async function getVenueInquiries(tenantId: string): Promise<VenuInquiry[]> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("venue_inquiries")
+    .select(COLS)
+    .eq("venue_tenant_id", tenantId)
+    .order("created_at", { ascending: false });
+
+  const now = Date.now();
+  return (data ?? []).map((row) => shape(row, now));
+}
+
+export async function getVenueInquiry(id: string): Promise<VenuInquiry | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("venue_inquiries")
+    .select(COLS)
+    .eq("id", id)
+    .maybeSingle();
+
+  if (!data) return null;
+  return shape(data, Date.now());
+}

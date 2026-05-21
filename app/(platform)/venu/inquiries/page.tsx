@@ -2,20 +2,22 @@ import { redirect } from "next/navigation";
 import { Chrome } from "../_components/Chrome";
 import { InquiriesSegment } from "../_components/Segment";
 import { getCurrentVenue } from "@/lib/venu/current-venue";
+import { getVenueInquiries } from "@/lib/venu/inquiries";
 
 /**
- * Venu Inquiries tab. Chunk B visual port; chunk C wire-DB pass swaps the
- * Segment's stub data for real venue_inquiries reads (migration 028
- * already aligned the spec/DB enum gap — PARKING_LOT #49 closed 2026-05-18).
+ * Venu Inquiries tab. Wire-DB: reads venue_inquiries filtered by the current
+ * venue's tenant; segment filtering is local state inside InquiriesSegment.
  */
 export default async function VenuInquiries() {
   const venue = await getCurrentVenue();
   if (!venue) redirect("/venues");
 
+  const inquiries = await getVenueInquiries(venue.tenantId);
+
   return (
     <>
       <Chrome venueName={venue.displayName} roleLabel="Inquiries" backHref="/venu/discover" />
-      <InquiriesSegment />
+      <InquiriesSegment inquiries={inquiries} />
     </>
   );
 }
