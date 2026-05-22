@@ -1,0 +1,75 @@
+import type { PaletteChip } from "../types";
+
+/**
+ * Non-Profit · Palette group — 6 starter chips per Chunk B defaults.
+ * Non-profit galas tend to anchor on mission color (brand-aligned),
+ * black-tie classic, or hope/light registers.
+ */
+export const nonprofitPalette: PaletteChip[] = [
+  {
+    key: "black-tie-classic",
+    labelEn: "Black-Tie Classic",
+    labelEs: "Black-Tie Classic",
+    group: "palette",
+    renderAs: "paint",
+    primaryColor: "#0F0F0F",
+    fabricType: "satin",
+    accentPalette: ["#C9A84A", "#FFFFFF", "#E8E8E8"],
+    defaultFor: ["nonprofit"],
+  },
+  {
+    key: "mission-aligned",
+    labelEn: "Mission-Aligned (from brand)",
+    labelEs: "Mission-Aligned (from brand)",
+    group: "palette",
+    renderAs: "paint",
+    primaryColor: "#2D5A87",
+    fabricType: "linen",
+    accentPalette: ["#F1E9DC", "#1A3A5E", "#D9E1E8"],
+    defaultFor: ["nonprofit"],
+  },
+  {
+    key: "monochromatic-np",
+    labelEn: "Monochromatic",
+    labelEs: "Monochromatic",
+    group: "palette",
+    renderAs: "paint",
+    primaryColor: "#5A5046",
+    fabricType: "linen",
+    accentPalette: ["#7A6F61", "#3D362F", "#A39689"],
+    defaultFor: ["nonprofit"],
+  },
+  {
+    key: "anniversary-gold",
+    labelEn: "Anniversary Gold",
+    labelEs: "Anniversary Gold",
+    group: "palette",
+    renderAs: "paint",
+    primaryColor: "#C9A84A",
+    fabricType: "silk",
+    accentPalette: ["#7A5E2A", "#FFFFFF", "#E8D9A8"],
+    defaultFor: ["nonprofit"],
+  },
+  {
+    key: "hope-light",
+    labelEn: "Hope / Light",
+    labelEs: "Hope / Light",
+    group: "palette",
+    renderAs: "paint",
+    primaryColor: "#F2EBD9",
+    fabricType: "linen",
+    accentPalette: ["#E8D9A8", "#D8C9B0", "#7A6A4A"],
+    defaultFor: ["nonprofit"],
+  },
+  {
+    key: "earth-living",
+    labelEn: "Earth / Living",
+    labelEs: "Earth / Living",
+    group: "palette",
+    renderAs: "paint",
+    primaryColor: "#3D4A2D",
+    fabricType: "linen",
+    accentPalette: ["#A89072", "#6B5638", "#E8DCC3"],
+    defaultFor: ["nonprofit"],
+  },
+];

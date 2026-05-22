@@ -2,17 +2,35 @@ import { redirect } from "next/navigation";
 import { getTranslations } from "next-intl/server";
 import { loadOrCreateBoard } from "./_lib/load-board";
 import { MoodBoardCanvas } from "./_components/MoodBoardCanvas";
+import { byCategory } from "@/data/moodboard";
 
 export const metadata = { title: "Mood Board · EvntCue" };
 
 /**
- * Orgnz mood board surface — Chunk A (foundation: corkboard canvas + image
- * upload + drag-position persistence). Chunks B–E add chip palette taxonomy,
- * Apify Pinterest import, Flux 2 Pro render pipeline, and Web Share API.
+ * Orgnz mood board — Chunk B. Chunk A foundation extended with the chip
+ * palette taxonomy, fabric foundation, and per-event-type suggested slots.
  *
- * Auth-gated by middleware (proxy.ts). If the loader returns null the user
- * has no orgnz tenant — bounce back through login to seed one.
+ * Chunks C–E add Apify Pinterest import, Flux render pipeline, Web Share API.
  */
+
+const FALLBACK_SPECIMEN = {
+  display: '"Maya & Liam"',
+  body: "April 17, 2027 · Stonewall Estate",
+};
+
+function formatStartDate(iso: string | null): string | null {
+  if (!iso) return null;
+  // Parse YYYY-MM-DD without timezone shift.
+  const [y, m, d] = iso.split("-").map((n) => parseInt(n, 10));
+  if (!y || !m || !d) return null;
+  const date = new Date(y, m - 1, d);
+  return date.toLocaleDateString("en-US", {
+    year: "numeric",
+    month: "long",
+    day: "numeric",
+  });
+}
+
 export default async function MoodBoardPage() {
   const board = await loadOrCreateBoard();
   if (!board) {
@@ -20,12 +38,26 @@ export default async function MoodBoardPage() {
   }
 
   const t = await getTranslations("dashboard.moodBoard");
+  const palette = byCategory(board.event_category);
+
+  // Typography specimen — prefer events.name + events.start_date when set;
+  // fall back to "Maya & Liam" generic filler per the brief.
+  const formattedDate = formatStartDate(board.event_start_date);
+  const specimen =
+    board.event_name && formattedDate
+      ? {
+          display: `"${board.event_name}"`,
+          body: formattedDate,
+        }
+      : FALLBACK_SPECIMEN;
 
   return (
     <MoodBoardCanvas
       boardId={board.board_id}
       initialPins={board.pins}
       initialCanvasState={board.canvas_state}
+      palette={palette}
+      specimen={specimen}
       labels={{
         title: t("title"),
         emptyHint: t("emptyHint"),
@@ -41,6 +73,10 @@ export default async function MoodBoardPage() {
         tidyBoard: t("tidyBoard"),
         boardName: t("boardName"),
         privacyBadge: t("privacyBadge"),
+        moodHeading: t("moodHeading"),
+        materialHeading: t("materialHeading"),
+        floralsHeading: t("floralsHeading"),
+        typographyHeading: t("typographyHeading"),
       }}
     />
   );

@@ -32,6 +32,11 @@ export function PinnedImage({ pin }: Props) {
 
   const { x, y, rotation, z } = pin.position;
 
+  // Chip-source pins reach this component only if MoodBoardCanvas can't
+  // resolve them to a known chip — defensive fallback. Normal image pins
+  // always have signed_url set.
+  if (!pin.signed_url) return null;
+
   return (
     <div
       ref={ref}

@@ -222,7 +222,11 @@
       "urlPasteDisabled": "Pegar enlaces llega en un próximo bloque.",
       "tidyBoard": "Ordenar tablero",
       "boardName": "Tu mood board",
-      "privacyBadge": "Privado"
+      "privacyBadge": "Privado",
+      "moodHeading": "Atmósfera",
+      "materialHeading": "Material",
+      "floralsHeading": "Florales",
+      "typographyHeading": "Tipografía"
     },
     "heroEyebrow": "Tu celebración",
     "chromeEventDefault": "Tu celebración",

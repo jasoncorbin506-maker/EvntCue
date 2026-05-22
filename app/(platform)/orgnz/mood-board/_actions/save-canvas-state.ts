@@ -2,27 +2,43 @@
 
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { CanvasPinLayout, CanvasState } from "../_lib/load-board";
+import type {
+  CanvasPinLayout,
+  CanvasState,
+  FabricSelection,
+} from "../_lib/load-board";
 
 export type SaveCanvasResult =
   | { ok: true }
   | { ok: false; error: string };
 
 /**
- * Mood Board Chunk A — persist the per-pin canvas layout.
+ * Mood Board Chunk B — persist canvas layout + fabric foundation + chip
+ * selections. Extends the Chunk A version which only handled per-pin
+ * positions.
  *
- * Per Lock 17 ("we persist whatever the client serializes"), per-pin
- * positions, rotations, and z-order live in `mood_boards.canvas_state`
- * (JSONB) — NOT as columns on `mood_board_pins`. Single board UPDATE
- * per drag-end instead of N pin updates.
+ * Per Lock 17 ("we persist whatever the client serializes"), the entire
+ * canvas_state shape is the client's call. This action shallow-merges
+ * each top-level field — fabric / chipSelections / pins — so partial
+ * updates (e.g. just a drag-end with no fabric change) don't clobber
+ * anything else.
  *
- * The client is the source of truth for layout shape; this action just
- * shallow-merges new pin layouts into the existing canvas_state.pins map.
- * Pins absent from the incoming payload keep whatever layout they had.
+ * Pass `null` for fabric to explicitly clear it (return to corkboard).
+ * Omit fabric from the args to leave the existing value alone.
  */
 export async function saveCanvasStateAction(args: {
   boardId: string;
-  pins: Record<string, CanvasPinLayout>;
+  /** Optional — omit to leave per-pin layouts unchanged. */
+  pins?: Record<string, CanvasPinLayout>;
+  /** Optional — undefined leaves existing fabric; null clears it. */
+  fabric?: FabricSelection | null;
+  /** Optional — partial chip-group selections to merge. */
+  chipSelections?: {
+    mood?: string[];
+    material?: string[];
+    florals?: string[];
+    typography?: string[];
+  };
 }): Promise<SaveCanvasResult> {
   const supabase = await createClient();
   const {
@@ -31,13 +47,9 @@ export async function saveCanvasStateAction(args: {
   if (!user) return { ok: false, error: "Not signed in." };
 
   if (!args.boardId) return { ok: false, error: "Missing board id." };
-  if (!args.pins || typeof args.pins !== "object") {
-    return { ok: false, error: "Missing pins payload." };
-  }
 
   const admin = createAdminClient();
 
-  // Ownership gate (defense in depth — mb_update RLS already covers this).
   const { data: board, error: boardErr } = await admin
     .from("mood_boards")
     .select("id, owner_id, canvas_state")
@@ -50,12 +62,32 @@ export async function saveCanvasStateAction(args: {
   }
 
   const existing = (board.canvas_state as CanvasState | null) ?? {};
+
+  // Pins: shallow-merge.
+  const mergedPins =
+    args.pins !== undefined
+      ? { ...(existing.pins ?? {}), ...args.pins }
+      : existing.pins;
+
+  // Fabric: undefined = leave alone; null = clear; object = set.
+  const mergedFabric =
+    args.fabric === undefined ? existing.fabric ?? null : args.fabric;
+
+  // Chip selections: shallow-merge per group.
+  const existingChips = existing.chipSelections ?? {};
+  const incomingChips = args.chipSelections ?? {};
+  const mergedChipSelections = {
+    mood: incomingChips.mood ?? existingChips.mood ?? [],
+    material: incomingChips.material ?? existingChips.material ?? [],
+    florals: incomingChips.florals ?? existingChips.florals ?? [],
+    typography: incomingChips.typography ?? existingChips.typography ?? [],
+  };
+
   const merged: CanvasState = {
     ...existing,
-    pins: {
-      ...(existing.pins ?? {}),
-      ...args.pins,
-    },
+    pins: mergedPins,
+    fabric: mergedFabric,
+    chipSelections: mergedChipSelections,
   };
 
   const { error: updateErr } = await admin

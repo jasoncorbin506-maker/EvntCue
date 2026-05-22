@@ -56,6 +56,10 @@ export async function uploadImageAction(formData: FormData): Promise<UploadResul
 
   const file = formData.get("file");
   const boardId = String(formData.get("board_id") ?? "");
+  // Chunk B (B-4) — optional slot tag written into mood_board_pins.tags
+  // when the user clicked a Suggested Upload chip instead of the bare
+  // "Upload image" button. Chunk D's Flux prompt assembler reads this.
+  const slotTag = (formData.get("slot_tag") as string | null) || null;
   if (!(file instanceof File)) return { ok: false, error: "No file received." };
   if (!boardId) return { ok: false, error: "Missing board id." };
 
@@ -112,6 +116,7 @@ export async function uploadImageAction(formData: FormData): Promise<UploadResul
       url: objectKey,
       added_by: user.id,
       position: 0,
+      tags: slotTag ? [slotTag] : null,
     })
     .select("id")
     .single();

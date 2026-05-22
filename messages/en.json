@@ -210,7 +210,7 @@
   "dashboard": {
     "moodBoard": {
       "title": "Your board",
-      "emptyHint": "Drag pieces around. Upload a photo from the right. Nothing leaves this board until you say so.",
+      "emptyHint": "Drag pieces around. Add a chip from the right, or bring in your own photos. Nothing leaves this board until you say so.",
       "uploadButton": "Upload image",
       "renderButton": "See your event in frames",
       "renderDisabledTooltip": "Render lands in a future chunk.",
@@ -222,7 +222,11 @@
       "urlPasteDisabled": "Image-link paste lands in a future chunk.",
       "tidyBoard": "Tidy board",
       "boardName": "Your mood board",
-      "privacyBadge": "Private"
+      "privacyBadge": "Private",
+      "moodHeading": "Mood",
+      "materialHeading": "Material",
+      "floralsHeading": "Florals",
+      "typographyHeading": "Typography"
     },
     "heroEyebrow": "Your celebration",
     "chromeEventDefault": "Your celebration",
