@@ -7,15 +7,18 @@ import { PinnedImage } from "./PinnedImage";
 import { SwatchPin } from "./SwatchPin";
 import { TypographyPin } from "./TypographyPin";
 import { TopBar } from "./TopBar";
-import { Drawer } from "./Drawer";
+import { Drawer, type ImportStatus } from "./Drawer";
 import { UndoToast } from "./UndoToast";
 import { RecentlyRemovedDrawer } from "./RecentlyRemovedDrawer";
+import { BoardImportPreview } from "./BoardImportPreview";
 import { uploadImageAction } from "../_actions/upload-image";
 import { saveCanvasStateAction } from "../_actions/save-canvas-state";
 import { dropChipPinAction } from "../_actions/drop-chip-pin";
 import { deletePinAction } from "../_actions/delete-pin";
 import { restorePinAction } from "../_actions/restore-pin";
+import { importPinterestUrl } from "../_actions/import-pinterest-url";
 import type { RecentlyDeletedPin } from "../_actions/list-recently-deleted-pins";
+import { classifyPinterestUrl } from "../_lib/pinterest-url";
 import type {
   CanvasPinLayout,
   CanvasState,
@@ -48,6 +51,7 @@ export type CanvasLabels = {
   tidyBoard: string;
   boardName: string;
   privacyBadge: string;
+  backToDashboard: string;
   // Chunk B additions
   moodHeading: string;
   materialHeading: string;
@@ -66,6 +70,19 @@ export type CanvasLabels = {
   pinRemovedToast: string;
   undo: string;
   close: string;
+  // Chunk C additions (Pinterest import)
+  urlImportButton: string;
+  urlImportSubtitle: string;
+  urlImportLoading: string;
+  urlImportSuccessSingle: string;
+  urlImportSuccessMulti: string;
+  urlImportSuccessCapped: string;
+  urlImportInvalid: string;
+  urlImportBoardTitle: string;
+  urlImportBoardBody: string;
+  urlImportBoardBodyCap: string;
+  urlImportBoardCancel: string;
+  urlImportBoardConfirm: string;
 };
 
 type Props = {
@@ -123,11 +140,15 @@ export function MoodBoardCanvas({
     pin: LoadedPin;
     timestamp: number;
   } | null>(null);
+  const [importStatus, setImportStatus] = useState<ImportStatus>({ state: "idle" });
+  const [pendingBoardUrl, setPendingBoardUrl] = useState<string | null>(null);
   const [, startSave] = useTransition();
   const [, startUpload] = useTransition();
   const [, startChipDrop] = useTransition();
   const [, startDelete] = useTransition();
   const [, startRestore] = useTransition();
+  const [, startImport] = useTransition();
+  const successTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Chip key → chip object lookup for rendering pin overlays.
   const chipsByKey = useMemo(() => {
@@ -356,6 +377,98 @@ export function MoodBoardCanvas({
     });
   }, [queueSave]);
 
+  // Chunk C — run the Apify import, push new pins onto the canvas, surface
+  // the success/cap/error message in the Drawer's status banner.
+  const runUrlImport = useCallback(
+    (url: string) => {
+      if (successTimerRef.current) {
+        clearTimeout(successTimerRef.current);
+        successTimerRef.current = null;
+      }
+      setImportStatus({ state: "loading", message: labels.urlImportLoading });
+      startImport(async () => {
+        const result = await importPinterestUrl({
+          boardId,
+          pinterestUrl: url,
+        });
+        if (!result.ok) {
+          setImportStatus({ state: "error", message: result.error });
+          return;
+        }
+        // Spread imported pins around the top-left so they don't stack
+        // perfectly. Lock 22 means deletes are cheap, but stacked pins
+        // are visually inert until the user drags them out — small
+        // offset improves first-glance UX.
+        const newPins: LoadedPin[] = result.pins.map((pin, idx) => ({
+          id: pin.id,
+          source: "url",
+          image_path: pin.url,
+          signed_url: pin.signed_url,
+          source_url: null,
+          tags: pin.tags,
+          position: {
+            x: 32 + (idx % 6) * 18,
+            y: 32 + Math.floor(idx / 6) * 18,
+            rotation: randomJitter(),
+            z: Date.now() + idx,
+          },
+        }));
+        setPins((current) => [...current, ...newPins]);
+        for (const pin of newPins) queueSave(pin.id, pin.position);
+
+        const message =
+          result.imported === 1
+            ? labels.urlImportSuccessSingle
+            : result.capped
+              ? labels.urlImportSuccessCapped.replace(
+                  "{count}",
+                  String(result.imported),
+                )
+              : labels.urlImportSuccessMulti.replace(
+                  "{count}",
+                  String(result.imported),
+                );
+        setImportStatus({ state: "success", message });
+        successTimerRef.current = setTimeout(() => {
+          setImportStatus({ state: "idle" });
+          successTimerRef.current = null;
+        }, 5000);
+      });
+    },
+    [
+      boardId,
+      labels.urlImportLoading,
+      labels.urlImportSuccessSingle,
+      labels.urlImportSuccessMulti,
+      labels.urlImportSuccessCapped,
+      queueSave,
+    ],
+  );
+
+  // Pin URLs run directly. Board URLs open the confirmation modal first.
+  const handleUrlSubmit = useCallback(
+    (url: string) => {
+      const kind = classifyPinterestUrl(url);
+      if (kind === "board") {
+        setPendingBoardUrl(url);
+        return;
+      }
+      runUrlImport(url);
+    },
+    [runUrlImport],
+  );
+
+  const handleBoardConfirm = useCallback(() => {
+    if (!pendingBoardUrl) return;
+    const url = pendingBoardUrl;
+    setPendingBoardUrl(null);
+    runUrlImport(url);
+  }, [pendingBoardUrl, runUrlImport]);
+
+  // PER_BOARD_CAP - existing pin count, derived client-side from current pins.
+  // Server-side authoritative gate lives in the import action.
+  const remainingSlots = Math.max(0, 100 - pins.length);
+
   const resolveChipPreview = useCallback(
     (chipKey: string): { kind: "swatch"; hex: string; label: string } | { kind: "typography"; label: string } | null => {
       const chip = chipsByKey.get(chipKey);
@@ -472,6 +585,8 @@ export function MoodBoardCanvas({
             onUpload={handleUpload}
             onPaletteChipClick={handlePaletteChipClick}
             onChipClick={handleChipClick}
+            onUrlSubmit={handleUrlSubmit}
+            importStatus={importStatus}
             uploadError={uploadError}
           />
         </div>
@@ -497,6 +612,20 @@ export function MoodBoardCanvas({
             resolveChipPreview={resolveChipPreview}
             onRestore={handleRestoreFromDrawer}
             onClose={() => setRecentlyRemovedOpen(false)}
+          />
+        )}
+        {pendingBoardUrl && (
+          <BoardImportPreview
+            remaining={remainingSlots}
+            labels={{
+              title: labels.urlImportBoardTitle,
+              body: labels.urlImportBoardBody,
+              bodyCap: labels.urlImportBoardBodyCap,
+              cancel: labels.urlImportBoardCancel,
+              confirm: labels.urlImportBoardConfirm,
+            }}
+            onCancel={() => setPendingBoardUrl(null)}
+            onConfirm={handleBoardConfirm}
           />
         )}
       </div>

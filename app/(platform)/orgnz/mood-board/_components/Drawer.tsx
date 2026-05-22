@@ -1,6 +1,6 @@
 "use client";
 
-import { useRef } from "react";
+import { useRef, useState } from "react";
 import s from "../mood-board.module.css";
 import type { CanvasLabels } from "./MoodBoardCanvas";
 import type {
@@ -12,6 +12,13 @@ import type {
   TypographyChip,
   SuggestedUpload,
 } from "@/data/moodboard/types";
+import { classifyPinterestUrl } from "../_lib/pinterest-url";
+
+export type ImportStatus =
+  | { state: "idle" }
+  | { state: "loading"; message: string }
+  | { state: "success"; message: string }
+  | { state: "error"; message: string };
 
 type Props = {
   labels: CanvasLabels;
@@ -20,6 +27,8 @@ type Props = {
   onUpload: (file: File, slotTag: string | null) => void;
   onPaletteChipClick: (chip: PaletteChip) => void;
   onChipClick: (chip: MaterialChip | MoodChip | FloralsChip | TypographyChip) => void;
+  onUrlSubmit: (url: string) => void;
+  importStatus: ImportStatus;
   uploadError: string | null;
 };
 
@@ -42,10 +51,14 @@ export function Drawer({
   onUpload,
   onPaletteChipClick,
   onChipClick,
+  onUrlSubmit,
+  importStatus,
   uploadError,
 }: Props) {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<string | null>(null);
+  const [urlValue, setUrlValue] = useState("");
+  const [inlineUrlError, setInlineUrlError] = useState<string | null>(null);
 
   const triggerUpload = (slotTag: string | null) => {
     pendingSlotRef.current = slotTag;
@@ -58,6 +71,23 @@ export function Drawer({
     pendingSlotRef.current = null;
     e.target.value = "";
   };
+
+  const handleUrlSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const url = urlValue.trim();
+    if (!url) return;
+    const kind = classifyPinterestUrl(url);
+    if (kind === "invalid") {
+      setInlineUrlError(labels.urlImportInvalid);
+      return;
+    }
+    setInlineUrlError(null);
+    onUrlSubmit(url);
+    // Clear the field on submit — parent owns success/error state in importStatus.
+    setUrlValue("");
+  };
+
+  const isImporting = importStatus.state === "loading";
 
   return (
     <aside className={s.drawer}>
@@ -80,18 +110,48 @@ export function Drawer({
         </div>
       )}
 
-      <div className={s.bringRow}>
+      <form className={s.bringRow} onSubmit={handleUrlSubmit}>
         <input
-          type="text"
+          type="url"
           className={s.bringUrlInput}
           placeholder={labels.urlPaste}
-          disabled
-          title={labels.urlPasteDisabled}
+          value={urlValue}
+          onChange={(e) => {
+            setUrlValue(e.target.value);
+            if (inlineUrlError) setInlineUrlError(null);
+          }}
+          disabled={isImporting}
+          aria-invalid={inlineUrlError ? "true" : "false"}
         />
-        <button type="button" className={s.btnGhost} disabled title={labels.urlPasteDisabled}>
-          Pin
+        <button
+          type="submit"
+          className={s.btnGhost}
+          disabled={isImporting || urlValue.trim().length === 0}
+        >
+          {labels.urlImportButton}
         </button>
-      </div>
+      </form>
+      <p className={s.urlImportSubtitle}>{labels.urlImportSubtitle}</p>
+      {inlineUrlError && (
+        <p className={s.urlImportInline} role="alert">
+          {inlineUrlError}
+        </p>
+      )}
+      {importStatus.state === "loading" && (
+        <p className={s.urlImportStatus} role="status">
+          {importStatus.message}
+        </p>
+      )}
+      {importStatus.state === "success" && (
+        <p className={s.urlImportSuccess} role="status">
+          {importStatus.message}
+        </p>
+      )}
+      {importStatus.state === "error" && (
+        <p className={s.uploadError} role="alert">
+          {importStatus.message}
+        </p>
+      )}
 
       <label className={s.uploadButton}>
         {labels.uploadButton}

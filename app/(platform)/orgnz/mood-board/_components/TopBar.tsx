@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import s from "../mood-board.module.css";
 import type { CanvasLabels } from "./MoodBoardCanvas";
 
@@ -25,10 +26,22 @@ export function TopBar({ labels, editMode, onToggleEdit }: Props) {
   return (
     <header className={s.topbar}>
       <div className={s.topbarLeft}>
-        <span className={s.brand}>
-          <strong>Evnt</strong>
-          <span className={s.brandAccent}>Cue</span>
-        </span>
+        <Link href="/orgnz" className={s.backLink} aria-label={labels.backToDashboard}>
+          <svg
+            width="14"
+            height="14"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            aria-hidden
+          >
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+          <span>{labels.backToDashboard}</span>
+        </Link>
         <span className={s.topbarSep} aria-hidden />
         <span className={s.boardName}>{labels.boardName}</span>
         <span className={s.privacyBadge} title={labels.privacyBadge}>

@@ -73,6 +73,7 @@ export default async function MoodBoardPage() {
         tidyBoard: t("tidyBoard"),
         boardName: t("boardName"),
         privacyBadge: t("privacyBadge"),
+        backToDashboard: t("backToDashboard"),
         moodHeading: t("moodHeading"),
         materialHeading: t("materialHeading"),
         floralsHeading: t("floralsHeading"),
@@ -89,6 +90,18 @@ export default async function MoodBoardPage() {
         pinRemovedToast: t("pinRemovedToast"),
         undo: t("undo"),
         close: t("close"),
+        urlImportButton: t("urlImportButton"),
+        urlImportSubtitle: t("urlImportSubtitle"),
+        urlImportLoading: t("urlImportLoading"),
+        urlImportSuccessSingle: t("urlImportSuccessSingle"),
+        urlImportSuccessMulti: t("urlImportSuccessMulti"),
+        urlImportSuccessCapped: t("urlImportSuccessCapped"),
+        urlImportInvalid: t("urlImportInvalid"),
+        urlImportBoardTitle: t("urlImportBoardTitle"),
+        urlImportBoardBody: t("urlImportBoardBody"),
+        urlImportBoardBodyCap: t("urlImportBoardBodyCap"),
+        urlImportBoardCancel: t("urlImportBoardCancel"),
+        urlImportBoardConfirm: t("urlImportBoardConfirm"),
       }}
     />
   );
