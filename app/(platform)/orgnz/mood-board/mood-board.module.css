@@ -605,12 +605,6 @@
               inset 0 0 0 1px rgba(194, 65, 90, 0.25);
 }
 
-/* Subtle wobble cue for pins in edit mode — readable, not seizure-inducing. */
-@keyframes pinEditWobble {
-  0%, 100% { transform: rotate(var(--pin-rotation, 0deg)); }
-  50% { transform: rotate(calc(var(--pin-rotation, 0deg) + 0.4deg)); }
-}
-
 /* ─── Edit-mode action strip (above the board frame) ────────────────────── */
 .editStrip {
   display: flex;
