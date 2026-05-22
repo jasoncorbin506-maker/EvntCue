@@ -2,7 +2,7 @@
 
 import { useCallback, useRef, useState, useTransition } from "react";
 import { DragDropProvider } from "@dnd-kit/react";
-import type { DragEndEvent } from "@dnd-kit/react";
+import type { DragEndEvent, DragStartEvent } from "@dnd-kit/react";
 import { PinnedImage } from "./PinnedImage";
 import { TopBar } from "./TopBar";
 import { Drawer } from "./Drawer";
@@ -97,6 +97,30 @@ export function MoodBoardCanvas({
     [flushSave],
   );
 
+  // On drag start, bump the dragged pin's z so it sits above siblings during
+  // the drag (and after release). Without this, dragging a pin that started
+  // life below other pins keeps it visually behind them through the move,
+  // which reads as "the drag is broken." Date.now() is monotonically
+  // increasing within a session so it's a cheap "always highest" value.
+  const handleDragStart = useCallback((event: DragStartEvent) => {
+    const pinId = String(event.operation?.source?.id ?? "");
+    if (!pinId) return;
+    const newZ = Date.now();
+    setPins((current) => {
+      const idx = current.findIndex((p) => p.id === pinId);
+      if (idx < 0) return current;
+      const next = current.slice();
+      next[idx] = {
+        ...current[idx],
+        position: { ...current[idx].position, z: newZ },
+      };
+      return next;
+    });
+    // Don't queue a save here — drag-end will persist the final (x, y, z)
+    // together. If the user releases on the exact start position, drag-end
+    // still fires and the z bump gets saved alongside the zero-delta move.
+  }, []);
+
   const handleDragEnd = useCallback(
     (event: DragEndEvent) => {
       const dragOperation = event.operation;
@@ -112,7 +136,7 @@ export function MoodBoardCanvas({
           x: prev.x + transform.x,
           y: prev.y + transform.y,
           rotation: prev.rotation,
-          z: prev.z,
+          z: prev.z, // already bumped by handleDragStart
         };
         queueSave(pinId, nextLayout);
         const next = current.slice();
@@ -155,7 +179,7 @@ export function MoodBoardCanvas({
   void initialCanvasState; // Chunk A reads pins-keyed layouts via load-board; reserved for future scene state.
 
   return (
-    <DragDropProvider onDragEnd={handleDragEnd}>
+    <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
       <div className={s.shell}>
         <TopBar labels={labels} />
         <div className={s.main}>
