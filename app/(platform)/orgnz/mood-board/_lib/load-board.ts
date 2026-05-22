@@ -149,11 +149,13 @@ export async function loadOrCreateBoard(): Promise<LoadedBoard | null> {
     canvasState = (created.canvas_state as CanvasState | null) ?? {};
   }
 
-  // Load pins. Chunk B adds `tags` to the projection.
+  // Load pins. Chunk B adds `tags` to the projection. Lock 22 filters
+  // soft-deleted rows — they live in the Recently Removed tray instead.
   const { data: pinRows } = await admin
     .from("mood_board_pins")
     .select("id, source, url, source_url, tags")
     .eq("board_id", boardId)
+    .is("deleted_at", null)
     .order("position", { ascending: true });
 
   const pinsRaw = pinRows ?? [];

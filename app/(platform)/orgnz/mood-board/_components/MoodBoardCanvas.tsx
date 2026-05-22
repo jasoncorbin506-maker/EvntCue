@@ -8,9 +8,14 @@ import { SwatchPin } from "./SwatchPin";
 import { TypographyPin } from "./TypographyPin";
 import { TopBar } from "./TopBar";
 import { Drawer } from "./Drawer";
+import { UndoToast } from "./UndoToast";
+import { RecentlyRemovedDrawer } from "./RecentlyRemovedDrawer";
 import { uploadImageAction } from "../_actions/upload-image";
 import { saveCanvasStateAction } from "../_actions/save-canvas-state";
 import { dropChipPinAction } from "../_actions/drop-chip-pin";
+import { deletePinAction } from "../_actions/delete-pin";
+import { restorePinAction } from "../_actions/restore-pin";
+import type { RecentlyDeletedPin } from "../_actions/list-recently-deleted-pins";
 import type {
   CanvasPinLayout,
   CanvasState,
@@ -48,6 +53,19 @@ export type CanvasLabels = {
   materialHeading: string;
   floralsHeading: string;
   typographyHeading: string;
+  // Lock 22 additions (edit mode + forgiveness)
+  editDone: string;
+  straightenAll: string;
+  recentlyRemoved: string;
+  recentlyRemovedTitle: string;
+  recentlyRemovedEmpty: string;
+  recentlyRemovedWindow: string;
+  recentlyRemovedLoading: string;
+  pinDelete: string;
+  pinRestore: string;
+  pinRemovedToast: string;
+  undo: string;
+  close: string;
 };
 
 type Props = {
@@ -99,9 +117,17 @@ export function MoodBoardCanvas({
     initialCanvasState.fabric ?? null,
   );
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState(false);
+  const [recentlyRemovedOpen, setRecentlyRemovedOpen] = useState(false);
+  const [pendingUndo, setPendingUndo] = useState<{
+    pin: LoadedPin;
+    timestamp: number;
+  } | null>(null);
   const [, startSave] = useTransition();
   const [, startUpload] = useTransition();
   const [, startChipDrop] = useTransition();
+  const [, startDelete] = useTransition();
+  const [, startRestore] = useTransition();
 
   // Chip key → chip object lookup for rendering pin overlays.
   const chipsByKey = useMemo(() => {
@@ -252,6 +278,97 @@ export function MoodBoardCanvas({
     [boardId, queueSave],
   );
 
+  const handleDeletePin = useCallback(
+    (pinId: string) => {
+      const snapshot = pins.find((p) => p.id === pinId);
+      if (!snapshot) return;
+      // Optimistic remove. If the server call fails we re-add.
+      setPins((current) => current.filter((p) => p.id !== pinId));
+      setPendingUndo({ pin: snapshot, timestamp: Date.now() });
+      startDelete(async () => {
+        const result = await deletePinAction({ pinId, boardId });
+        if (!result.ok) {
+          setPins((current) =>
+            current.some((p) => p.id === pinId) ? current : [...current, snapshot],
+          );
+          setPendingUndo((cur) => (cur?.pin.id === pinId ? null : cur));
+        }
+      });
+    },
+    [pins, boardId],
+  );
+
+  const handleUndoLastDelete = useCallback(() => {
+    if (!pendingUndo) return;
+    const snapshot = pendingUndo.pin;
+    setPendingUndo(null);
+    setPins((current) =>
+      current.some((p) => p.id === snapshot.id) ? current : [...current, snapshot],
+    );
+    startRestore(async () => {
+      const result = await restorePinAction({
+        pinId: snapshot.id,
+        boardId,
+      });
+      if (!result.ok) {
+        setPins((current) => current.filter((p) => p.id !== snapshot.id));
+      }
+    });
+  }, [pendingUndo, boardId]);
+
+  const handleRestoreFromDrawer = useCallback(
+    async (deleted: RecentlyDeletedPin) => {
+      const result = await restorePinAction({
+        pinId: deleted.id,
+        boardId,
+      });
+      if (!result.ok) return;
+      // Reconstruct a LoadedPin shape and add it back to the canvas.
+      const restoredPin: LoadedPin = {
+        id: deleted.id,
+        source: deleted.source,
+        image_path: deleted.image_path,
+        signed_url: deleted.signed_url,
+        source_url: null,
+        tags: deleted.tags,
+        position: { x: 64, y: 64, rotation: randomJitter(), z: Date.now() },
+      };
+      setPins((current) =>
+        current.some((p) => p.id === restoredPin.id) ? current : [...current, restoredPin],
+      );
+      queueSave(restoredPin.id, restoredPin.position);
+    },
+    [boardId, queueSave],
+  );
+
+  const handleStraightenAll = useCallback(() => {
+    setPins((current) => {
+      const next = current.map((pin) => {
+        const newRotation =
+          Math.round((Math.random() * 4 - 2) * 10) / 10; // ±2° tighter than initial jitter
+        queueSave(pin.id, { ...pin.position, rotation: newRotation });
+        return {
+          ...pin,
+          position: { ...pin.position, rotation: newRotation },
+        };
+      });
+      return next;
+    });
+  }, [queueSave]);
+
+  const resolveChipPreview = useCallback(
+    (chipKey: string): { kind: "swatch"; hex: string; label: string } | { kind: "typography"; label: string } | null => {
+      const chip = chipsByKey.get(chipKey);
+      if (!chip) return null;
+      if (chip.group === "typography") return { kind: "typography", label: chip.labelEn };
+      if ("swatchHex" in chip) {
+        return { kind: "swatch", hex: (chip as { swatchHex: string }).swatchHex, label: chip.labelEn };
+      }
+      return null;
+    },
+    [chipsByKey],
+  );
+
   // Compute canvas background. Fabric overrides corkboard when set.
   const fabricBg = fabricBackground(fabric);
   const boardStyle = fabricBg
@@ -260,10 +377,32 @@ export function MoodBoardCanvas({
 
   return (
     <DragDropProvider onDragStart={handleDragStart} onDragEnd={handleDragEnd}>
-      <div className={s.shell}>
-        <TopBar labels={labels} />
+      <div className={s.shell} data-edit-mode={editMode ? "true" : undefined}>
+        <TopBar
+          labels={labels}
+          editMode={editMode}
+          onToggleEdit={() => setEditMode((v) => !v)}
+        />
         <div className={s.main}>
           <section className={s.stage}>
+            {editMode && (
+              <div className={s.editStrip}>
+                <button
+                  type="button"
+                  className={s.editStripBtn}
+                  onClick={handleStraightenAll}
+                >
+                  {labels.straightenAll}
+                </button>
+                <button
+                  type="button"
+                  className={s.editStripBtn}
+                  onClick={() => setRecentlyRemovedOpen(true)}
+                >
+                  {labels.recentlyRemoved}
+                </button>
+              </div>
+            )}
             <div className={s.frame}>
               <div
                 className={`${s.board} ${fabric ? s.boardFabric : ""}`}
@@ -276,8 +415,6 @@ export function MoodBoardCanvas({
                   </div>
                 )}
                 {pins.map((pin) => {
-                  // Chip-source pins (or 'url'-fallback pins with a chip: tag)
-                  // render as Swatch or Typography pins rather than images.
                   const chipKey = chipKeyFromPin(pin);
                   if (chipKey) {
                     const chip = chipsByKey.get(chipKey);
@@ -291,6 +428,9 @@ export function MoodBoardCanvas({
                             specimen,
                             position: pin.position,
                           }}
+                          editMode={editMode}
+                          onDelete={handleDeletePin}
+                          deleteLabel={labels.pinDelete}
                         />
                       );
                     }
@@ -305,12 +445,22 @@ export function MoodBoardCanvas({
                             swatchHex: (chip as { swatchHex: string }).swatchHex,
                             position: pin.position,
                           }}
+                          editMode={editMode}
+                          onDelete={handleDeletePin}
+                          deleteLabel={labels.pinDelete}
                         />
                       );
                     }
-                    // Unknown chip key — fall through to image render below.
                   }
-                  return <PinnedImage key={pin.id} pin={pin} />;
+                  return (
+                    <PinnedImage
+                      key={pin.id}
+                      pin={pin}
+                      editMode={editMode}
+                      onDelete={handleDeletePin}
+                      deleteLabel={labels.pinDelete}
+                    />
+                  );
                 })}
               </div>
             </div>
@@ -325,6 +475,30 @@ export function MoodBoardCanvas({
             uploadError={uploadError}
           />
         </div>
+        {pendingUndo && (
+          <UndoToast
+            message={labels.pinRemovedToast}
+            undoLabel={labels.undo}
+            onUndo={handleUndoLastDelete}
+            onDismiss={() => setPendingUndo(null)}
+          />
+        )}
+        {recentlyRemovedOpen && (
+          <RecentlyRemovedDrawer
+            boardId={boardId}
+            labels={{
+              title: labels.recentlyRemovedTitle,
+              empty: labels.recentlyRemovedEmpty,
+              restore: labels.pinRestore,
+              close: labels.close,
+              loading: labels.recentlyRemovedLoading,
+              windowNote: labels.recentlyRemovedWindow,
+            }}
+            resolveChipPreview={resolveChipPreview}
+            onRestore={handleRestoreFromDrawer}
+            onClose={() => setRecentlyRemovedOpen(false)}
+          />
+        )}
       </div>
     </DragDropProvider>
   );

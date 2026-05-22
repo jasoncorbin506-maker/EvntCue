@@ -5,16 +5,23 @@ import type { CanvasLabels } from "./MoodBoardCanvas";
 
 type Props = {
   labels: CanvasLabels;
+  editMode: boolean;
+  onToggleEdit: () => void;
 };
 
 /**
  * Mood Board top bar — brand + board name + privacy badge on the left,
- * "Tidy board" + "See your event in frames · $9.99" CTA on the right.
+ * Tidy/Done + "See your event in frames · $9.99" CTA on the right.
  *
- * Render button is stubbed-disabled in Chunk A. Chunk D wires the Flux
+ * Lock 22 — Tidy is no longer a stub. Tapping it toggles edit mode on the
+ * canvas, surfacing persistent ✕ icons on every pin + a Straighten all
+ * action + a Recently Removed entry point. Label flips to "Done" while
+ * edit mode is active.
+ *
+ * Render button remains stubbed-disabled until Chunk D wires the Flux
  * 2 Pro render flow + Stripe one-time charge.
  */
-export function TopBar({ labels }: Props) {
+export function TopBar({ labels, editMode, onToggleEdit }: Props) {
   return (
     <header className={s.topbar}>
       <div className={s.topbarLeft}>
@@ -43,11 +50,11 @@ export function TopBar({ labels }: Props) {
       <div className={s.topbarRight}>
         <button
           type="button"
-          className={s.btnGhost}
-          disabled
-          title="Tidy board lands in a future chunk"
+          className={`${s.btnGhost} ${editMode ? s.btnGhostActive : ""}`}
+          onClick={onToggleEdit}
+          aria-pressed={editMode}
         >
-          {labels.tidyBoard}
+          {editMode ? labels.editDone : labels.tidyBoard}
         </button>
         <button
           type="button"

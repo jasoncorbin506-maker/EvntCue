@@ -2,6 +2,7 @@
 
 import { useRef } from "react";
 import { useDraggable } from "@dnd-kit/react";
+import { PinDeleteButton } from "./PinDeleteButton";
 import s from "../mood-board.module.css";
 
 export type SwatchPinData = {
@@ -14,6 +15,9 @@ export type SwatchPinData = {
 
 type Props = {
   pin: SwatchPinData;
+  editMode?: boolean;
+  onDelete?: (pinId: string) => void;
+  deleteLabel?: string;
 };
 
 /**
@@ -21,7 +25,7 @@ type Props = {
  * mockup's swatch shape (color tile on top, name + hex below) on a
  * Polaroid frame. Sibling to PinnedImage and TypographyPin.
  */
-export function SwatchPin({ pin }: Props) {
+export function SwatchPin({ pin, editMode, onDelete, deleteLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const { isDragging } = useDraggable({
     id: pin.pinId,
@@ -34,6 +38,7 @@ export function SwatchPin({ pin }: Props) {
     <div
       ref={ref}
       className={`${s.pin} ${s.swatchPin} ${isDragging ? s.pinDragging : ""}`}
+      data-edit-mode={editMode ? "true" : undefined}
       style={{
         left: `${x}px`,
         top: `${y}px`,
@@ -50,6 +55,13 @@ export function SwatchPin({ pin }: Props) {
         <div className={s.swatchName}>{pin.labelEn}</div>
         <div className={s.swatchHex}>{pin.swatchHex.toUpperCase()}</div>
       </div>
+      {onDelete && (
+        <PinDeleteButton
+          pinId={pin.pinId}
+          label={deleteLabel ?? "Remove"}
+          onDelete={onDelete}
+        />
+      )}
     </div>
   );
 }

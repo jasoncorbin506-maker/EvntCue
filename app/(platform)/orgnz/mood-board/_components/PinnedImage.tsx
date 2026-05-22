@@ -3,10 +3,14 @@
 import { useRef } from "react";
 import { useDraggable } from "@dnd-kit/react";
 import type { LoadedPin } from "../_lib/load-board";
+import { PinDeleteButton } from "./PinDeleteButton";
 import s from "../mood-board.module.css";
 
 type Props = {
   pin: LoadedPin;
+  editMode?: boolean;
+  onDelete?: (pinId: string) => void;
+  deleteLabel?: string;
 };
 
 /**
@@ -23,7 +27,7 @@ type Props = {
  * Polaroid styling (per the locked v3 mockup): white frame, 12px top/sides,
  * 36px bottom, drop shadow, slight rotation per pin's `position.rotation`.
  */
-export function PinnedImage({ pin }: Props) {
+export function PinnedImage({ pin, editMode, onDelete, deleteLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const { isDragging } = useDraggable({
     id: pin.id,
@@ -32,15 +36,13 @@ export function PinnedImage({ pin }: Props) {
 
   const { x, y, rotation, z } = pin.position;
 
-  // Chip-source pins reach this component only if MoodBoardCanvas can't
-  // resolve them to a known chip — defensive fallback. Normal image pins
-  // always have signed_url set.
   if (!pin.signed_url) return null;
 
   return (
     <div
       ref={ref}
       className={`${s.pin} ${isDragging ? s.pinDragging : ""}`}
+      data-edit-mode={editMode ? "true" : undefined}
       style={{
         left: `${x}px`,
         top: `${y}px`,
@@ -54,6 +56,13 @@ export function PinnedImage({ pin }: Props) {
         className={s.pinImg}
         draggable={false}
       />
+      {onDelete && (
+        <PinDeleteButton
+          pinId={pin.id}
+          label={deleteLabel ?? "Remove"}
+          onDelete={onDelete}
+        />
+      )}
     </div>
   );
 }

@@ -102,6 +102,16 @@
   cursor: not-allowed;
   opacity: 0.5;
 }
+.btnGhostActive {
+  background: var(--rose);
+  border-color: var(--rose);
+  color: #fff;
+}
+.btnGhostActive:hover:not(:disabled) {
+  border-color: var(--rose);
+  color: #fff;
+  filter: brightness(1.06);
+}
 
 .btnRender {
   background: var(--rose);
@@ -549,4 +559,270 @@
   .typographySpecimen { width: 170px; min-height: 80px; }
   .typographyDisplay { font-size: 20px; }
   .typographyBody { font-size: 10px; }
+}
+
+/* ============================================================================
+   Lock 22 — Mood Board forgiveness pattern
+   Edit-mode toggle, ✕ overlay on pins, undo toast, Recently Removed drawer,
+   edit-mode action strip.
+   ============================================================================ */
+
+/* ─── ✕ overlay on every pin ────────────────────────────────────────────── */
+.pinDelete {
+  position: absolute;
+  top: -10px;
+  right: -10px;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(20, 12, 8, 0.92);
+  color: #fff;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  opacity: 0;
+  transform: scale(0.85);
+  transition: opacity 140ms ease, transform 140ms ease;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.45);
+  z-index: 10;
+}
+.pinDelete:hover {
+  background: var(--rose, #c2415a);
+  transform: scale(1);
+}
+.pin:hover .pinDelete,
+.pin[data-edit-mode="true"] .pinDelete {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* ─── Edit-mode chrome on the board frame ───────────────────────────────── */
+.shell[data-edit-mode="true"] .frame {
+  border-color: var(--rose, #c2415a);
+  box-shadow: 0 8px 32px rgba(0, 0, 0, 0.32),
+              inset 0 0 0 1px rgba(194, 65, 90, 0.25);
+}
+
+/* Subtle wobble cue for pins in edit mode — readable, not seizure-inducing. */
+@keyframes pinEditWobble {
+  0%, 100% { transform: rotate(var(--pin-rotation, 0deg)); }
+  50% { transform: rotate(calc(var(--pin-rotation, 0deg) + 0.4deg)); }
+}
+
+/* ─── Edit-mode action strip (above the board frame) ────────────────────── */
+.editStrip {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 10px;
+  padding: 0 4px;
+}
+.editStripBtn {
+  background: rgba(11, 18, 32, 0.7);
+  border: 0.5px solid var(--bdr2);
+  border-radius: 8px;
+  padding: 7px 13px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  cursor: pointer;
+  transition: border-color 140ms ease, color 140ms ease, background 140ms ease;
+}
+.editStripBtn:hover {
+  border-color: var(--txt2);
+  color: var(--txt);
+  background: rgba(11, 18, 32, 0.9);
+}
+
+/* ─── Undo toast (bottom-center) ────────────────────────────────────────── */
+.undoToast {
+  position: fixed;
+  left: 50%;
+  bottom: 24px;
+  transform: translateX(-50%);
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 14px 10px 16px;
+  background: rgba(20, 12, 8, 0.96);
+  color: #fff;
+  border-radius: 10px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+  font-family: var(--font-body);
+  font-size: 13px;
+  z-index: 100;
+  animation: undoToastIn 200ms ease;
+}
+@keyframes undoToastIn {
+  from { transform: translate(-50%, 12px); opacity: 0; }
+  to   { transform: translate(-50%, 0);    opacity: 1; }
+}
+.undoToastMessage {
+  letter-spacing: 0.01em;
+}
+.undoToastButton {
+  background: transparent;
+  border: none;
+  color: var(--rose, #ffb4c0);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: background 120ms ease;
+}
+.undoToastButton:hover {
+  background: rgba(255, 180, 192, 0.12);
+}
+
+/* ─── Recently Removed drawer (right slide-in) ──────────────────────────── */
+.recentDrawer {
+  position: fixed;
+  top: 60px;
+  right: 18px;
+  width: 320px;
+  max-height: calc(100vh - 90px);
+  background: rgba(11, 18, 32, 0.97);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.55);
+  z-index: 90;
+  animation: recentDrawerIn 180ms ease;
+  font-family: var(--font-body);
+  color: var(--txt);
+}
+@keyframes recentDrawerIn {
+  from { transform: translateX(20px); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+.recentDrawerHeader {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}
+.recentDrawerTitle {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 18px;
+  color: var(--txt);
+}
+.recentDrawerClose {
+  background: transparent;
+  border: none;
+  color: var(--txt2);
+  font-size: 24px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+}
+.recentDrawerClose:hover { color: var(--txt); }
+.recentDrawerNote {
+  font-size: 11px;
+  color: var(--txt2);
+  letter-spacing: 0.02em;
+  margin-bottom: 12px;
+  line-height: 1.45;
+}
+.recentDrawerList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+.recentDrawerEmpty {
+  padding: 24px 8px;
+  text-align: center;
+  font-size: 12px;
+  color: var(--txt2);
+}
+.recentDrawerItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px;
+  border: 0.5px solid var(--bdr2);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.2);
+}
+.recentDrawerPreview {
+  width: 44px;
+  height: 44px;
+  flex-shrink: 0;
+  border-radius: 6px;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255, 255, 255, 0.04);
+}
+.recentDrawerThumb {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.recentDrawerSwatch {
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+.recentDrawerTypeBadge {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 22px;
+  color: var(--txt);
+}
+.recentDrawerMeta {
+  flex: 1;
+  min-width: 0;
+}
+.recentDrawerLabel {
+  font-size: 12px;
+  color: var(--txt);
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.recentDrawerWhen {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  margin-top: 2px;
+}
+.recentDrawerRestore {
+  background: transparent;
+  border: 0.5px solid var(--rose, #c2415a);
+  color: var(--rose, #ffb4c0);
+  border-radius: 7px;
+  padding: 6px 10px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition: background 140ms ease;
+  flex-shrink: 0;
+}
+.recentDrawerRestore:hover {
+  background: rgba(255, 180, 192, 0.12);
+}
+
+@media (max-width: 720px) {
+  .recentDrawer {
+    right: 8px;
+    left: 8px;
+    width: auto;
+  }
 }

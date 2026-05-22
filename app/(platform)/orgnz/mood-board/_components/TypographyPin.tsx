@@ -3,6 +3,7 @@
 import { useEffect, useRef } from "react";
 import { useDraggable } from "@dnd-kit/react";
 import type { TypographyChip } from "@/data/moodboard/types";
+import { PinDeleteButton } from "./PinDeleteButton";
 import s from "../mood-board.module.css";
 
 export type TypographyPinData = {
@@ -18,6 +19,9 @@ export type TypographyPinData = {
 
 type Props = {
   pin: TypographyPinData;
+  editMode?: boolean;
+  onDelete?: (pinId: string) => void;
+  deleteLabel?: string;
 };
 
 /**
@@ -48,14 +52,13 @@ const DEFAULT_BODY = "April 17, 2027 · Stonewall Estate";
  *   2. props.specimen (derived from events.name + events.start_date) overrides default
  *   3. fall back to "Maya & Liam" / "April 17, 2027 · Stonewall Estate"
  */
-export function TypographyPin({ pin }: Props) {
+export function TypographyPin({ pin, editMode, onDelete, deleteLabel }: Props) {
   const ref = useRef<HTMLDivElement>(null);
   const { isDragging } = useDraggable({
     id: pin.pinId,
     element: ref,
   });
 
-  // Lazy-load both fonts when the pin mounts.
   useEffect(() => {
     ensureFontLink(pin.chip.displayFontHref);
     ensureFontLink(pin.chip.bodyFontHref);
@@ -72,6 +75,7 @@ export function TypographyPin({ pin }: Props) {
     <div
       ref={ref}
       className={`${s.pin} ${s.typographyPin} ${isDragging ? s.pinDragging : ""}`}
+      data-edit-mode={editMode ? "true" : undefined}
       style={{
         left: `${x}px`,
         top: `${y}px`,
@@ -94,6 +98,13 @@ export function TypographyPin({ pin }: Props) {
         </div>
       </div>
       <div className={s.typographyMeta}>{pin.chip.labelEn}</div>
+      {onDelete && (
+        <PinDeleteButton
+          pinId={pin.pinId}
+          label={deleteLabel ?? "Remove"}
+          onDelete={onDelete}
+        />
+      )}
     </div>
   );
 }

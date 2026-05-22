@@ -77,6 +77,18 @@ export default async function MoodBoardPage() {
         materialHeading: t("materialHeading"),
         floralsHeading: t("floralsHeading"),
         typographyHeading: t("typographyHeading"),
+        editDone: t("editDone"),
+        straightenAll: t("straightenAll"),
+        recentlyRemoved: t("recentlyRemoved"),
+        recentlyRemovedTitle: t("recentlyRemovedTitle"),
+        recentlyRemovedEmpty: t("recentlyRemovedEmpty"),
+        recentlyRemovedWindow: t("recentlyRemovedWindow"),
+        recentlyRemovedLoading: t("recentlyRemovedLoading"),
+        pinDelete: t("pinDelete"),
+        pinRestore: t("pinRestore"),
+        pinRemovedToast: t("pinRemovedToast"),
+        undo: t("undo"),
+        close: t("close"),
       }}
     />
   );
