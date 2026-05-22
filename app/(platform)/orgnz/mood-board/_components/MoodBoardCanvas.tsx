@@ -66,7 +66,7 @@ const randomJitter = (): number =>
 
 const FABRIC_BACKGROUNDS: Record<string, (color: string) => string> = {
   linen: (c) =>
-    `${c} repeating-linear-gradient(45deg, rgba(0,0,0,0.04) 0 1px, transparent 1px 4px), ${c} repeating-linear-gradient(-45deg, rgba(0,0,0,0.03) 0 1px, transparent 1px 5px)`,
+    `repeating-linear-gradient(45deg, rgba(0,0,0,0.04) 0 1px, transparent 1px 4px), repeating-linear-gradient(-45deg, rgba(0,0,0,0.03) 0 1px, transparent 1px 5px), ${c}`,
   silk: (c) =>
     `linear-gradient(135deg, ${c} 0%, rgba(255,255,255,0.12) 50%, ${c} 100%)`,
   velvet: (c) =>
