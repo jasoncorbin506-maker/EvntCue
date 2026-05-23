@@ -46,12 +46,35 @@ export default async function LoginPage(props: {
   // run postAuthSeed here because Server Components can't write cookies
   // (only Server Actions and Route Handlers can). Seeding only happens at
   // the auth transition itself: signUp/signIn actions + /auth/callback.
+  //
+  // Role-aware routing: respect ?role=vndr only if the user actually has the
+  // vndr role; otherwise pick the best default among the roles they DO have.
+  // Without these guards, an authed user gets bounced into a portal they
+  // can't access, proxy.ts redirects back to /login, and we loop.
+  //
+  // Users with no recognized role fall through to render the form, so they
+  // can sign in as a different user or get unstuck.
   const supabase = await createClient();
   const {
     data: { user },
   } = await supabase.auth.getUser();
   if (user) {
-    redirect(next ?? (intent === "mood_board" ? "/orgnz/mood-board" : "/orgnz"));
+    const { data: roleRows } = await supabase
+      .from("user_roles")
+      .select("role")
+      .eq("user_id", user.id);
+    const roleSet = new Set((roleRows ?? []).map((r) => r.role as string));
+
+    if (role === "vndr" && roleSet.has("vndr")) {
+      redirect(next ?? "/vndr-onboarding/1");
+    }
+    if (roleSet.has("orgnz") || roleSet.has("admin")) {
+      redirect(next ?? (intent === "mood_board" ? "/orgnz/mood-board" : "/orgnz"));
+    }
+    if (roleSet.has("vndr")) {
+      redirect(next ?? "/vndr-onboarding/1");
+    }
+    // No matching role — fall through to render the form.
   }
 
   const t = await getTranslations("login");

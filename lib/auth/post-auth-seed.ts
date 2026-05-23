@@ -90,10 +90,14 @@ export async function postAuthSeed(args: {
     if (insertUserErr) throw new Error("Could not create profile.");
   }
 
-  // 2. Ensure Orgnz tenant + user_roles
-  // For Phase 3.1, every signup converges on Orgnz (the funnel is Orgnz-first).
-  // When Vndr/Venu signup ships, switch on args.role here.
-  const desiredRole = "orgnz" as const;
+  // 2. Ensure tenant + user_roles for the requested role.
+  // Branch on args.role — Orgnz is the default funnel; Vndr branches in here
+  // when Door B sign-up routes through /login?role=vndr&intent=claim_listing
+  // (set by app/(public)/vndr-onboarding/_actions/save-vndr-session.ts after
+  // Stage 0 calculator submit). tenants.type accepts both 'orgnz' and 'vndr'
+  // per the tenant_type enum (migration 001).
+  const desiredRole: "orgnz" | "vndr" =
+    args.role === "vndr" ? "vndr" : "orgnz";
 
   const { data: existingRole } = await admin
     .from("user_roles")
@@ -123,76 +127,114 @@ export async function postAuthSeed(args: {
     if (roleErr) throw new Error("Could not assign role.");
   }
 
-  // 3. Seed event from calc state. Two sources:
-  //    (a) Cookies on this device (same-device email-confirm or direct signin).
-  //    (b) PARKING_LOT #12 fallback: cross-device email-confirm — cookies are
-  //        on the signup device, not the confirming one. signUpAction wrote
-  //        email_captured + pending_calc_state to the LCS row pre-signUp
-  //        (migration 027); look it up by email here.
-  //
-  //    If cookies present → cookie path wins (most recent). If not, try DB.
-  //    Never double-seed: PARKING_LOT #56 (locked 2026-05-21) — gate
-  //    on `tenant has no existing events`. Catches both stale-cookie
-  //    re-signin AND "cleared cookies + reran calc + signed in" cases.
-  //    The LCS row's converted_user_id is the second-line defense for
-  //    the cross-device DB path.
+  // 3. Seed role-specific pre-auth state from cookies / LCS row.
+  //    Branches on desiredRole — orgnz seeds events + event_budgets from the
+  //    Budget Calculator funnel; vndr seeds a draft vendors row from Stage 0
+  //    of the /vndr-onboarding acquisition arc.
   const c = await cookies();
   const sessionToken = c.get("evntcue_capture_session")?.value;
-  const stateRaw = c.get("evntcue_calc_state")?.value;
 
-  const { data: existingEvents } = await admin
-    .from("events")
-    .select("id")
-    .eq("orgnz_tenant_id", tenantId)
-    .limit(1);
-  const hasExistingEvents = (existingEvents?.length ?? 0) > 0;
-
-  if (hasExistingEvents) {
-    // Returning signin with leftover capture cookies, or user reran the
-    // calculator then signed back in. Either way, they already have at
-    // least one event on this tenant — don't seed another. Clear cookies
-    // so the next signin doesn't re-hit this branch.
+  if (desiredRole === "vndr") {
+    // Vndr Door B path. Pick up the Stage 0 calculator state from the
+    // evntcue_vndr_stage0 cookie (set by save-vndr-session.ts) and seed a
+    // draft vendors row scoped to the new tenant. Stages 1–4 of
+    // /vndr-onboarding/[step]/ persist directly to this row via per-stage
+    // server actions; lib/vndr/current-vendor.ts is the resolver.
+    const stage0Raw = c.get("evntcue_vndr_stage0")?.value;
+    let bookingAmount: number | null = null;
+    if (stage0Raw) {
+      try {
+        const stage0 = JSON.parse(stage0Raw) as { bookingAmount?: unknown };
+        if (
+          typeof stage0.bookingAmount === "number" &&
+          Number.isFinite(stage0.bookingAmount)
+        ) {
+          bookingAmount = stage0.bookingAmount;
+        }
+      } catch {
+        // Bad JSON — proceed without a Stage 0 anchor.
+      }
+    }
+    await seedVendorFromStage0(
+      admin,
+      args,
+      tenantId,
+      bookingAmount,
+      sessionToken ?? null,
+    );
     if (sessionToken) c.delete("evntcue_capture_session");
-    if (stateRaw) c.delete("evntcue_calc_state");
-  } else if (sessionToken && stateRaw) {
-    let state: CalcCookieState | null = null;
-    try {
-      state = JSON.parse(stateRaw) as CalcCookieState;
-    } catch {
-      state = null;
-    }
-    if (state) {
-      await seedEventFromCalcState(admin, args, tenantId, state, sessionToken);
-    }
-    c.delete("evntcue_capture_session");
-    c.delete("evntcue_calc_state");
-  } else if (args.email) {
-    // No cookies — cross-device fallback. Look up the most-recent unconverted
-    // LCS row by email. signUpAction wrote pending_calc_state here pre-signUp.
-    const { data: lcsRow } = await admin
-      .from("landing_capture_sessions")
-      .select("session_token, pending_calc_state")
-      .eq("email_captured", args.email)
-      .is("converted_user_id", null)
-      .order("created_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    if (stage0Raw) c.delete("evntcue_vndr_stage0");
+  } else {
+    // Orgnz path (default). Two sources:
+    //    (a) Cookies on this device (same-device email-confirm or direct signin).
+    //    (b) PARKING_LOT #12 fallback: cross-device email-confirm — cookies are
+    //        on the signup device, not the confirming one. signUpAction wrote
+    //        email_captured + pending_calc_state to the LCS row pre-signUp
+    //        (migration 027); look it up by email here.
+    //
+    //    If cookies present → cookie path wins (most recent). If not, try DB.
+    //    Never double-seed: PARKING_LOT #56 (locked 2026-05-21) — gate
+    //    on `tenant has no existing events`. Catches both stale-cookie
+    //    re-signin AND "cleared cookies + reran calc + signed in" cases.
+    //    The LCS row's converted_user_id is the second-line defense for
+    //    the cross-device DB path.
+    const stateRaw = c.get("evntcue_calc_state")?.value;
 
-    if (lcsRow?.pending_calc_state) {
-      const state = lcsRow.pending_calc_state as CalcCookieState;
-      await seedEventFromCalcState(
-        admin,
-        args,
-        tenantId,
-        state,
-        lcsRow.session_token as string,
-      );
+    const { data: existingEvents } = await admin
+      .from("events")
+      .select("id")
+      .eq("orgnz_tenant_id", tenantId)
+      .limit(1);
+    const hasExistingEvents = (existingEvents?.length ?? 0) > 0;
+
+    if (hasExistingEvents) {
+      // Returning signin with leftover capture cookies, or user reran the
+      // calculator then signed back in. Either way, they already have at
+      // least one event on this tenant — don't seed another. Clear cookies
+      // so the next signin doesn't re-hit this branch.
+      if (sessionToken) c.delete("evntcue_capture_session");
+      if (stateRaw) c.delete("evntcue_calc_state");
+    } else if (sessionToken && stateRaw) {
+      let state: CalcCookieState | null = null;
+      try {
+        state = JSON.parse(stateRaw) as CalcCookieState;
+      } catch {
+        state = null;
+      }
+      if (state) {
+        await seedEventFromCalcState(admin, args, tenantId, state, sessionToken);
+      }
+      c.delete("evntcue_capture_session");
+      c.delete("evntcue_calc_state");
+    } else if (args.email) {
+      // No cookies — cross-device fallback. Look up the most-recent unconverted
+      // LCS row by email. signUpAction wrote pending_calc_state here pre-signUp.
+      const { data: lcsRow } = await admin
+        .from("landing_capture_sessions")
+        .select("session_token, pending_calc_state")
+        .eq("email_captured", args.email)
+        .is("converted_user_id", null)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (lcsRow?.pending_calc_state) {
+        const state = lcsRow.pending_calc_state as CalcCookieState;
+        await seedEventFromCalcState(
+          admin,
+          args,
+          tenantId,
+          state,
+          lcsRow.session_token as string,
+        );
+      }
     }
   }
 
   // Make sure auth session is hydrated for the redirect target
   void (await createClient()).auth.getUser();
 
+  if (desiredRole === "vndr") return "/vndr-onboarding/1";
   if (args.intent === "mood_board") return "/orgnz/mood-board";
   return "/orgnz";
 }
@@ -282,4 +324,74 @@ export async function seedEventFromCalcState(
       pending_calc_state: null,
     })
     .eq("session_token", sessionToken);
+}
+
+/**
+ * Internal helper — insert a draft vendors row scoped to the new tenant +
+ * attach the landing_capture_sessions row to the user. Vndr analogue of
+ * seedEventFromCalcState (which seeds Orgnz events + event_budgets). Writes
+ * a single vendors row instead.
+ *
+ * Idempotent guard: if a vendors row already exists for the tenant (rare —
+ * would only happen on a re-sign-up where the user_role was deleted but the
+ * vendor wasn't), skip. The vendors_tenant_implies_claimed CHECK constraint
+ * requires claimed_at to be set whenever tenant_id is — we set both atomically.
+ *
+ * display_name is NOT NULL on vendors but Stage 2 of the funnel is where
+ * the vendor actually provides their business name; we seed with the user's
+ * email as a placeholder. Stage 2's saveStage2Action overwrites it. Every
+ * other column is either NULL (set by later stages) or a meaningful default
+ * from migration 041 (claim_status, acquisition_lane defaults exist but we
+ * set them explicitly for clarity).
+ *
+ * avg_ticket_cents anchors from the Stage 0 calculator slider. If the cookie
+ * was missing or malformed, we leave it NULL — Stage 3's saveStage3Action
+ * may overwrite it via the starting_price slider, or it stays NULL for
+ * vendors who skip the Stage 0 calculator (e.g., direct sign-up at /login).
+ */
+async function seedVendorFromStage0(
+  admin: ReturnType<typeof createAdminClient>,
+  args: { userId: string; email: string },
+  tenantId: string,
+  bookingAmount: number | null,
+  sessionToken: string | null,
+): Promise<void> {
+  // Idempotent guard — skip if a vendors row already exists for this tenant.
+  const { data: existing } = await admin
+    .from("vendors")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .limit(1);
+  if (existing && existing.length > 0) return;
+
+  const nowIso = new Date().toISOString();
+  const avgTicketCents =
+    bookingAmount != null ? Math.round(bookingAmount * 100) : null;
+
+  await admin.from("vendors").insert({
+    tenant_id: tenantId,
+    // vendors_tenant_implies_claimed CHECK: tenant_id + claimed_at travel together.
+    claimed_at: nowIso,
+    // Stage 4 finishOnboardingAction flips this to 'published'.
+    claim_status: "pending_claim",
+    // Door B signature. Set EXACTLY ONCE per migration 041 hard constraint #10.
+    acquisition_lane: "self_serve",
+    // NOT NULL placeholder; Stage 2 saveStage2Action overwrites with the
+    // business name the vendor types into the form.
+    display_name: args.email,
+    avg_ticket_cents: avgTicketCents,
+  });
+
+  // Attach the LCS row to the now-real user, if we have a session token.
+  // converted_user_id flips this row from "anonymous Stage 0 visitor" to
+  // "this user's pre-auth state" so analytics can stitch them together.
+  if (sessionToken) {
+    await admin
+      .from("landing_capture_sessions")
+      .update({
+        converted_user_id: args.userId,
+        email_captured: args.email,
+      })
+      .eq("session_token", sessionToken);
+  }
 }

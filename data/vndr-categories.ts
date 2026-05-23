@@ -2,14 +2,18 @@
  * Vndr category taxonomy — single source of truth.
  *
  * Source: 02_Locked_Prototypes/Vndr/evntcue_vndr_freemium_v1.html Stage 1
- * (lines 1672–1683). Nine top-level service categories per Lock 14
+ * (lines 1672–1683). Eight top-level service categories per Lock 14
  * (service-based, not cultural specialty — vendors author cultural-
  * specialty descriptors themselves in package copy, not as a tag taxonomy).
  *
- * Stage 0 (this V-1a part 2 session) does not yet render the chip grid —
- * the categories live here so the Stage 0 calculator can persist a tier
- * preference + the Stage 1 chip grid (V-1b next session) can import a
- * single canonical list.
+ * Lock 14 amended 2026-05-23 (V-1b session): "Dessert & Bar" removed from
+ * the Vndr taxonomy. Cake designers, bakers, dessert vendors, coffee
+ * carts, mixologists, sommeliers, and late-night-snack vendors belong in
+ * the Catr (caterer) portal — food and alcohol are food-service domains
+ * with their own compliance gates (TABC, food handler, TX health code)
+ * that Catr enforces as HARD gates per master spec §75, not soft gates
+ * like Vndr. Carving them out here so the Vndr/Catr boundary is clean
+ * in code before either portal sees real users.
  *
  * Display strings route through lib/labels/vendor-categories.ts per Lock 15
  * (DB enums + canonical keys → locale-aware UI strings).
@@ -58,19 +62,8 @@ export const VNDR_CATEGORIES = [
     labelEs: "Alquileres",
     subTypes: ["Décor rental company", "Dance floor / flooring", "Tenting company"],
   },
-  {
-    key: "dessert",
-    labelEn: "Dessert & Bar",
-    labelEs: "Postres y bar",
-    subTypes: [
-      "Cake designer / bakery",
-      "Dessert vendor",
-      "Coffee cart",
-      "Mixologist",
-      "Sommelier",
-      "Late-night snack",
-    ],
-  },
+  // 'dessert' removed 2026-05-23 (Lock 14 amendment) — food & alcohol
+  // categories live in the Catr portal where compliance is hard-gated.
   {
     key: "beauty",
     labelEn: "Personal & Beauty",

@@ -1,0 +1,208 @@
+/* Stage 2 — Your business.
+ * Business info form fields + DFW service-area chip multi-select +
+ * Signature Board scaffold (full editor stubbed; lands with Chunk V-3).
+ *
+ * Source: 02_Locked_Prototypes/Vndr/evntcue_vndr_freemium_v1.html lines
+ * 874-1054. Contact-name field omitted per Jason's V-1b call (auth email
+ * + display_name cover the surface).
+ */
+
+.formStack {
+  display: flex;
+  flex-direction: column;
+  gap: 22px;
+  margin-bottom: 24px;
+}
+
+.formRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.fLbl {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--coral);
+  font-weight: 600;
+}
+
+.fInput {
+  width: 100%;
+  padding: 11px 13px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  color: #fff;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.fInput::placeholder {
+  color: var(--txt2);
+  opacity: 0.7;
+}
+
+.fInput:focus {
+  outline: none;
+  border-color: var(--coral);
+  background: rgba(232, 98, 42, 0.04);
+}
+
+.fInputReadonly {
+  opacity: 0.6;
+  cursor: not-allowed;
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.fInputReadonly:focus {
+  border-color: var(--bdr);
+  background: rgba(255, 255, 255, 0.01);
+}
+
+.fText {
+  width: 100%;
+  min-height: 86px;
+  padding: 11px 13px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  color: #fff;
+  resize: vertical;
+  line-height: 1.5;
+  transition: border-color 0.15s ease, background 0.15s ease;
+}
+
+.fText:focus {
+  outline: none;
+  border-color: var(--coral);
+  background: rgba(232, 98, 42, 0.04);
+}
+
+.fHelp {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt2);
+  line-height: 1.4;
+}
+
+.formRowSplit {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px;
+}
+
+@media (max-width: 360px) {
+  .formRowSplit {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Service-area chip grid */
+.areasGrid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-top: 4px;
+}
+
+.areaChip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 12px;
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  border-radius: 16px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt1);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.areaChip:hover {
+  border-color: rgba(232, 98, 42, 0.4);
+}
+
+.areaChipOn {
+  border-color: var(--coral);
+  background: rgba(232, 98, 42, 0.1);
+  color: #fff;
+}
+
+.areaChipMiss {
+  border-style: dashed;
+  color: var(--txt2);
+  opacity: 0.85;
+}
+
+/* Signature Board scaffold — full editor stubbed (V-3 / mood-board reuse). */
+.sigStub {
+  margin-top: 12px;
+  padding: 22px 18px;
+  background: rgba(255, 255, 255, 0.015);
+  border: 0.5px dashed rgba(232, 98, 42, 0.3);
+  border-radius: 14px;
+}
+
+.sigStubEye {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--coral);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.sigStubH {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 400;
+  color: #fff;
+  margin: 0 0 8px;
+  letter-spacing: -0.3px;
+}
+
+.sigStubH em {
+  font-style: italic;
+  color: var(--coral);
+}
+
+.sigStubDesc {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--txt2);
+  margin: 0 0 14px;
+}
+
+.sigStubTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  background: rgba(232, 98, 42, 0.08);
+  border-radius: 14px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--coral);
+  font-weight: 600;
+  letter-spacing: 0.06em;
+}
+
+/* Inline error banner — shared shape with Stage1.module.css */
+.errorBanner {
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  background: rgba(232, 98, 42, 0.08);
+  border: 0.5px solid rgba(232, 98, 42, 0.3);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--coral);
+}

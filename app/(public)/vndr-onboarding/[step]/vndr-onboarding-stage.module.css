@@ -1,0 +1,293 @@
+/* Public Vndr Stages 1–4 — /vndr-onboarding/[step]/.
+ * Source: 02_Locked_Prototypes/Vndr/evntcue_vndr_freemium_v1.html lines
+ * 782–1301 (Stages 1, 2, 3, 4). Mirrors Stage 0's .phone chassis from
+ * ../vndr-onboarding.module.css and Venu Door B's formChrome / formProgress
+ * primitives (app/(public)/venues/venues.module.css ~line 398). Coral
+ * progress bar (Venu uses --blue; Vndr uses --coral per the per-portal
+ * accent table at CLAUDE.md 2026-05-05).
+ *
+ * Mobile-first iPhone 12 (390px) minimum. Above 640px the .phone wraps in
+ * a phone-frame preview to match the Stage 0 + Venu pattern.
+ *
+ * Per-stage interior styles (chip grids, form fields, slider tracks, upload
+ * cards) live alongside this file in _components/StageN.module.css so each
+ * stage component owns its surface. This module owns only the chassis +
+ * top-bar chrome + stage body wrapper.
+ */
+
+/* ── PHONE FRAME (mirrors ../vndr-onboarding.module.css .phone) ─────────── */
+.phone {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+  background: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+@media (min-width: 640px) {
+  .phone {
+    margin: 32px auto;
+    border-radius: 36px;
+    border: 0.5px solid var(--bdr);
+    overflow: hidden;
+    min-height: 780px;
+    box-shadow: 0 24px 80px rgba(232, 98, 42, 0.08),
+      0 0 0 1px rgba(255, 255, 255, 0.02);
+  }
+}
+
+/* ── TOP CHROME — back · progress · step indicator ─────────────────────── */
+.formChrome {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px 12px;
+  border-bottom: 0.5px solid var(--bdr);
+  flex-shrink: 0;
+}
+
+.formBack {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 0.5px solid var(--bdr);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--txt2);
+  font-size: 16px;
+  cursor: pointer;
+  flex-shrink: 0;
+  background: transparent;
+  text-decoration: none;
+}
+
+.formBackDisabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.formProgress {
+  flex: 1;
+  height: 3px;
+  background: rgba(255, 255, 255, 0.06);
+  border-radius: 2px;
+  position: relative;
+  overflow: hidden;
+}
+
+.formProgressBar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 100%;
+  background: var(--coral);
+  border-radius: 2px;
+  box-shadow: 0 0 8px rgba(232, 98, 42, 0.5);
+  transition: width 0.4s ease;
+}
+
+.formStep {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  font-weight: 600;
+  flex-shrink: 0;
+}
+
+/* ── STAGE BODY — scroll container under the chrome ─────────────────────── */
+.stageBody {
+  padding: 28px 20px 32px;
+  flex: 1;
+  overflow-y: auto;
+}
+
+/* Per-stage components compose into .stageBody. Common stage-level helpers
+ * (heading rhythm, Cue grace-note card, cap-nav bottom bar) live here for
+ * reuse across all four stages. */
+
+.captureHead {
+  margin-bottom: 24px;
+}
+
+.capStepMark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--coral);
+  font-weight: 600;
+  margin-bottom: 14px;
+}
+
+.capStepLine {
+  width: 18px;
+  height: 0.5px;
+  background: var(--coral);
+  opacity: 0.4;
+}
+
+.capStepOf {
+  color: var(--txt2);
+}
+
+.capQ {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  line-height: 1.18;
+  color: #fff;
+  letter-spacing: -0.5px;
+  margin: 0 0 10px;
+}
+
+.capQ em {
+  font-style: italic;
+  color: var(--coral);
+}
+
+.capDesc {
+  font-family: var(--font-ui);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--txt2);
+  margin: 0;
+}
+
+/* Cue grace-note card — "✦ Cue · reading the room" */
+.cueRead {
+  display: flex;
+  gap: 10px;
+  padding: 14px 14px 14px 12px;
+  background: rgba(232, 98, 42, 0.04);
+  border: 0.5px solid rgba(232, 98, 42, 0.18);
+  border-radius: 12px;
+  margin: 0 0 24px;
+}
+
+.cueReadMark {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-style: italic;
+  color: var(--coral);
+  line-height: 1;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.cueReadBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.cueReadTag {
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--coral);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.cueReadTxt {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--txt1);
+}
+
+.cueReadTxt strong {
+  color: #fff;
+  font-weight: 500;
+}
+
+/* Bottom nav — back · meta · primary ───────────────────────────────────── */
+.capNav {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding-top: 28px;
+  margin-top: 32px;
+  border-top: 0.5px solid var(--bdr);
+}
+
+.capBack {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--txt2);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  padding: 4px 0;
+  text-decoration: none;
+}
+
+.capBack svg {
+  width: 14px;
+  height: 14px;
+}
+
+.capMeta {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  text-align: center;
+  flex: 1;
+}
+
+.btnPrimary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 11px 18px;
+  background: var(--coral);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  border: none;
+  border-radius: 10px;
+  cursor: pointer;
+  text-decoration: none;
+  transition: opacity 0.15s ease;
+}
+
+.btnPrimary:hover {
+  opacity: 0.9;
+}
+
+.btnPrimary[disabled],
+.btnPrimaryDisabled {
+  opacity: 0.4;
+  pointer-events: none;
+}
+
+.btnPrimary svg {
+  width: 14px;
+  height: 14px;
+}
+
+/* Placeholder content shown while individual stages are stubbed — removed
+ * as each stage gets its real component wired into page.tsx. */
+.stagePlaceholder {
+  text-align: center;
+  padding: 48px 20px;
+  font-family: var(--font-ui);
+  color: var(--txt2);
+  font-size: 13px;
+}

@@ -1,0 +1,207 @@
+/* Stage 3 — Capacity & pricing.
+ * 3 sliders (starting_price, concurrent_max, referral_rate_pct) + 2 toggle
+ * pairs (pricing_model, booking_mode). Source:
+ * 02_Locked_Prototypes/Vndr/evntcue_vndr_freemium_v1.html lines 1060-1192.
+ */
+
+.sliderBlock {
+  margin-bottom: 28px;
+}
+
+.sliderLabelRow {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 12px;
+}
+
+.sliderLabelLeft {
+  flex: 1;
+  min-width: 0;
+}
+
+.fLbl {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--coral);
+  font-weight: 600;
+}
+
+.fHelp {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt2);
+  line-height: 1.4;
+  margin-top: 4px;
+}
+
+.sliderValWrap {
+  text-align: right;
+  flex-shrink: 0;
+}
+
+.sliderVal {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  color: #fff;
+  line-height: 1;
+  display: block;
+  letter-spacing: -0.5px;
+}
+
+.sliderValPct {
+  font-size: 18px;
+  color: var(--txt2);
+}
+
+.sliderValSub {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  font-weight: 600;
+  margin-top: 4px;
+}
+
+.sliderTrackWrap {
+  margin-bottom: 10px;
+}
+
+.fSlider {
+  width: 100%;
+  -webkit-appearance: none;
+  appearance: none;
+  height: 4px;
+  background: linear-gradient(
+    to right,
+    var(--coral) 0%,
+    var(--coral) var(--track-pct, 50%),
+    rgba(255, 255, 255, 0.08) var(--track-pct, 50%),
+    rgba(255, 255, 255, 0.08) 100%
+  );
+  border-radius: 2px;
+  outline: none;
+  cursor: pointer;
+}
+
+.fSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  background: var(--coral);
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 0 1px var(--coral), 0 0 8px rgba(232, 98, 42, 0.4);
+  cursor: pointer;
+}
+
+.fSlider::-moz-range-thumb {
+  width: 18px;
+  height: 18px;
+  background: var(--coral);
+  border-radius: 50%;
+  border: 2px solid var(--ink);
+  box-shadow: 0 0 0 1px var(--coral), 0 0 8px rgba(232, 98, 42, 0.4);
+  cursor: pointer;
+}
+
+.sliderTicks {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-family: var(--font-ui);
+  font-size: 9px;
+  color: var(--txt2);
+  letter-spacing: 0.1em;
+}
+
+.sliderBench {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  color: var(--txt1);
+  line-height: 1.55;
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border-left: 2px solid var(--coral);
+  border-radius: 0 6px 6px 0;
+}
+
+.sliderBench em {
+  font-style: italic;
+  color: var(--coral);
+}
+
+/* Toggle pair — two cards side-by-side */
+.togglePair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 8px;
+}
+
+.toggleCard {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--txt2);
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.toggleCard:hover {
+  border-color: rgba(232, 98, 42, 0.4);
+  color: var(--txt1);
+}
+
+.toggleCardOn {
+  border-color: var(--coral);
+  background: rgba(232, 98, 42, 0.06);
+  color: #fff;
+}
+
+.togT {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: inherit;
+}
+
+.togD {
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  color: var(--txt2);
+  line-height: 1.45;
+}
+
+.referralSection {
+  margin-top: 32px;
+  padding-top: 26px;
+  border-top: 0.5px solid var(--bdr);
+}
+
+.formRow {
+  margin-bottom: 22px;
+}
+
+.errorBanner {
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  background: rgba(232, 98, 42, 0.08);
+  border: 0.5px solid rgba(232, 98, 42, 0.3);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--coral);
+}

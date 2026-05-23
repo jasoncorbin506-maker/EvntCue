@@ -1,0 +1,291 @@
+/* Stage 4 — Verify & connect.
+ * Two soft-gate cert cards (COI, business license) + escrow explainer +
+ * Stripe Connect stub + finish action. Source:
+ * 02_Locked_Prototypes/Vndr/evntcue_vndr_freemium_v1.html lines 1198-1301.
+ *
+ * Conditional TABC + food_handler reveal logic removed 2026-05-23 alongside
+ * Lock 14 amendment (Dessert & Bar moved to Catr portal). Cert cards are
+ * now unconditional — both shown to every Vndr.
+ */
+
+.uploadStack {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 24px 0;
+}
+
+.uploadCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 14px 14px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+}
+
+.ucIco {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: rgba(232, 98, 42, 0.08);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--coral);
+}
+
+.ucBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.ucH {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+}
+
+.ucTag {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 7px;
+  background: rgba(232, 98, 42, 0.12);
+  border-radius: 8px;
+  font-size: 8.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--coral);
+  font-weight: 600;
+}
+
+.ucTagOptional {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--txt2);
+}
+
+.ucD {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  color: var(--txt2);
+  line-height: 1.5;
+}
+
+.ucBtn {
+  flex-shrink: 0;
+  align-self: flex-start;
+  padding: 8px 14px;
+  background: transparent;
+  border: 0.5px solid var(--coral);
+  border-radius: 8px;
+  color: var(--coral);
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.ucBtn:hover {
+  background: rgba(232, 98, 42, 0.08);
+}
+
+.ucBtnUploaded {
+  border-color: rgba(255, 255, 255, 0.18);
+  color: var(--txt2);
+  background: rgba(255, 255, 255, 0.02);
+  cursor: default;
+}
+
+.ucBtnUploaded:hover {
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.ucBtnPending {
+  opacity: 0.6;
+  pointer-events: none;
+}
+
+/* Escrow explainer — strategic feature, port verbatim per §75 pattern #7. */
+.escrowCard {
+  margin: 32px 0 24px;
+  padding: 22px 18px;
+  background: rgba(232, 98, 42, 0.04);
+  border: 0.5px solid rgba(232, 98, 42, 0.18);
+  border-radius: 14px;
+}
+
+.escrowEye {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--coral);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.escrowH {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 400;
+  color: #fff;
+  margin: 0 0 10px;
+  letter-spacing: -0.3px;
+  line-height: 1.25;
+}
+
+.escrowH em {
+  font-style: italic;
+  color: var(--coral);
+}
+
+.escrowSub {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.55;
+  color: var(--txt1);
+  margin: 0 0 18px;
+}
+
+.escrowFlow {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  margin-bottom: 18px;
+}
+
+.efStep {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.efNum {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: var(--coral);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-style: italic;
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+.efBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.efT {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 3px;
+}
+
+.efD {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  color: var(--txt2);
+  line-height: 1.5;
+}
+
+.efD em {
+  font-style: italic;
+  color: var(--txt1);
+}
+
+.escrowFoot {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-style: italic;
+  line-height: 1.55;
+  color: var(--txt1);
+  margin: 0;
+  padding-top: 14px;
+  border-top: 0.5px solid rgba(232, 98, 42, 0.18);
+}
+
+.escrowFoot em {
+  color: var(--coral);
+}
+
+/* Stripe Connect stub card. */
+.stripeCard {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 4px;
+  padding: 14px 14px 14px 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+}
+
+.stripeIc {
+  width: 32px;
+  height: 32px;
+  flex-shrink: 0;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.05);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--txt1);
+}
+
+.stripeBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.stripeH {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: #fff;
+  margin-bottom: 4px;
+}
+
+.stripeD {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  color: var(--txt2);
+  line-height: 1.5;
+}
+
+.stripeStub {
+  margin-top: 8px;
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--coral);
+  font-weight: 600;
+}
+
+.errorBanner {
+  margin: 16px 0 0;
+  padding: 10px 12px;
+  background: rgba(232, 98, 42, 0.08);
+  border: 0.5px solid rgba(232, 98, 42, 0.3);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--coral);
+}
