@@ -974,6 +974,13 @@
   padding: 18px;
   max-height: 88vh;
   overflow-y: auto;
+  /* Hide the visible scrollbar — scroll still functions on small screens
+   * where the card overflows. Per Jason's feedback 2026-05-23. */
+  scrollbar-width: none; /* Firefox */
+  -ms-overflow-style: none; /* IE/Edge legacy */
+}
+.dpCard::-webkit-scrollbar {
+  display: none; /* WebKit (Safari, Chrome) */
 }
 .dpHead {
   display: flex;
@@ -1139,4 +1146,57 @@
   border-color: var(--rb);
   color: var(--rt);
   background: var(--rl);
+}
+
+/* F7 — TimePicker section below the date grid */
+.dpTime {
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--bdr);
+}
+
+/* Footer button row — Cancel + "Set date" */
+.dpFoot {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  gap: 10px;
+  margin-top: 14px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--bdr);
+}
+
+.dpCancel {
+  padding: 9px 16px;
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--txt2);
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+.dpCancel:hover {
+  border-color: var(--bdr2);
+  color: var(--txt);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.dpConfirm {
+  padding: 9px 18px;
+  background: var(--rose);
+  border: 0.5px solid var(--rose);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  transition: opacity 150ms ease, box-shadow 150ms ease;
+}
+.dpConfirm:hover {
+  opacity: 0.92;
+  box-shadow: 0 4px 14px rgba(212, 119, 138, 0.25);
 }

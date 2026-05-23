@@ -4,6 +4,7 @@ import { cookies } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getLocale } from "@/i18n/locale";
+import { logEventHistoryWrite } from "@/lib/events/timing";
 import {
   CATEGORIES,
   dbHorizonFromUi,
@@ -28,6 +29,7 @@ export type CalcCookieState = {
   tax: number;
   grand: number;
   selectedDateIso?: string;  // set when user picked a date on /event-preview
+  selectedTimeIso?: string | null; // "HH:MM:SS" 24h or null = all-day (Q3)
 };
 
 const horizonToStartDate = (h: DateHorizon): string => {
@@ -274,6 +276,16 @@ export async function seedEventFromCalcState(
       ? state.selectedDateIso!
       : horizonToStartDate(state.dateHorizon);
 
+    // Per Q3 — normalize selectedTimeIso to "HH:MM:SS" or null (= all-day).
+    // The cookie may carry "HH:MM" (HTML input type="time" default), null,
+    // or undefined. Validate before stamping into events.start_time.
+    let startTime: string | null = null;
+    if (typeof state.selectedTimeIso === "string") {
+      const raw = state.selectedTimeIso;
+      if (/^\d{2}:\d{2}:\d{2}$/.test(raw)) startTime = raw;
+      else if (/^\d{2}:\d{2}$/.test(raw)) startTime = `${raw}:00`;
+    }
+
     const { data: event, error: eventErr } = await admin
       .from("events")
       .insert({
@@ -282,6 +294,9 @@ export async function seedEventFromCalcState(
         event_subtype: state.subtypeKey,  // 3.2.C — drives milestone rail subtype lookup
         orgnz_tenant_id: tenantId,
         start_date: startDate,
+        start_time: startTime,             // Q3 — null = all-day
+        date_status: "tentative",          // Q1 — calc-state defaults to tentative
+        duration_minutes: null,            // Q5 — app code defaults to 240 at use time
         guest_count: state.guestCount,
         budget_cents: Math.round(state.grand * 100),
         contingency_pct: state.contingencyPct,
@@ -307,6 +322,26 @@ export async function seedEventFromCalcState(
 
       if (lineRows.length > 0) {
         await admin.from("event_budgets").insert(lineRows);
+      }
+
+      // Per F3.b — append event_history entries for the initial timing
+      // values. One row per field so future diff queries can target by
+      // field. Reason="Event created from calc state" is canonical.
+      const eventId = event.id as string;
+      const initialFields: ReadonlyArray<{ field: string; newValue: unknown }> = [
+        { field: "start_date", newValue: startDate },
+        { field: "start_time", newValue: startTime },
+        { field: "date_status", newValue: "tentative" },
+      ];
+      for (const f of initialFields) {
+        await logEventHistoryWrite(admin, {
+          eventId,
+          userId: args.userId,
+          field: f.field,
+          oldValue: null,
+          newValue: f.newValue,
+          reason: "Event created from calc state",
+        });
       }
     }
   }

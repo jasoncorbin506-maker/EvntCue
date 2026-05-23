@@ -269,25 +269,38 @@ function DateSelector({ data }: { data: PreviewData }) {
   const t = useTranslations("preview");
   const locale = useLocale();
   const [iso, setIso] = useState(data.selectedDateIso);
+  // selectedTime is "HH:MM" / "HH:MM:SS" 24h or null = all-day (Q3).
+  // Sourced from data.selectedTimeIso (parent passes through from cookie).
+  const [time, setTime] = useState<string | null>(data.selectedTimeIso ?? null);
   const [pickerOpen, setPickerOpen] = useState(false);
   const [, startTransition] = useTransition();
   const router = useRouter();
 
-  function persist(next: string) {
-    setIso(next);
+  function persist(next: { iso: string; timeIso: string | null }) {
+    setIso(next.iso);
+    setTime(next.timeIso);
     setPickerOpen(false);
     startTransition(async () => {
-      await updateSelectedDate({ iso: next });
+      await updateSelectedDate({ iso: next.iso, timeIso: next.timeIso });
       router.refresh();
     });
   }
 
-  const longDate = new Intl.DateTimeFormat(locale === "es" ? "es-MX" : "en-US", {
+  const intlLocale = locale === "es" ? "es-MX" : "en-US";
+  const longDate = new Intl.DateTimeFormat(intlLocale, {
     weekday: "long",
     month: "long",
     day: "numeric",
     year: "numeric",
   }).format(new Date(iso + "T00:00:00"));
+
+  const timeLabel = time
+    ? new Intl.DateTimeFormat(intlLocale, {
+        hour: "numeric",
+        minute: "2-digit",
+        hour12: true,
+      }).format(new Date(`${iso}T${time.length === 5 ? time + ":00" : time}`))
+    : null;
 
   return (
     <div className={s.card}>
@@ -305,13 +318,17 @@ function DateSelector({ data }: { data: PreviewData }) {
         className={`${s.dateTrigger} ${s.dateTriggerHasValue}`}
         onClick={() => setPickerOpen(true)}
       >
-        <span className={s.dateTriggerText}>{longDate}</span>
+        <span className={s.dateTriggerText}>
+          {longDate}
+          {timeLabel ? ` · ${timeLabel}` : ""}
+        </span>
         <span className={s.dateTriggerIcon}>›</span>
       </button>
       <p className={s.dateFoot}>{t("yourDateFoot")}</p>
       <DatePickerModal
         open={pickerOpen}
         selectedIso={iso}
+        selectedTime={time}
         onPick={persist}
         onClose={() => setPickerOpen(false)}
       />

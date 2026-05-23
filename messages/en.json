@@ -503,5 +503,50 @@
   },
   "cue": {
     "languageInjection": ""
+  },
+  "events": {
+    "timing": {
+      "editor": {
+        "titleEdit": "Edit your <em>date</em>",
+        "titleCascades": "Heads up — this <em>cascades</em>",
+        "titleSaved": "Saved",
+        "warningForm": "Moving the event date can ripple to milestones, vendor schedules, and timelines. We’ll show you what changes and what needs your approval before anything saves.",
+        "warningPreviewEmpty": "You’re changing your event date. Nothing else cascades — but this is your event date. Sure?",
+        "warningPreviewItems": "This change affects {count} item{plural}. Review before applying — nothing is saved yet.",
+        "dateLabel": "Date",
+        "timeLabel": "Time",
+        "timeHelp": "All day events skip time-of-day.",
+        "reasonLabel": "Reason (optional)",
+        "reasonPlaceholder": "Why is this changing? Logged to event history.",
+        "summaryLabel": "Your event date",
+        "emptyCascadeNote": "✓ No milestones or custom items depend on this date yet — nothing else needs to shift.",
+        "autoShiftHead": "Will auto-shift ({count})",
+        "autoShiftDesc": "These items are scheduled relative to your event date — they move with it automatically.",
+        "needsApprovalHead": "Needs your approval ({count})",
+        "needsApprovalDesc": "These items have fixed dates — they stay put unless you check “shift it”.",
+        "savedMessage": "✓ Date updated",
+        "triggerEdit": "✎ Edit",
+        "btnCancel": "Cancel",
+        "btnBack": "Back",
+        "btnContinue": "Continue",
+        "btnApply": "Apply changes",
+        "btnChecking": "Checking…",
+        "btnApplying": "Applying…",
+        "cueTagWarn": "Cue · tight timeline",
+        "cueTagDanger": "Cue · short notice",
+        "cueTextWarn": "Most {category} bookings happen {recommended}+ months out. You’d be at {actual} months — some vendors may have limited availability.",
+        "cueTextDanger": "Most {category} bookings happen {recommended}+ months out. You’d be at {actual} months. Many vendors won’t be able to accommodate at this lead time.",
+        "vendorTag": "Booked vendors",
+        "vendorTextSingle": "1 vendor has a committed booking on this date. Changing the date will require them to re-confirm — vendor notification + re-acceptance lands with Phase 4. <em>Notify them directly until then.</em>",
+        "vendorTextMultiple": "{count} vendors have committed bookings on this date. Changing the date will require them to re-confirm — vendor notification + re-acceptance lands with Phase 4. <em>Notify them directly until then.</em>"
+      },
+      "lock": {
+        "eyebrow": "Your date is tentative",
+        "headline": "Lock it <em>in?</em>",
+        "body": "Once you lock, vendor calendars block your slot and the confirmation goes out to anyone you’ve invited. You can still edit the date after locking — we’ll show you what cascades.",
+        "button": "Lock my date",
+        "locking": "Locking…"
+      }
+    }
   }
 }

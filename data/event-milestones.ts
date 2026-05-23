@@ -29,6 +29,7 @@
  */
 
 import type { CategoryKey } from "./budget-presets";
+import type { TaskAnchor } from "@/lib/events/timing";
 
 export type MilestoneStatus = "now" | "next" | "open" | "done";
 
@@ -37,6 +38,21 @@ export type Milestone = {
   label: string;
   detail?: string;
   lead: number; // months before event
+  /**
+   * F6.b task anchor — controls cascade-preview classification when the
+   * event's start date moves. Defaults to 'relative_to_start' with
+   * offsetMonths = -lead (the existing seed-catalog convention — every
+   * milestone in this file keys off the event date and shifts when it
+   * moves). Set explicitly to 'absolute' for milestones that should stay
+   * on a fixed calendar date regardless of the event date — those land in
+   * the cascade preview pane's "needs your approval" column per F2.b.
+   *
+   * `milestoneEffectiveAnchor()` in lib/events/timing.ts applies the
+   * defaults; this file's existing entries don't need explicit anchor
+   * fields because every one is implicitly relative.
+   */
+  anchor?: TaskAnchor;
+  offsetMonths?: number;
 };
 
 export type MilestoneWithStatus = Milestone & { status: MilestoneStatus };

@@ -5,6 +5,7 @@ import { CuePill } from "./_components/CuePill";
 import { Feed, type FeedCard } from "./_components/Feed";
 import { RunOfShow } from "./_components/RunOfShow";
 import { Hero } from "./_components/Hero";
+import { LockDateCta } from "./_components/LockDateCta";
 import { SheetManager } from "./_components/SheetManager";
 import { TileGrid } from "./_components/TileGrid";
 import { TimelineRail } from "./_components/TimelineRail";
@@ -191,6 +192,24 @@ export default async function OrgnzDashboardPage() {
         longDate={longDate}
         daysOut={days}
         guestCount={event.guest_count}
+        eventId={event.id}
+        timing={{
+          start_date: event.start_date,
+          start_time: event.start_time,
+          timezone: event.timezone,
+          date_status: event.date_status,
+          duration_minutes: event.duration_minutes,
+        }}
+      />
+      <LockDateCta
+        eventId={event.id}
+        currentTiming={{
+          start_date: event.start_date,
+          start_time: event.start_time,
+          timezone: event.timezone,
+          date_status: event.date_status,
+          duration_minutes: event.duration_minutes,
+        }}
       />
       <TimelineRail
         pins={pins}

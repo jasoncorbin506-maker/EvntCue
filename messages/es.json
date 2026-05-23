@@ -503,5 +503,50 @@
   },
   "cue": {
     "languageInjection": "Responde en español natural — no traduzcas del inglés palabra por palabra. Usa el registro propio del español (vals de quinceañera, padrinos, sangeet, pre-Cana, etc., en su forma natural). El contexto cultural del evento es: {eventType}, {subtype}. El usuario es bilingüe; siéntete cómodo dejando términos técnicos en inglés cuando sea más claro (mood board, Cue, Plnr, Vndr, Catr, Venu, Orgnz)."
+  },
+  "events": {
+    "timing": {
+      "editor": {
+        "titleEdit": "Edita tu <em>fecha</em>",
+        "titleCascades": "Atención — esto <em>cascadea</em>",
+        "titleSaved": "Guardado",
+        "warningForm": "Mover la fecha del evento puede afectar tareas, calendarios de vendors y cronogramas. Te mostramos qué cambia y qué requiere tu aprobación antes de que se guarde algo.",
+        "warningPreviewEmpty": "Estás cambiando la fecha de tu evento. Nada más se mueve — pero esta es la fecha de tu evento. ¿Seguro?",
+        "warningPreviewItems": "Este cambio afecta {count} elemento{plural}. Revísalo antes de aplicar — nada se ha guardado todavía.",
+        "dateLabel": "Fecha",
+        "timeLabel": "Hora",
+        "timeHelp": "Los eventos de día completo no requieren hora.",
+        "reasonLabel": "Razón (opcional)",
+        "reasonPlaceholder": "¿Por qué cambia esto? Se guarda en el historial del evento.",
+        "summaryLabel": "Fecha de tu evento",
+        "emptyCascadeNote": "✓ Ningún hito ni elemento personalizado depende de esta fecha aún — nada más necesita moverse.",
+        "autoShiftHead": "Se moverán automáticamente ({count})",
+        "autoShiftDesc": "Estos elementos están programados en relación a la fecha de tu evento — se mueven con ella automáticamente.",
+        "needsApprovalHead": "Necesitan tu aprobación ({count})",
+        "needsApprovalDesc": "Estos elementos tienen fechas fijas — se quedan donde están a menos que marques “moverlo”.",
+        "savedMessage": "✓ Fecha actualizada",
+        "triggerEdit": "✎ Editar",
+        "btnCancel": "Cancelar",
+        "btnBack": "Atrás",
+        "btnContinue": "Continuar",
+        "btnApply": "Aplicar cambios",
+        "btnChecking": "Verificando…",
+        "btnApplying": "Aplicando…",
+        "cueTagWarn": "Cue · tiempo justo",
+        "cueTagDanger": "Cue · poco aviso",
+        "cueTextWarn": "La mayoría de las reservaciones de {category} se hacen con {recommended}+ meses de anticipación. Estarías a {actual} meses — algunos vendors podrían tener disponibilidad limitada.",
+        "cueTextDanger": "La mayoría de las reservaciones de {category} se hacen con {recommended}+ meses de anticipación. Estarías a {actual} meses. Muchos vendors no podrán acomodarte con tan poco tiempo.",
+        "vendorTag": "Vendors reservados",
+        "vendorTextSingle": "1 vendor tiene una reservación confirmada en esta fecha. Cambiar la fecha requerirá que vuelva a confirmar — el sistema de notificación + re-aceptación llega con la Fase 4. <em>Avísale directamente mientras tanto.</em>",
+        "vendorTextMultiple": "{count} vendors tienen reservaciones confirmadas en esta fecha. Cambiar la fecha requerirá que vuelvan a confirmar — el sistema de notificación + re-aceptación llega con la Fase 4. <em>Avísales directamente mientras tanto.</em>"
+      },
+      "lock": {
+        "eyebrow": "Tu fecha es tentativa",
+        "headline": "¿La <em>aseguramos?</em>",
+        "body": "En cuanto la asegures, los calendarios de los vendors bloquean tu espacio y la confirmación sale para todos los invitados. Aún puedes editar la fecha después — te mostramos qué se cascadea.",
+        "button": "Asegurar mi fecha",
+        "locking": "Asegurando…"
+      }
+    }
   }
 }

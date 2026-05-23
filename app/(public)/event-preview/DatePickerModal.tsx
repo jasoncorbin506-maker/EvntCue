@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { TimePicker } from "@/app/_components/TimePicker";
 import s from "./preview.module.css";
 
 const MONTHS = [
@@ -22,10 +23,13 @@ function midnight(d: Date): Date {
   return out;
 }
 
+type PickArgs = { iso: string; timeIso: string | null };
+
 type Props = {
   open: boolean;
   selectedIso: string;
-  onPick: (iso: string) => void;
+  selectedTime: string | null;
+  onPick: (args: PickArgs) => void;
   onClose: () => void;
 };
 
@@ -36,9 +40,11 @@ export function DatePickerModal(props: Props) {
 
 /**
  * Form state lives in the inner card so each open mounts fresh — anchored on
- * the currently selected date — without needing setState-in-effect to re-sync.
+ * the currently selected date/time — without needing setState-in-effect to
+ * re-sync. Two-step UX: pick date (grid or quick pill) + optionally pick
+ * time → click "Set date" to commit. Per F7 placement (time below date).
  */
-function DatePickerCard({ selectedIso, onPick, onClose }: Props) {
+function DatePickerCard({ selectedIso, selectedTime, onPick, onClose }: Props) {
   const today = useMemo(() => midnight(new Date()), []);
   const todayIso = useMemo(
     () => toIso(today.getFullYear(), today.getMonth(), today.getDate()),
@@ -53,6 +59,10 @@ function DatePickerCard({ selectedIso, onPick, onClose }: Props) {
 
   const [viewYear, setViewYear] = useState(initial.year);
   const [viewMonth, setViewMonth] = useState(initial.month);
+  // Local picked state — separate from the parent's selectedIso so the user
+  // can stage a change without committing until they click Confirm.
+  const [pickedIso, setPickedIso] = useState(selectedIso);
+  const [pickedTime, setPickedTime] = useState<string | null>(selectedTime);
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -87,14 +97,12 @@ function DatePickerCard({ selectedIso, onPick, onClose }: Props) {
     setViewYear(y);
   }
 
-  function quick(daysAhead: number) {
-    const d = new Date();
-    d.setDate(d.getDate() + daysAhead);
-    onPick(toIso(d.getFullYear(), d.getMonth(), d.getDate()));
-  }
-
   function backdrop(e: React.MouseEvent<HTMLDivElement>) {
     if (e.target === e.currentTarget) onClose();
+  }
+
+  function confirm() {
+    onPick({ iso: pickedIso, timeIso: pickedTime });
   }
 
   const firstDay = new Date(viewYear, viewMonth, 1).getDay();
@@ -178,7 +186,7 @@ function DatePickerCard({ selectedIso, onPick, onClose }: Props) {
           {cells.map((cell, i) => {
             if (cell.day === null) return <div key={i} className={`${s.dpDay} ${s.dpDayEmpty}`} />;
             const isToday = cell.iso === todayIso;
-            const isSelected = cell.iso === selectedIso;
+            const isSelected = cell.iso === pickedIso;
             const cls = [
               s.dpDay,
               cell.isPast ? s.dpDayPast : "",
@@ -191,25 +199,31 @@ function DatePickerCard({ selectedIso, onPick, onClose }: Props) {
                 type="button"
                 className={cls}
                 disabled={cell.isPast}
-                onClick={() => cell.iso && onPick(cell.iso)}
+                onClick={() => cell.iso && setPickedIso(cell.iso)}
               >
                 {cell.day}
               </button>
             );
           })}
         </div>
-        <div className={s.dpQuick}>
-          <button type="button" className={s.dpQuickPill} onClick={() => quick(30)}>
-            +30 days
+        {/* Per F7 — time selector lives below the date picker. Choice-
+         * architected per Option C (2026-05-23): preset chips + Custom +
+         * All day. "All day" sets value to null per Q3. */}
+        <div className={s.dpTime}>
+          <TimePicker
+            value={pickedTime}
+            onChange={setPickedTime}
+            label="Time of day"
+            helpText="Tap a common time, set a custom one, or All day. You can change this later from your dashboard."
+          />
+        </div>
+
+        <div className={s.dpFoot}>
+          <button type="button" className={s.dpCancel} onClick={onClose}>
+            Cancel
           </button>
-          <button type="button" className={s.dpQuickPill} onClick={() => quick(90)}>
-            +3 months
-          </button>
-          <button type="button" className={s.dpQuickPill} onClick={() => quick(180)}>
-            +6 months
-          </button>
-          <button type="button" className={s.dpQuickPill} onClick={() => quick(365)}>
-            +1 year
+          <button type="button" className={s.dpConfirm} onClick={confirm}>
+            Set date
           </button>
         </div>
       </div>

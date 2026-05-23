@@ -105,6 +105,7 @@ export type PreviewData = {
   typicalPerGuest: number;
   // Date selector
   selectedDateIso: string;     // current pick (or horizon-midpoint default)
+  selectedTimeIso: string | null; // "HH:MM:SS" 24h or null = all-day (Q3)
   defaultDateIso: string;      // horizon-midpoint baseline for reset
   earliestDateIso: string;     // today
   horizonLabel: string;        // e.g. "8–10 mo"
@@ -129,6 +130,7 @@ export default async function EventPreviewPage() {
     tax: number;
     grand: number;
     selectedDateIso?: string;
+    selectedTimeIso?: string | null; // "HH:MM:SS" 24h or null = all-day (Q3)
   };
 
   let parsed: Cookie;
@@ -179,6 +181,14 @@ export default async function EventPreviewPage() {
   // already picked a date on this page, the cookie carries it forward.
   const defaultDateIso = isoFromMonthsAhead(horizonMonths);
   const selectedDateIso = parsed.selectedDateIso ?? defaultDateIso;
+  // Time is optional (Q3 — NULL = all-day). Validate "HH:MM:SS" or "HH:MM";
+  // anything else gets coerced to null. Pads "HH:MM" → "HH:MM:00" for the DB.
+  let selectedTimeIso: string | null = null;
+  if (typeof parsed.selectedTimeIso === "string") {
+    const raw = parsed.selectedTimeIso;
+    if (/^\d{2}:\d{2}:\d{2}$/.test(raw)) selectedTimeIso = raw;
+    else if (/^\d{2}:\d{2}$/.test(raw)) selectedTimeIso = `${raw}:00`;
+  }
   const horizonLabel = DATE_HORIZONS.find((h) => h.value === parsed.dateHorizon)?.label ?? "—";
 
   // Auth-aware CTA. Funnel-while-already-signed-in users see "Add to your
@@ -211,6 +221,7 @@ export default async function EventPreviewPage() {
     typicalGuests,
     typicalPerGuest,
     selectedDateIso,
+    selectedTimeIso,
     defaultDateIso,
     earliestDateIso: todayIso(),
     horizonLabel,

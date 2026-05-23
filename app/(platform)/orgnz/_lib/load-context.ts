@@ -9,6 +9,11 @@ export type OrgnzEvent = {
   event_subtype: string | null;
   start_date: string;
   start_time: string | null;
+  // Migration 043 — F1.b / F5.b / Q5 in
+  // decisions-log/2026-05-23-event-start-time-architecture.md
+  timezone: string;
+  date_status: "tentative" | "confirmed" | "final";
+  duration_minutes: number | null;
   guest_count: number | null;
   budget_cents: number | null;
   contingency_pct: number | null;
@@ -86,7 +91,7 @@ export const loadOrgnzContext = cache(async (): Promise<OrgnzContext | null> => 
     const { data: events } = await admin
       .from("events")
       .select(
-        "id,name,event_type,event_subtype,start_date,start_time,guest_count,budget_cents,contingency_pct",
+        "id,name,event_type,event_subtype,start_date,start_time,timezone,date_status,duration_minutes,guest_count,budget_cents,contingency_pct",
       )
       .eq("orgnz_tenant_id", tenantId)
       .order("created_at", { ascending: false })

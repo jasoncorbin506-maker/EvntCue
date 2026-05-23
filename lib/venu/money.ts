@@ -18,19 +18,47 @@ export type MoneyBreakdown = {
  * Returns [startIso, endIso] inclusive of start, exclusive of end (standard
  * half-open interval). For "all-time" returns sentinel dates that include
  * everything reasonable.
+ *
+ * Per F4.b in decisions-log/2026-05-23-event-start-time-architecture.md —
+ * money periods are operational, so boundaries are computed in the event-
+ * local timezone (not the server's TZ, which on Vercel = UTC and would
+ * silently misbehave at month boundaries for CST users). Defaults to
+ * 'America/Chicago' to match the `events.timezone` DEFAULT from migration
+ * 001 — once venues store their own TZ, callers pass it through.
+ *
+ * Note: events.start_date is a DATE column (no TZ), so the actual filter
+ * comparison is TZ-agnostic — a wedding on "2026-05-15" is on May 15 in
+ * every TZ. The TZ-awareness here is purely about WHICH MONTH IS "NOW" —
+ * i.e., what calendar boundaries we derive from the wall-clock moment of
+ * the request.
  */
-function periodToRange(period: MoneyPeriod, today: Date = new Date()): [string, string] {
-  const y = today.getFullYear();
-  const m = today.getMonth();
+function periodToRange(
+  period: MoneyPeriod,
+  tz: string = "America/Chicago",
+  today: Date = new Date(),
+): [string, string] {
+  const fmt = new Intl.DateTimeFormat("en-US", {
+    timeZone: tz,
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  });
+  const parts = fmt.formatToParts(today);
+  const get = (type: string) =>
+    Number(parts.find((p) => p.type === type)?.value ?? 0);
+  const y = get("year");
+  const m = get("month") - 1; // 0-indexed
+  const pad = (n: number) => String(n).padStart(2, "0");
+
   if (period === "this-month") {
-    const start = new Date(y, m, 1);
-    const end = new Date(y, m + 1, 1);
-    return [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)];
+    const startIso = `${y}-${pad(m + 1)}-01`;
+    const endIso = m === 11
+      ? `${y + 1}-01-01`
+      : `${y}-${pad(m + 2)}-01`;
+    return [startIso, endIso];
   }
   if (period === "ytd") {
-    const start = new Date(y, 0, 1);
-    const end = new Date(y + 1, 0, 1);
-    return [start.toISOString().slice(0, 10), end.toISOString().slice(0, 10)];
+    return [`${y}-01-01`, `${y + 1}-01-01`];
   }
   // all-time: 100 years back to 100 years forward
   return ["1900-01-01", "2100-01-01"];
@@ -58,8 +86,15 @@ const PERIOD_LABELS: Record<MoneyPeriod, string> = {
 export async function getVenueMoney(
   tenantId: string,
   period: MoneyPeriod,
+  /**
+   * Per F4.b — venue TZ for period-boundary computation. Defaults to
+   * 'America/Chicago' (the events.timezone DEFAULT from migration 001 +
+   * the DFW center of mass). When venues get their own .timezone column
+   * (post-V-1b polish), the Money page caller passes it through here.
+   */
+  tz?: string,
 ): Promise<MoneyBreakdown> {
-  const [startIso, endIso] = periodToRange(period);
+  const [startIso, endIso] = periodToRange(period, tz);
   const supabase = await createClient();
 
   // Embed events!bookings_event_id_fkey!inner to disambiguate the two FKs

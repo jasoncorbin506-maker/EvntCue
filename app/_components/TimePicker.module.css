@@ -1,0 +1,168 @@
+/* TimePicker — chip-based per Option C (2026-05-23). Replaces the
+ * native <input type="time"> after Jason flagged Safari Desktop's segment-
+ * input UX confused users (silent null-time submits). Matches the funnel's
+ * choice-architected pattern (chips + toggle pills throughout). */
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.label {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--rose, var(--coral));
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 13px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 0.5px solid var(--bdr);
+  border-radius: 16px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  color: var(--txt1, #fff);
+  cursor: pointer;
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+
+.chip:hover {
+  border-color: rgba(212, 119, 138, 0.4); /* rose hint */
+}
+
+.chipOn {
+  border-color: var(--rose, var(--coral));
+  background: var(--rl, rgba(232, 98, 42, 0.1));
+  color: #fff;
+}
+
+/* "All day" chip — visually distinct so it reads as a different mode, not
+ * just another time. Dashed border + slight muted treatment until selected. */
+.chipAllDay {
+  border-style: dashed;
+  color: var(--txt2);
+  margin-left: auto; /* push to the end on a flex row */
+}
+
+.chipAllDay.chipOn {
+  border-style: solid;
+  color: #fff;
+  background: var(--rl, rgba(232, 98, 42, 0.1));
+  border-color: var(--rose, var(--coral));
+}
+
+/* "Pick a custom time" toggle — sits below the chips, visually subdued. */
+.customToggle {
+  align-self: flex-start;
+  padding: 4px 0;
+  background: transparent;
+  border: none;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt2);
+  cursor: pointer;
+  transition: color 0.15s ease;
+}
+
+.customToggle:hover {
+  color: var(--rose, var(--coral));
+}
+
+/* Custom row — three controls in a single line: hour select, separator,
+ * minute select, AM/PM toggle pair. */
+.customRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+}
+
+.customSelect {
+  appearance: none;
+  -webkit-appearance: none;
+  padding: 8px 28px 8px 12px;
+  background-color: rgba(0, 0, 0, 0.25);
+  background-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='10' height='6' viewBox='0 0 10 6' fill='none'><path d='M1 1l4 4 4-4' stroke='%23999' stroke-width='1.2' stroke-linecap='round' stroke-linejoin='round'/></svg>");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  border: 0.5px solid var(--bdr);
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: #fff;
+  cursor: pointer;
+  min-width: 56px;
+  text-align: center;
+}
+
+.customSelect:focus {
+  outline: none;
+  border-color: var(--rose, var(--coral));
+}
+
+.customSeparator {
+  font-family: var(--font-ui);
+  font-size: 16px;
+  color: var(--txt2);
+  font-weight: 600;
+}
+
+.amPmGroup {
+  display: inline-flex;
+  margin-left: 4px;
+  border: 0.5px solid var(--bdr);
+  border-radius: 6px;
+  overflow: hidden;
+}
+
+.amPmBtn {
+  padding: 8px 12px;
+  background: transparent;
+  border: none;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  color: var(--txt2);
+  cursor: pointer;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.amPmBtn:not(:last-child) {
+  border-right: 0.5px solid var(--bdr);
+}
+
+.amPmBtn:hover {
+  color: #fff;
+}
+
+.amPmBtnOn {
+  background: var(--rose, var(--coral));
+  color: #fff;
+}
+
+.amPmBtnOn:hover {
+  color: #fff;
+}
+
+.help {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt2);
+  line-height: 1.4;
+}
