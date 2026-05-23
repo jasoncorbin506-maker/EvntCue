@@ -1686,6 +1686,521 @@ async function testVndrPackagesWriteCrossTenantDenied() {
 }
 
 // -----------------------------------------------------------------------------
+// HELPER: seedTestUserMultiRole — for T-22 multi-role tests.
+// -----------------------------------------------------------------------------
+// One auth.uid() bound to N (tenant, role) pairs. Validates the cross-tenant +
+// cross-role surface that the Medium-article Failure Mode 2 warns about
+// (auth.uid() not constrained by tenant_id). Cleanup via the global
+// createdUserIds list.
+//
+// roles arg shape: [{ role: "orgnz" }, { role: "venue" }, ...] — one entry per
+// (role, tenant) pair. Each entry gets its own fresh tenant.
+//
+// Returns: { userId, email, authedClient, tenants: [{ role, tenantId }] }
+async function seedTestUserMultiRole(roles) {
+  if (!Array.isArray(roles) || roles.length === 0) {
+    throw new Error("seedTestUserMultiRole requires a non-empty roles array");
+  }
+
+  const label = roles.map((r) => r.role).join("-");
+  const email = `rls-test-${TEST_RUN_ID}-mr-${label}-${randomUUID().slice(0, 6)}@test.evntcue.local`;
+  const password = `Test-${randomUUID()}`;
+
+  const { data: created, error: createErr } = await adminClient.auth.admin.createUser({
+    email,
+    password,
+    email_confirm: true,
+  });
+  if (createErr) throw new Error(`multi-role createUser failed: ${createErr.message}`);
+  const userId = created.user.id;
+  createdUserIds.push(userId);
+
+  const { error: userMirrorErr } = await adminClient.from("users").insert({
+    id: userId,
+    email,
+    language_preference: "en",
+  });
+  if (userMirrorErr) throw new Error(`multi-role users mirror failed: ${userMirrorErr.message}`);
+
+  const tenants = [];
+  for (let i = 0; i < roles.length; i += 1) {
+    const { role } = roles[i];
+    const { data: tenant, error: tenantErr } = await adminClient
+      .from("tenants")
+      .insert({
+        name: `RLS multi-role ${role} ${TEST_RUN_ID}`,
+        type: role,
+        language_preference: "en",
+      })
+      .select("id")
+      .single();
+    if (tenantErr) throw new Error(`multi-role tenant insert (${role}) failed: ${tenantErr.message}`);
+
+    const { error: roleErr } = await adminClient.from("user_roles").insert({
+      user_id: userId,
+      tenant_id: tenant.id,
+      role,
+      is_primary: i === 0,
+    });
+    if (roleErr) throw new Error(`multi-role user_roles insert (${role}) failed: ${roleErr.message}`);
+
+    tenants.push({ role, tenantId: tenant.id });
+  }
+
+  const authedClient = createClient(SUPABASE_URL, ANON_KEY, {
+    auth: { persistSession: false, autoRefreshToken: false },
+  });
+  const { error: signInErr } = await authedClient.auth.signInWithPassword({ email, password });
+  if (signInErr) {
+    throw new Error(`multi-role signInWithPassword failed for ${email}: ${signInErr.message}`);
+  }
+
+  return { userId, email, authedClient, tenants };
+}
+
+// -----------------------------------------------------------------------------
+// TEST: T-22a — Multi-role user (orgnz + venue in different tenants).
+// -----------------------------------------------------------------------------
+// Per SEC-02b RLS audit: confirms cross-tenant + cross-role + same-user
+// isolation. User U has orgnz role in tenant A and venue role in tenant B.
+// Asserts:
+//   1. U can read tenant A's event (orgnz-scoped data).
+//   2. U can read tenant B's venue (venue-scoped data).
+//   3. An unrelated tenant C (different user entirely) — U cannot read C's
+//      events even though U has multiple roles. This is the load-bearing
+//      assertion: multi-role does not become "see everything."
+async function testMultiRoleOrgnzVenu() {
+  const u = await seedTestUserMultiRole([{ role: "orgnz" }, { role: "venue" }]);
+  const orgnzTenant = u.tenants[0].tenantId;
+  const venueTenant = u.tenants[1].tenantId;
+
+  // Seed an event in U's orgnz tenant.
+  const { data: eventA, error: eventErr } = await adminClient
+    .from("events")
+    .insert({
+      orgnz_tenant_id: orgnzTenant,
+      name: `RLS multi-role event A ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      start_date: "2027-06-15",
+    })
+    .select("id")
+    .single();
+  if (eventErr || !eventA) throw new Error(`seed event A failed: ${eventErr?.message}`);
+
+  // Seed a venue in U's venue tenant.
+  const { data: venueB, error: venueErr } = await adminClient
+    .from("venues")
+    .insert({
+      tenant_id: venueTenant,
+      display_name: `RLS multi-role venue B ${TEST_RUN_ID}`,
+      claim_status: "published",
+      acquisition_lane: "self_serve",
+      claimed_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (venueErr || !venueB) throw new Error(`seed venue B failed: ${venueErr?.message}`);
+
+  // Seed an UNRELATED tenant C owned by a different orgnz user. U has no role here.
+  const stranger = await seedTestUser("orgnz");
+  const { data: eventC, error: eventCErr } = await adminClient
+    .from("events")
+    .insert({
+      orgnz_tenant_id: stranger.tenantId,
+      name: `RLS stranger event C ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      start_date: "2027-07-20",
+    })
+    .select("id")
+    .single();
+  if (eventCErr || !eventC) throw new Error(`seed event C failed: ${eventCErr?.message}`);
+
+  // 1. U reads own orgnz event A.
+  const { data: readA, error: readAErr } = await u.authedClient
+    .from("events").select("id").eq("id", eventA.id).maybeSingle();
+  if (readAErr && readAErr.code === "42P17") {
+    throw new Error(`42P17 recursion on multi-role events read: ${readAErr.message}`);
+  }
+  if (!readA) throw new Error(`RLS DENY: multi-role U cannot read own orgnz event`);
+
+  // 2. U reads own venue B.
+  const { data: readB, error: readBErr } = await u.authedClient
+    .from("venues").select("id").eq("id", venueB.id).maybeSingle();
+  if (readBErr && readBErr.code === "42P17") {
+    throw new Error(`42P17 recursion on multi-role venues read: ${readBErr.message}`);
+  }
+  if (!readB) throw new Error(`RLS DENY: multi-role U cannot read own venue`);
+
+  // 3. U cannot read unrelated tenant C's event.
+  const { data: leak, error: leakErr } = await u.authedClient
+    .from("events").select("id").eq("id", eventC.id).maybeSingle();
+  if (leakErr && leakErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant events read: ${leakErr.message}`);
+  }
+  if (leak) {
+    throw new Error(
+      `RLS LEAK: multi-role U read stranger's event C — auth.uid() likely not constrained by tenant_id`,
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TEST: T-22b — Multi-role triangle (orgnz + venue + vndr).
+// -----------------------------------------------------------------------------
+// Was deferred in the brief as ".skip pending Vndr port." Vndr port shipped
+// session 18l so the triangle is now exercisable. Confirms triangle isolation:
+// adding a third role does not collapse the boundaries between any pair.
+async function testMultiRoleTriangle() {
+  const u = await seedTestUserMultiRole([
+    { role: "orgnz" },
+    { role: "venue" },
+    { role: "vndr" },
+  ]);
+  const [orgnz, venue, vndr] = u.tenants;
+
+  // Seed one data row in each tenant under U.
+  const { data: ownEvent, error: e1 } = await adminClient
+    .from("events")
+    .insert({
+      orgnz_tenant_id: orgnz.tenantId,
+      name: `RLS triangle own event ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      start_date: "2027-06-15",
+    })
+    .select("id").single();
+  if (e1 || !ownEvent) throw new Error(`triangle event seed failed: ${e1?.message}`);
+
+  const { data: ownVenue, error: e2 } = await adminClient
+    .from("venues")
+    .insert({
+      tenant_id: venue.tenantId,
+      display_name: `RLS triangle own venue ${TEST_RUN_ID}`,
+      claim_status: "published",
+      acquisition_lane: "self_serve",
+      claimed_at: new Date().toISOString(),
+    })
+    .select("id").single();
+  if (e2 || !ownVenue) throw new Error(`triangle venue seed failed: ${e2?.message}`);
+
+  const { data: ownVendor, error: e3 } = await adminClient
+    .from("vendors")
+    .insert({
+      tenant_id: vndr.tenantId,
+      display_name: `RLS triangle own vndr ${TEST_RUN_ID}`,
+      claim_status: "published",
+      acquisition_lane: "self_serve",
+      claimed_at: new Date().toISOString(),
+    })
+    .select("id").single();
+  if (e3 || !ownVendor) throw new Error(`triangle vndr seed failed: ${e3?.message}`);
+
+  // Seed unrelated stranger data the multi-role user must not be able to read.
+  const strangerVndr = await seedTestUser("vndr");
+  const { data: strangerVendor, error: e4 } = await adminClient
+    .from("vendors")
+    .insert({
+      tenant_id: strangerVndr.tenantId,
+      display_name: `RLS triangle stranger vndr ${TEST_RUN_ID}`,
+      claim_status: "published",
+      acquisition_lane: "warm_intro",
+      claimed_at: new Date().toISOString(),
+    })
+    .select("id").single();
+  if (e4 || !strangerVendor) throw new Error(`triangle stranger seed failed: ${e4?.message}`);
+
+  // 1. U reads all three own rows.
+  for (const [table, id, label] of [
+    ["events", ownEvent.id, "orgnz event"],
+    ["venues", ownVenue.id, "venue"],
+    ["vendors", ownVendor.id, "vndr"],
+  ]) {
+    const { data, error } = await u.authedClient.from(table).select("id").eq("id", id).maybeSingle();
+    if (error && error.code === "42P17") {
+      throw new Error(`42P17 recursion on triangle ${label} read: ${error.message}`);
+    }
+    if (!data) throw new Error(`RLS DENY: triangle U cannot read own ${label}`);
+  }
+
+  // 2. U cannot read unrelated stranger's vndr row.
+  const { data: leak, error: leakErr } = await u.authedClient
+    .from("vendors").select("id").eq("id", strangerVendor.id).maybeSingle();
+  if (leakErr && leakErr.code === "42P17") {
+    throw new Error(`42P17 recursion on triangle stranger read: ${leakErr.message}`);
+  }
+  if (leak) {
+    throw new Error(`RLS LEAK: triangle U read stranger vndr — triple-role collapsed isolation`);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TEST: T-23 — Admin-client ownership discipline (static-audit regression).
+// -----------------------------------------------------------------------------
+// Per SEC-02b RLS audit: every authed server action that calls
+// createAdminClient() (bypasses RLS via service-role key) MUST do an explicit
+// ownership / tenancy check before the admin query, otherwise the bypass is
+// load-bearing for a cross-tenant leak. The static audit verified this once
+// manually; this test turns the manual discipline into a regression-tested
+// invariant.
+//
+// Why static-audit and not runtime invocation:
+//   The brief proposed importing each server action and calling it with a
+//   wrong-user identity. Server actions in Next.js use `await cookies()` from
+//   `next/headers` which throws outside the Next request context, so direct
+//   Node invocation isn't viable without substantial harness machinery.
+//   Static-pattern audit catches the highest-frequency regression ("forgot
+//   the check entirely") and the discipline-loss regression ("new action
+//   without entry in ADMIN_CLIENT_ACTIONS = failing test"). It does NOT
+//   catch "check is subtly broken" — that gap is documented and would need
+//   the Next test harness to close.
+//
+// To add a new admin-client server action: append its path + expected
+// pattern to ADMIN_CLIENT_ACTIONS below. Failing-test-on-omission is the
+// load-bearing mechanic.
+const { readFileSync: _readFileSync } = await import("node:fs");
+const { resolve: _resolve } = await import("node:path");
+
+const REPO_ROOT = process.cwd(); // test runs from 04_evntcue_Site_Live
+
+// pattern types:
+//   "authed_owner"  — fetches user via getUser(), compares to row owner_id
+//                     before admin write/read of that row.
+//   "authed_tenant" — fetches user via getUser(), checks current_user_tenants
+//                     or user_roles join (tenancy gate, not per-row ownership).
+//   "token"         — public flow gated by sha256(invite_token) lookup; the
+//                     token IS the ownership proof. No authed user required.
+//   "public_funnel" — public ungated action that intentionally has no owner
+//                     (pre-auth funnel writes — landing capture sessions etc).
+//                     Discipline = MUST NOT read/write user-scoped data.
+const ADMIN_CLIENT_ACTIONS = [
+  // ── Mood Board actions (owner_id discipline) ──────────────────────────────
+  { path: "app/(platform)/orgnz/mood-board/_actions/save-canvas-state.ts",
+    type: "authed_owner", ownerField: "owner_id" },
+  { path: "app/(platform)/orgnz/mood-board/_actions/upload-image.ts",
+    type: "authed_owner", ownerField: "owner_id" },
+  { path: "app/(platform)/orgnz/mood-board/_actions/delete-pin.ts",
+    type: "authed_owner", ownerField: "owner_id" },
+  { path: "app/(platform)/orgnz/mood-board/_actions/restore-pin.ts",
+    type: "authed_owner", ownerField: "owner_id" },
+  { path: "app/(platform)/orgnz/mood-board/_actions/drop-chip-pin.ts",
+    type: "authed_owner", ownerField: "owner_id" },
+  { path: "app/(platform)/orgnz/mood-board/_actions/import-pinterest-url.ts",
+    type: "authed_owner", ownerField: "owner_id" },
+  { path: "app/(platform)/orgnz/mood-board/_actions/start-render-job.ts",
+    type: "authed_owner", ownerField: "owner_id" },
+  { path: "app/(platform)/orgnz/mood-board/_actions/poll-render-jobs.ts",
+    type: "authed_owner", ownerField: "owner_id" },
+  { path: "app/(platform)/orgnz/mood-board/_actions/list-recently-deleted-pins.ts",
+    type: "authed_owner", ownerField: "owner_id" },
+  { path: "app/(platform)/orgnz/mood-board/_lib/load-board.ts",
+    type: "authed_owner", ownerField: "owner_id" },
+  // ── Orgnz context loader (tenant-scoped) ──────────────────────────────────
+  { path: "app/(platform)/orgnz/_lib/load-context.ts",
+    type: "authed_tenant" },
+  // ── Event preview commit (tenant gate via event ownership) ────────────────
+  { path: "app/(public)/event-preview/_actions/commit-event-for-authed-user.ts",
+    type: "authed_tenant" },
+  // ── Door A claim flows (token-gated) ──────────────────────────────────────
+  { path: "app/(public)/venues/claim/[token]/_actions/claim-venue.ts",
+    type: "token" },
+  { path: "app/(public)/vendors/claim/[token]/_actions/claim-vendor.ts",
+    type: "token" },
+  // ── Public funnel writes (pre-auth, no owner — must touch only
+  //    session-scoped tables) ──────────────────────────────────────────────────
+  { path: "app/(public)/budget-calculator/_actions/save-budget-session.ts",
+    type: "public_funnel" },
+  { path: "app/(public)/budget-calculator/_actions/request-mega-scoping.ts",
+    type: "public_funnel" },
+  { path: "app/(public)/vndr-onboarding/_actions/save-vndr-session.ts",
+    type: "public_funnel" },
+  { path: "app/(public)/landing/_actions/capture-coming-soon.ts",
+    type: "public_funnel" },
+  { path: "app/(public)/event-preview/_actions/attach-email.ts",
+    type: "public_funnel" },
+];
+
+function assertPattern(src, pattern, label, action) {
+  if (!pattern.test(src)) {
+    throw new Error(`${action.path} :: missing ${label}`);
+  }
+}
+
+async function testAdminClientOwnershipDiscipline() {
+  const violations = [];
+
+  for (const action of ADMIN_CLIENT_ACTIONS) {
+    let src;
+    try {
+      src = _readFileSync(_resolve(REPO_ROOT, action.path), "utf-8");
+    } catch (e) {
+      violations.push(`${action.path} :: file not readable (${e.code ?? e.message})`);
+      continue;
+    }
+
+    // Every action in this list MUST use createAdminClient — that's why it's here.
+    if (!/createAdminClient\s*\(/.test(src)) {
+      violations.push(`${action.path} :: no createAdminClient() call — remove from matrix or add the bypass`);
+      continue;
+    }
+
+    try {
+      if (action.type === "authed_owner") {
+        // Pattern: getUser() + compare to <ownerField>
+        assertPattern(src, /auth\.getUser\s*\(/, "auth.getUser() call", action);
+        const ownerRegex = new RegExp(`\\b${action.ownerField}\\b`);
+        assertPattern(src, ownerRegex, `reference to ownerField '${action.ownerField}'`, action);
+        // The fail-closed branch — accept any of: return { ok: false, ...
+        // or throw on mismatch. Both are acceptable discipline.
+        assertPattern(
+          src,
+          /(\bok:\s*false\b|throw\s+new\s+Error)/,
+          "fail-closed branch (ok:false return or throw)",
+          action,
+        );
+      } else if (action.type === "authed_tenant") {
+        assertPattern(src, /auth\.getUser\s*\(/, "auth.getUser() call", action);
+        // Tenant-scoped: either reads user_roles, or queries current_user_tenants
+        // helper, or uses an SECURITY DEFINER ownership helper.
+        assertPattern(
+          src,
+          /(user_roles|current_user_tenants|tenant_id|user_owns_)/,
+          "tenancy-scoping reference (user_roles / current_user_tenants / tenant_id / user_owns_*)",
+          action,
+        );
+      } else if (action.type === "token") {
+        // Token-gated: must hash invite_token before lookup, must check
+        // consumed_at / expires_at, must do a race-proof UPDATE with IS NULL guards.
+        assertPattern(src, /createHash\s*\(\s*["']sha256/, "createHash('sha256') call", action);
+        assertPattern(src, /invite_token_hash/, "invite_token_hash lookup", action);
+        assertPattern(
+          src,
+          /(consumed_at|expires_at)/,
+          "consumed_at / expires_at single-use guard",
+          action,
+        );
+      } else if (action.type === "public_funnel") {
+        // Public funnel writes MUST NOT read/write user-scoped data via
+        // admin client. Whitelist: only landing_capture_sessions (or a
+        // similarly session-scoped table) is acceptable. If the file
+        // references any of the protected user-data tables via admin
+        // client, that's a discipline violation.
+        const protectedRefs = src.match(
+          /\.from\(["'](user_roles|users|tenants|events|bookings|vendors|venues|mood_boards|vndr_packages|commission_flows|guests)["']\)/g,
+        );
+        if (protectedRefs) {
+          throw new Error(
+            `references protected user-data table(s) from a public-funnel action: ${protectedRefs.join(", ")}`,
+          );
+        }
+      } else {
+        throw new Error(`unknown discipline type '${action.type}'`);
+      }
+    } catch (err) {
+      violations.push(err.message);
+    }
+  }
+
+  if (violations.length > 0) {
+    console.log(); // newline before the failure list
+    for (const v of violations) {
+      console.log(`        - ${v}`);
+    }
+    throw new Error(`admin-client ownership discipline violated in ${violations.length} action(s)`);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TEST: T-25 — Recursion sweep across (role × multi-tenant table) matrix.
+// -----------------------------------------------------------------------------
+// The three latent recursion bugs (migrations 034, 035, 038) all surfaced
+// accidentally — a test happened to exercise a role config that didn't
+// short-circuit on early policy clauses. This meta-test makes discovery
+// deterministic: for every (role, multi-tenant table) pair, run a minimal
+// authed SELECT; flag any 42P17 (recursion detected).
+//
+// Costs one query per cell. Permission denied / 0 rows is FINE — we only
+// catch the recursion class. Other tests cover isolation.
+//
+// ROLES_AVAILABLE includes the three live roles. Add 'catr' / 'plnr' as
+// those portals ship.
+async function testRecursionSweep() {
+  const ROLES_AVAILABLE = ["orgnz", "venue", "vndr"];
+
+  // Multi-tenant tables only — excludes admin-only (platform_copy,
+  // migration_log, stripe_webhook_events, staff, retention_log, commission_rates,
+  // platform_comm_rates, budget_benchmarks, carbon_data, pending_manual_refunds,
+  // landing_capture_sessions) and self-user (users, user_roles already covered
+  // by the auth path).
+  const MULTI_TENANT_TABLES = [
+    // 001 — events / participants / bookings / money
+    "events", "event_participants", "bookings", "commission_flows", "service_fees", "notifications",
+    // 002 — financial integrity
+    "disputes", "annual_payments", "event_permits", "plnr_engagements",
+    "gratuity_pools", "gratuity_distributions",
+    // 003 — vendor ecosystem
+    "tenant_certifications", "vendor_trust_scores", "plnr_vendor_mutes",
+    "managed_listings", "booking_inquiries", "managed_listing_relays",
+    "booking_status_log", "cancellation_policies", "event_cancellations",
+    "warm_transfers", "vendor_credits", "plnr_trusted_network",
+    // 004 — plnr crm
+    "plnr_clients", "plnr_proposals", "plnr_collab_agreements",
+    "plnr_comm_splits", "plnr_tasks", "event_sponsors",
+    // 005 — mood boards
+    "mood_boards", "mood_board_pins", "mood_board_members",
+    "mood_board_comments", "mood_board_vendor_briefs",
+    "event_memory_pages", "memory_page_pins", "post_event_referrals",
+    // 006 — venue beo / floor plans
+    "venue_spaces", "event_beo", "event_floor_maps", "floor_map_labels",
+    "equipment", "equipment_rental_items", "inventory",
+    // 007 — guests / accommodations / tickets
+    "guests", "guest_accommodations", "rsvps",
+    "vndr_packages", "instant_bookings",
+    "ticket_tiers", "ticket_purchases", "review_requests", "reviews",
+    // 008 — live event
+    "live_events", "live_timeline_items", "live_vendor_checkins",
+    "live_vendor_messages", "live_issue_log", "live_broadcasts", "guest_checkins",
+    // 010 — safetab
+    "safetab_waivers", "safetab_waiver_disputes", "vendor_waiver_requests",
+    // 017 — staff / catr
+    "catr_kitchen_passport", "catr_venue_preferred", "menu_items",
+    // 020 — event budgets
+    "event_budgets",
+    // 024 — event custom milestones
+    "event_custom_milestones",
+    // 025 — venu acquisition
+    "venues", "venue_preferred_plnrs", "venue_preferred_vendors",
+    // 026 — subscriptions
+    "subscriptions",
+    // 030 — render jobs
+    "render_jobs",
+    // 041 — vendor intake
+    "vendors",
+  ];
+
+  const failures = [];
+
+  for (const role of ROLES_AVAILABLE) {
+    const user = await seedTestUser(role);
+
+    for (const table of MULTI_TENANT_TABLES) {
+      const { error } = await user.authedClient.from(table).select("*").limit(1);
+      if (error && error.code === "42P17") {
+        failures.push({ role, table, message: error.message });
+      }
+      // All other errors are out of scope for this meta-test — other tests
+      // assert behavioral isolation. We only catch the recursion class here.
+    }
+  }
+
+  if (failures.length > 0) {
+    console.log(); // newline before the failure list
+    for (const f of failures) {
+      console.log(`        - ${f.role} × ${f.table}: ${f.message}`);
+    }
+    throw new Error(`recursion (42P17) detected in ${failures.length} (role × table) cells`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
 const TESTS = [
@@ -1714,6 +2229,10 @@ const TESTS = [
   { name: "Cross-tenant vendors isolation — vndr role (vndr A vs vndr B)", fn: testVndrCrossTenantVendorsIsolation },
   { name: "Vndr can INSERT own vndr_packages row (vp_write own-tenant positive)", fn: testVndrPackagesWriteOwnTenant },
   { name: "Cross-tenant vndr_packages write denied — vndr A spoofs/hijacks vndr B", fn: testVndrPackagesWriteCrossTenantDenied },
+  { name: "T-22a Multi-role user (orgnz+venue) — isolation holds vs unrelated tenant", fn: testMultiRoleOrgnzVenu },
+  { name: "T-22b Multi-role triangle (orgnz+venue+vndr) — third role doesn't collapse isolation", fn: testMultiRoleTriangle },
+  { name: "T-23 Admin-client ownership discipline — static-audit regression", fn: testAdminClientOwnershipDiscipline },
+  { name: "T-25 Recursion sweep — (role × multi-tenant table) matrix, no 42P17", fn: testRecursionSweep },
 ];
 
 // -----------------------------------------------------------------------------
