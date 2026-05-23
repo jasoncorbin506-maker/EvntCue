@@ -1528,6 +1528,164 @@ async function testMoodBoardWritePathChunkA() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST: vendors (migration 041) — vndr can read own row.
+// -----------------------------------------------------------------------------
+// Positive control: with Door A live, the vendors table is the canonical
+// vndr-profile row. vendors_select (migration 041) grants is_admin() OR
+// user_owns_vendor(id). A vndr authed against their own tenant must read
+// their own row, otherwise the dashboard discovery query (V-2) would
+// silently return empty.
+async function testVndrReadOwnVendorRow() {
+  const vndr = await seedTestUser("vndr");
+  const { data: vendor, error: insErr } = await adminClient
+    .from("vendors")
+    .insert({
+      tenant_id: vndr.tenantId,
+      display_name: `RLS vndr own ${TEST_RUN_ID}`,
+      claim_status: "published",
+      acquisition_lane: "self_serve",
+      claimed_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (insErr || !vendor) {
+    throw new Error(`seed vendor insert failed: ${insErr?.message}`);
+  }
+
+  const { data: read, error: readErr } = await vndr.authedClient
+    .from("vendors")
+    .select("id, display_name")
+    .eq("id", vendor.id)
+    .maybeSingle();
+
+  if (readErr && readErr.code === "42P17") {
+    throw new Error(`42P17 recursion on vendors_select for own row: ${readErr.message}`);
+  }
+  if (readErr) throw new Error(`vndr self-read on vendors failed: ${readErr.message}`);
+  if (!read) {
+    throw new Error(`RLS DENY: vndr cannot read own vendors row (vendors_select misgrant)`);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TEST: vendors — vndr A CANNOT read vndr B's row (cross-tenant isolation).
+// -----------------------------------------------------------------------------
+// user_owns_vendor() is the canonical helper. If a future migration introduces
+// a clause that doesn't short-circuit on the tenant gate, this test catches it.
+async function testVndrCrossTenantVendorsIsolation() {
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  const { data: bVendor, error: insErr } = await adminClient
+    .from("vendors")
+    .insert({
+      tenant_id: vndrB.tenantId,
+      display_name: `RLS vndr B private ${TEST_RUN_ID}`,
+      claim_status: "published",
+      acquisition_lane: "warm_intro",
+      claimed_at: new Date().toISOString(),
+    })
+    .select("id")
+    .single();
+  if (insErr || !bVendor) throw new Error(`seed vendor B insert failed: ${insErr?.message}`);
+
+  const { data: leak, error: readErr } = await vndrA.authedClient
+    .from("vendors")
+    .select("id, display_name")
+    .eq("id", bVendor.id)
+    .maybeSingle();
+
+  if (readErr && readErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant vendors_select: ${readErr.message}`);
+  }
+  if (leak) {
+    throw new Error(
+      `RLS LEAK: vndr A read vndr B's vendors row (display_name=${leak.display_name})`,
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TEST: vndr_packages — vndr can INSERT own package; cross-tenant denied.
+// -----------------------------------------------------------------------------
+// vp_select is USING (TRUE) by design (public marketplace catalog), so the
+// adversarial path lives on the WRITE side. vp_write USING + WITH CHECK
+// both require tenant_id IN current_user_tenants(). This test exercises
+// both: own-tenant INSERT must succeed; cross-tenant INSERT (spoofing
+// tenant_id = B) must fail with 42501 or zero-rows return.
+async function testVndrPackagesWriteOwnTenant() {
+  const vndr = await seedTestUser("vndr");
+
+  const { data: pkg, error: insErr } = await vndr.authedClient
+    .from("vndr_packages")
+    .insert({
+      tenant_id: vndr.tenantId,
+      name: `RLS vndr pkg ${TEST_RUN_ID}`,
+      price_cents: 250000,
+      deposit_pct: 25,
+    })
+    .select("id")
+    .single();
+
+  if (insErr && insErr.code === "42P17") {
+    throw new Error(`42P17 recursion on vp_write own-tenant INSERT: ${insErr.message}`);
+  }
+  if (insErr) throw new Error(`vndr self-insert on vndr_packages failed: ${insErr.message}`);
+  if (!pkg?.id) throw new Error(`vndr self-insert returned no id`);
+}
+
+async function testVndrPackagesWriteCrossTenantDenied() {
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  // 1. vndr A tries to insert a package under vndr B's tenant — vp_write
+  //    WITH CHECK should deny.
+  const { data: spoof, error: spoofErr } = await vndrA.authedClient
+    .from("vndr_packages")
+    .insert({
+      tenant_id: vndrB.tenantId,
+      name: `RLS spoof pkg ${TEST_RUN_ID}`,
+      price_cents: 100,
+      deposit_pct: 0,
+    })
+    .select("id");
+
+  if (spoofErr && spoofErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant vp_write INSERT: ${spoofErr.message}`);
+  }
+  if (!spoofErr && spoof && spoof.length > 0) {
+    throw new Error(`RLS LEAK: vndr A inserted vndr_packages row under vndr B's tenant`);
+  }
+
+  // 2. Seed a real package on B (via admin), then confirm A cannot UPDATE it.
+  //    vp_write USING denies — UPDATE returns zero rows.
+  const { data: bPkg, error: bInsErr } = await adminClient
+    .from("vndr_packages")
+    .insert({
+      tenant_id: vndrB.tenantId,
+      name: `RLS vndr B real pkg ${TEST_RUN_ID}`,
+      price_cents: 500000,
+      deposit_pct: 25,
+    })
+    .select("id")
+    .single();
+  if (bInsErr || !bPkg) throw new Error(`seed vndr B pkg failed: ${bInsErr?.message}`);
+
+  const { data: hijack, error: hijackErr } = await vndrA.authedClient
+    .from("vndr_packages")
+    .update({ name: `RLS HIJACKED ${TEST_RUN_ID}` })
+    .eq("id", bPkg.id)
+    .select("id");
+
+  if (hijackErr && hijackErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant vp_write UPDATE: ${hijackErr.message}`);
+  }
+  if (hijack && hijack.length > 0) {
+    throw new Error(`RLS LEAK: vndr A updated vndr B's vndr_packages row`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
 const TESTS = [
@@ -1552,15 +1710,31 @@ const TESTS = [
   { name: "Cross-tenant commission_flows isolation (orgnz A vs orgnz B; money table)", fn: testCrossTenantCommissionFlowsIsolation },
   { name: "Non-participant cannot read guest_accommodations (Bucket-3 PII)", fn: testNonParticipantCannotReadGuestAccommodations },
   { name: "Mood Board Chunk A write path — authed INSERT/UPDATE + cross-tenant denial", fn: testMoodBoardWritePathChunkA },
+  { name: "Vndr can read own vendors row (migration 041 vendors_select positive)", fn: testVndrReadOwnVendorRow },
+  { name: "Cross-tenant vendors isolation — vndr role (vndr A vs vndr B)", fn: testVndrCrossTenantVendorsIsolation },
+  { name: "Vndr can INSERT own vndr_packages row (vp_write own-tenant positive)", fn: testVndrPackagesWriteOwnTenant },
+  { name: "Cross-tenant vndr_packages write denied — vndr A spoofs/hijacks vndr B", fn: testVndrPackagesWriteCrossTenantDenied },
 ];
 
 // -----------------------------------------------------------------------------
 // Runner
 // -----------------------------------------------------------------------------
+// Each test seeds 2–3 auth users via signInWithPassword. Supabase's auth
+// bucket caps sequential sign-ins per window; running 25 tests back-to-back
+// exhausts it and the tail tests fail spuriously with "Request rate limit
+// reached." A 1.5s pause between tests spreads the suite well under the
+// bucket. Adds ~40s to total runtime — worth it for green CI.
+const INTER_TEST_DELAY_MS = 1500;
+
+const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
+
 let exitCode = 0;
 try {
   console.log("Running tests:\n");
+  let first = true;
   for (const { name, fn } of TESTS) {
+    if (!first) await sleep(INTER_TEST_DELAY_MS);
+    first = false;
     await runTest(name, fn);
   }
 } catch (fatal) {

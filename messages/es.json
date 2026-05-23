@@ -317,6 +317,80 @@
     "tileVenuContract": "Visitas y contrato",
     "tileVenuBrowse": "Ver venues de DFW"
   },
+  "vndr": {
+    "onboarding": {
+      "rolePill": "Para Vndrs",
+      "metaDescription": "Publica tu trabajo en EvntCue. Recibe reservaciones reales. Tu perfil es gratis — solo cobramos cuando tú cobras.",
+      "hero": {
+        "eyebrow": "Para vendors de eventos · lanzamiento v1",
+        "headlineAction": "Publica tu trabajo. Recibe reservaciones reales.",
+        "sub": "EvntCue es la capa operativa donde organizers, planners y venues coordinan un mismo evento en un mismo sistema. Tu perfil es gratis — para siempre. <strong>Solo pagas cuando reservas.</strong>",
+        "cta": "Ver las cuentas"
+      },
+      "proof": {
+        "listing": "De cuota de publicación, nunca",
+        "takeHome": "De tu reservación, en tu cuenta",
+        "payout": "De pago después del evento"
+      },
+      "compare": {
+        "eye": "Las cuentas, claras",
+        "h": "La mayoría te cobran por <access>acceso.</access> Nosotros cobramos cuando <paid>te pagan.</paid>",
+        "sub": "Tarifa todo-incluido sobre una reservación de $5,000. Sin cuota de publicación, sin suscripción para empezar.",
+        "thumbtackNote": "Pagas por cada lead, aunque nunca convierta. Los leads más baratos terminan siendo los más caros.",
+        "eventbriteNote": "Cuotas de plataforma de boletos encima del procesamiento de pago.",
+        "honeybookNote": "Solo procesamiento. Sin marketplace, sin leads, sin escrow.",
+        "evntcueNote": "Todo-incluido sobre una reservación de $5,000. Sin cuota de publicación, sin suscripción, sin líneas sorpresa.",
+        "bestTag": "Lo mejor del mercado"
+      },
+      "what": {
+        "h": "Lo que <em>gratis</em> de verdad significa aquí.",
+        "p": "Gratis no es un anzuelo. Es el perfil, el calendario, el inbox, los pagos, y la AI que ayuda a los planners a encontrarte. El plan Pro existe para vendors que están creciendo más allá de su flujo de una persona — no como un muro de pago alrededor de lo básico.",
+        "aside": "Un perfil gratis que sí gana es la única versión honesta de gratis. Lo demás es una prueba disfrazada.",
+        "b1": {
+          "name": "Perfil en vivo desde el día uno",
+          "sub": "Visible para todo Plnr y Orgnz en la plataforma. Portafolio, paquetes, calendario, inbox — todo desbloqueado a $0."
+        },
+        "b2": {
+          "name": "Stripe Connect integrado",
+          "sub": "Recibe depósitos, pagos finales y propinas a través de la plataforma. Los fondos se liberan 48 horas después del evento."
+        },
+        "b3": {
+          "name": "Escrow que muestra la intención",
+          "sub": "Las solicitudes llegan con su estado de calificación a la vista. Sabes cuáles leads son reales antes de responder."
+        },
+        "b4": {
+          "name": "Cue hace el match",
+          "sub": "Cuando un planner necesita tu categoría para un evento en el que estás disponible, Cue te muestra. Sin pago-por-aparecer."
+        }
+      },
+      "calc": {
+        "eye": "Las cuentas, por fin sencillas",
+        "headline": "Por cada <booking></booking> que reservas, te quedas con <keep></keep>.",
+        "sub": "Cobramos cuando tú cobras — nunca antes. Mueve el slider a tu reservación típica; el número de la derecha es lo que cae en tu cuenta.",
+        "yourBooking": "Tu reservación",
+        "sliderAria": "Tamaño de la reservación",
+        "col": {
+          "listed": "Listado · gratis",
+          "pro": "Professional · $49/mes"
+        },
+        "youKeep": "Te quedas con",
+        "fee": "comisión",
+        "deltaSavings": "Pro te ahorra {amount} en esta reservación. Pro se paga solo con {frequency} de este tamaño.",
+        "deltaFrequencyOne": "1 reservación/mes",
+        "deltaFrequencyN": "~{count} reservaciones/mes",
+        "deltaSameSize": "A este tamaño, gratis y Pro salen igual. Pro empieza a ahorrarte dinero cuando tus reservaciones pasan los $2,000.",
+        "foot": "Sin cuota de publicación. Sin suscripción obligatoria. Nada sale hasta que algo entra. <strong>Ese es todo el modelo de precios.</strong>"
+      },
+      "cta": {
+        "button": "Empezar — toma unos 4 minutos",
+        "submitting": "Guardando…",
+        "metaNoCard": "Sin tarjeta",
+        "metaQuickProfile": "Perfil en vivo en minutos",
+        "metaCancel": "Cancela cuando quieras, sin cuotas"
+      },
+      "footerSignedIn": "¿Ya estás en EvntCue? <link>Inicia sesión</link>"
+    }
+  },
   "cue": {
     "languageInjection": "Responde en español natural — no traduzcas del inglés palabra por palabra. Usa el registro propio del español (vals de quinceañera, padrinos, sangeet, pre-Cana, etc., en su forma natural). El contexto cultural del evento es: {eventType}, {subtype}. El usuario es bilingüe; siéntete cómodo dejando términos técnicos en inglés cuando sea más claro (mood board, Cue, Plnr, Vndr, Catr, Venu, Orgnz)."
   }

@@ -43,7 +43,7 @@ export function RoleStack() {
         <button
           type="button"
           className={`${styles.card} ${styles.cardVndr}`}
-          onClick={() => setComingSoon("vndr")}
+          onClick={() => router.push("/vndr-onboarding")}
         >
           <div className={styles.icon}>
             <svg viewBox="0 0 44 44" width="44" height="44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">

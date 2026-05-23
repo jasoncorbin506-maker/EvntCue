@@ -317,6 +317,80 @@
     "tileVenuContract": "Walkthroughs & contract",
     "tileVenuBrowse": "Browse DFW venues"
   },
+  "vndr": {
+    "onboarding": {
+      "rolePill": "For Vndrs",
+      "metaDescription": "List your work on EvntCue. Take real bookings. Your profile is free — we charge when you do.",
+      "hero": {
+        "eyebrow": "For event vendors · v1 launch",
+        "headlineAction": "List your work. Take real bookings.",
+        "sub": "EvntCue is the operating layer where organizers, planners, and venues coordinate one event in one shared system. Your profile is free — forever. <strong>You only pay when you book.</strong>",
+        "cta": "See the math"
+      },
+      "proof": {
+        "listing": "Listing fee, ever",
+        "takeHome": "Of your booking, in your account",
+        "payout": "Payout after the event"
+      },
+      "compare": {
+        "eye": "The math, plainly",
+        "h": "Most platforms charge for <access>access.</access> We charge when you <paid>get paid.</paid>",
+        "sub": "All-in rate on a $5,000 booking. No listing fees, no subscription required to start.",
+        "thumbtackNote": "Pay-per-lead. Pay even if the lead never converts. Cheapest leads cost the most.",
+        "eventbriteNote": "Ticket-platform fees on top of payment processing.",
+        "honeybookNote": "Processing only. No marketplace, no leads, no escrow.",
+        "evntcueNote": "All-in on a $5,000 booking. No listing fee, no subscription, no surprise lines.",
+        "bestTag": "Best in market"
+      },
+      "what": {
+        "h": "What <em>free</em> actually means here.",
+        "p": "Free isn’t a teaser. It’s the listing, the calendar, the inbox, the payouts, and the AI that helps planners find you. The Pro tier exists for vendors scaling past their solo workflow — not as a paywall around basic functionality.",
+        "aside": "A free profile that earns is the only honest version of free. Everything else is a trial dressed up.",
+        "b1": {
+          "name": "Live profile, day one",
+          "sub": "Visible to every Plnr and Orgnz on the platform. Portfolio, packages, calendar, inbox — all unlocked at $0."
+        },
+        "b2": {
+          "name": "Stripe Connect built in",
+          "sub": "Take deposits, balance payments, and tips through the platform. Funds release 48 hours after the event."
+        },
+        "b3": {
+          "name": "Escrow that signals intent",
+          "sub": "Inquiries arrive with their qualification status visible. You know which leads are real before you respond."
+        },
+        "b4": {
+          "name": "Cue does the matching",
+          "sub": "When a planner needs your category for an event you’re available for, Cue surfaces you. No pay-to-play."
+        }
+      },
+      "calc": {
+        "eye": "The math, finally simple",
+        "headline": "For every <booking></booking> you book, you keep <keep></keep>.",
+        "sub": "We charge when you do — never before. Move the slider to your typical booking; the number on the right is what hits your account.",
+        "yourBooking": "Your booking",
+        "sliderAria": "Booking size",
+        "col": {
+          "listed": "Listed · free",
+          "pro": "Professional · $49/mo"
+        },
+        "youKeep": "You keep",
+        "fee": "fee",
+        "deltaSavings": "Pro saves you {amount} on this booking. Pro pays for itself at {frequency} at this size.",
+        "deltaFrequencyOne": "1 booking/month",
+        "deltaFrequencyN": "~{count} bookings/month",
+        "deltaSameSize": "At this size, free and Pro work out the same. Pro starts saving you money once your bookings cross $2,000.",
+        "foot": "No listing fee. No subscription required. No money out until money in. <strong>That’s the whole pricing model.</strong>"
+      },
+      "cta": {
+        "button": "Start — it takes about 4 minutes",
+        "submitting": "Saving…",
+        "metaNoCard": "No card required",
+        "metaQuickProfile": "Profile live in minutes",
+        "metaCancel": "Cancel anytime, no fees"
+      },
+      "footerSignedIn": "Already on EvntCue? <link>Sign in</link>"
+    }
+  },
   "cue": {
     "languageInjection": ""
   }
