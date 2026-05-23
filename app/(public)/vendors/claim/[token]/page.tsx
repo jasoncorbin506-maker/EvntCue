@@ -3,7 +3,7 @@ import Link from "next/link";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { createClient } from "@/lib/supabase/server";
 import { ClaimForm } from "./ClaimForm";
-import s from "../../venues/venues.module.css";
+import s from "../../../venues/venues.module.css";
 
 /**
  * Door A — Vndr ghost-profile claim entry. Server-rendered token validation

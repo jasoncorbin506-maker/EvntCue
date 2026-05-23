@@ -2,7 +2,7 @@
 
 import { useActionState } from "react";
 import { submitClaim, type ClaimResult } from "./_actions/claim-vendor";
-import s from "../../venues/venues.module.css";
+import s from "../../../venues/venues.module.css";
 
 /**
  * Door A — Vndr claim form (client). Mirrors the Venu ClaimForm pattern:
