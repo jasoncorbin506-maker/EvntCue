@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useTransition } from "react";
 import s from "../mood-board.module.css";
 import { SLOT_ORDER, SLOTS, type SlotKey } from "@/data/moodboard/slots";
 import { pollRenderJobs } from "../_actions/poll-render-jobs";
+import { rerollSlot } from "../_actions/reroll-slot";
+import { generateShareToken } from "../_actions/generate-share-token";
 
 /**
  * Mood Board Chunk D — render output spread.
@@ -59,11 +61,35 @@ export type SpreadLabels = {
   slotLabels?: Partial<Record<SlotKey, string>>;
   /** Cormorant footer caption — "An inspiration, not a guarantee. Built on EvntCue." */
   footerCaption: string;
+  /** "Re-roll" — tap-overlay button on succeeded cells. */
+  rerollButton: string;
+  /** "Re-rolling..." — button text while the action is in flight. */
+  rerollPending: string;
+  /** "{count} left" — remaining re-rolls counter shown next to the header. */
+  rerollRemaining: string;
+  /** "Re-roll window closed" — surfaced when 24h elapsed. */
+  rerollWindowClosed: string;
+  /** "Re-roll cap reached" — surfaced when 50/board hit. */
+  rerollCapReached: string;
+  /** "Share" — tap-overlay button on succeeded cells. */
+  shareButton: string;
+  /** "Sharing…" — button text while the token mint is in flight. */
+  sharePending: string;
+  /** "Link copied" — fallback toast when navigator.share is unavailable. */
+  shareCopied: string;
+  /** "Share — {slot}" — Web Share API title template. */
+  shareTitleTemplate: string;
+  /** "An inspiration from our mood board…" — Web Share API text. */
+  shareText: string;
 };
 
 type Props = {
   boardId: string;
   initialSlots: SlotResult[];
+  /** Re-rolls remaining for this spread (50-cap minus already consumed). */
+  initialRemainingReRolls: number;
+  /** ISO timestamp; null if no spread has been rendered yet. */
+  windowEndsAt: string | null;
   labels: SpreadLabels;
   onBackToCanvas: () => void;
 };
@@ -90,15 +116,69 @@ const SPREAD_LAYOUT: SpreadRow[] = [
 export function RenderedSpread({
   boardId,
   initialSlots,
+  initialRemainingReRolls,
+  windowEndsAt,
   labels,
   onBackToCanvas,
 }: Props) {
   const [slots, setSlots] = useState<SlotResult[]>(initialSlots);
+  const [remainingReRolls, setRemainingReRolls] = useState(initialRemainingReRolls);
+  const [rerollingPinIds, setRerollingPinIds] = useState<Set<string>>(new Set());
+  const [rerollError, setRerollError] = useState<string | null>(null);
+  const [, startRerollTransition] = useTransition();
+  const [sharingPinIds, setSharingPinIds] = useState<Set<string>>(new Set());
+  const [shareNotice, setShareNotice] = useState<string | null>(null);
+  const [, startShareTransition] = useTransition();
   const pollingRef = useRef(false);
+
+  const windowClosed = Boolean(
+    windowEndsAt && new Date(windowEndsAt) <= new Date(),
+  );
+  const rerollDisabled = remainingReRolls <= 0 || windowClosed;
 
   // Index by slot key for O(1) lookup during render.
   const bySlot = new Map<SlotKey, SlotResult>();
   for (const s of slots) bySlot.set(s.slot, s);
+
+  function handleReroll(pinId: string) {
+    setRerollError(null);
+    setRerollingPinIds((prev) => new Set(prev).add(pinId));
+    startRerollTransition(async () => {
+      const result = await rerollSlot({ pinId });
+      setRerollingPinIds((prev) => {
+        const next = new Set(prev);
+        next.delete(pinId);
+        return next;
+      });
+      if (!result.ok) {
+        setRerollError(result.error);
+        return;
+      }
+      setRemainingReRolls(result.remainingReRolls);
+      // Merge the new slot result by replacing the old pin's slot entry.
+      setSlots((prev) =>
+        prev.map((slot) => {
+          if (slot.status !== "succeeded" || slot.pinId !== pinId) return slot;
+          if (result.status === "succeeded") {
+            return {
+              slot: slot.slot,
+              status: "succeeded",
+              renderJobId: result.renderJobId,
+              pinId: result.pinId,
+              signedUrl: result.signedUrl,
+            };
+          }
+          // processing — UI flips to spinner; polling effect resolves it.
+          return {
+            slot: slot.slot,
+            status: "processing",
+            renderJobId: result.renderJobId,
+            providerJobId: result.providerJobId,
+          };
+        }),
+      );
+    });
+  }
 
   // Polling effect — fires while any slot is 'processing'.
   useEffect(() => {
@@ -131,10 +211,82 @@ export function RenderedSpread({
     };
   }, [slots, boardId]);
 
+  function handleShare(pinId: string, slot: SlotKey) {
+    setShareNotice(null);
+    setSharingPinIds((prev) => new Set(prev).add(pinId));
+    startShareTransition(async () => {
+      const result = await generateShareToken({ pinId });
+      setSharingPinIds((prev) => {
+        const next = new Set(prev);
+        next.delete(pinId);
+        return next;
+      });
+      if (!result.ok) {
+        setShareNotice(result.error);
+        return;
+      }
+      const slotLabel = labels.slotLabels?.[slot] ?? SLOTS[slot].labelEn;
+      const title = labels.shareTitleTemplate.replace("{slot}", slotLabel);
+      const shareData: ShareData = {
+        title,
+        text: labels.shareText,
+        url: result.url,
+      };
+      try {
+        if (typeof navigator !== "undefined" && typeof navigator.share === "function") {
+          await navigator.share(shareData);
+        } else if (
+          typeof navigator !== "undefined" &&
+          navigator.clipboard?.writeText
+        ) {
+          await navigator.clipboard.writeText(result.url);
+          setShareNotice(labels.shareCopied);
+        } else {
+          // Last-resort: surface the URL inline so the user can copy it.
+          setShareNotice(result.url);
+        }
+      } catch (err) {
+        // User dismissed the native share sheet — not an error worth surfacing.
+        if (err instanceof DOMException && err.name === "AbortError") return;
+        setShareNotice(err instanceof Error ? err.message : "Share failed");
+      }
+    });
+  }
+
+  const renderCell = (
+    slot: SlotKey,
+    key: string,
+    hero?: boolean,
+  ) => (
+    <SpreadCell
+      key={key}
+      slot={slot}
+      result={bySlot.get(slot)}
+      labels={labels}
+      hero={hero}
+      onReroll={handleReroll}
+      rerollingPinIds={rerollingPinIds}
+      rerollDisabled={rerollDisabled}
+      onShare={handleShare}
+      sharingPinIds={sharingPinIds}
+    />
+  );
+
+  const counterText = windowClosed
+    ? labels.rerollWindowClosed
+    : remainingReRolls <= 0
+      ? labels.rerollCapReached
+      : labels.rerollRemaining.replace("{count}", String(remainingReRolls));
+
   return (
     <section className={s.spreadSection} aria-label={labels.spreadTitle}>
       <header className={s.spreadHeader}>
-        <h2 className={s.spreadTitle}>{labels.spreadTitle}</h2>
+        <div className={s.spreadHeaderLeft}>
+          <h2 className={s.spreadTitle}>{labels.spreadTitle}</h2>
+          <span className={s.spreadRerollCounter} aria-live="polite">
+            {counterText}
+          </span>
+        </div>
         <button
           type="button"
           className={s.btnGhost}
@@ -144,42 +296,31 @@ export function RenderedSpread({
         </button>
       </header>
 
+      {rerollError && (
+        <div className={s.spreadRerollError} role="alert">
+          {rerollError}
+        </div>
+      )}
+
+      {shareNotice && (
+        <div className={s.spreadShareNotice} role="status">
+          {shareNotice}
+        </div>
+      )}
+
       <div className={s.spreadGrid}>
         {SPREAD_LAYOUT.map((row, idx) => {
           if (row.kind === "hero") {
-            return (
-              <SpreadCell
-                key={`hero-${idx}`}
-                slot={row.slot}
-                result={bySlot.get(row.slot)}
-                labels={labels}
-                hero
-              />
-            );
+            return renderCell(row.slot, `hero-${idx}`, true);
           }
           if (row.kind === "single") {
-            return (
-              <SpreadCell
-                key={`single-${idx}`}
-                slot={row.slot}
-                result={bySlot.get(row.slot)}
-                labels={labels}
-              />
-            );
+            return renderCell(row.slot, `single-${idx}`);
           }
           // pair
           return (
             <div key={`pair-${idx}`} className={s.spreadPair}>
-              <SpreadCell
-                slot={row.slots[0]}
-                result={bySlot.get(row.slots[0])}
-                labels={labels}
-              />
-              <SpreadCell
-                slot={row.slots[1]}
-                result={bySlot.get(row.slots[1])}
-                labels={labels}
-              />
+              {renderCell(row.slots[0], `pair-${idx}-a`)}
+              {renderCell(row.slots[1], `pair-${idx}-b`)}
             </div>
           );
         })}
@@ -197,9 +338,24 @@ type SpreadCellProps = {
   result: SlotResult | undefined;
   labels: SpreadLabels;
   hero?: boolean;
+  onReroll: (pinId: string) => void;
+  rerollingPinIds: Set<string>;
+  rerollDisabled: boolean;
+  onShare: (pinId: string, slot: SlotKey) => void;
+  sharingPinIds: Set<string>;
 };
 
-function SpreadCell({ slot, result, labels, hero }: SpreadCellProps) {
+function SpreadCell({
+  slot,
+  result,
+  labels,
+  hero,
+  onReroll,
+  rerollingPinIds,
+  rerollDisabled,
+  onShare,
+  sharingPinIds,
+}: SpreadCellProps) {
   const slotDef = SLOTS[slot];
   const aspectRatio = slotDef.aspectRatio;
   const slotLabel = labels.slotLabels?.[slot] ?? slotDef.labelEn;
@@ -245,6 +401,8 @@ function SpreadCell({ slot, result, labels, hero }: SpreadCellProps) {
   }
 
   // succeeded
+  const isRerolling = rerollingPinIds.has(result.pinId);
+  const isSharing = sharingPinIds.has(result.pinId);
   return (
     <div
       className={`${s.spreadCell} ${aspectClass} ${hero ? s.spreadCellHero : ""}`}
@@ -257,6 +415,28 @@ function SpreadCell({ slot, result, labels, hero }: SpreadCellProps) {
         className={s.spreadCellImg}
         loading="lazy"
       />
+      <div className={s.spreadCellActions}>
+        <button
+          type="button"
+          className={`${s.spreadCellAction} ${s.spreadCellShare} ${isSharing ? s.spreadCellActionPending : ""}`}
+          onClick={() => onShare(result.pinId, slot)}
+          disabled={isSharing}
+          aria-label={labels.shareButton}
+        >
+          <span aria-hidden="true">↗</span>{" "}
+          {isSharing ? labels.sharePending : labels.shareButton}
+        </button>
+        <button
+          type="button"
+          className={`${s.spreadCellAction} ${s.spreadCellReroll} ${isRerolling ? s.spreadCellActionPending : ""}`}
+          onClick={() => onReroll(result.pinId)}
+          disabled={isRerolling || rerollDisabled}
+          aria-label={labels.rerollButton}
+        >
+          <span aria-hidden="true">⟲</span>{" "}
+          {isRerolling ? labels.rerollPending : labels.rerollButton}
+        </button>
+      </div>
     </div>
   );
 }

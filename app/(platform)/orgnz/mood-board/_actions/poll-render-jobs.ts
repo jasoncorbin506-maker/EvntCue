@@ -8,10 +8,7 @@ import {
   RenderError,
   type RenderOutcome,
 } from "@/lib/render/RenderService";
-import {
-  fetchAndRehostImage,
-  RehostError,
-} from "@/lib/moodboard/pinterest-import";
+import { finalizeRenderJob } from "@/lib/moodboard/finalize-render";
 import { SLOTS, type SlotKey } from "@/data/moodboard/slots";
 
 /**
@@ -220,101 +217,33 @@ export async function pollRenderJobs(
       continue;
     }
 
-    // outcome.status === "succeeded" — finalize: re-host + pin INSERT +
-    // render_jobs UPDATE. Mirrors the success path in start-render-job.ts.
-    try {
-      const rehosted = await fetchAndRehostImage({
-        sourceUrl: outcome.imageUrl,
-        tenantId: board.tenant_id as string,
-        boardId: board.id as string,
-        supabase: admin,
-      });
+    // outcome.status === "succeeded" — delegate to the shared finalize helper.
+    const finalized = await finalizeRenderJob({
+      admin,
+      board: { id: board.id as string, tenant_id: board.tenant_id as string },
+      userId: user.id,
+      renderJobId,
+      slotKey,
+      slotIndex: job.slot_index as number,
+      prompt: slotValues.prompt ?? "",
+      outcome,
+      snapshotExtras: { polled: true },
+    });
 
-      const { data: pin, error: pinErr } = await admin
-        .from("mood_board_pins")
-        .insert({
-          board_id: board.id,
-          source: "render",
-          url: rehosted.storagePath,
-          added_by: user.id,
-          position: 0,
-          slot_index: job.slot_index,
-          prompt_template_id: PROMPT_TEMPLATE_ID,
-          prompt_template_version: PROMPT_TEMPLATE_VERSION,
-          prompt_snapshot: {
-            prompt: slotValues.prompt ?? "",
-            slot: slotKey,
-            aspect_ratio: SLOTS[slotKey].aspectRatio,
-            provider_job_id: outcome.providerJobId,
-            replicate_started_at: outcome.startedAt,
-            replicate_completed_at: outcome.completedAt,
-            polled: true,
-          },
-          aspect_ratio: SLOTS[slotKey].aspectRatio,
-          frame_subject_key: slotKey,
-        })
-        .select("id")
-        .single();
-
-      if (pinErr || !pin) {
-        await admin.storage
-          .from("mood-board-renders")
-          .remove([rehosted.storagePath]);
-        const reason = pinErr?.message ?? "Pin insert failed";
-        await admin
-          .from("render_jobs")
-          .update({
-            status: "failed",
-            failure_reason: `Pin insert (polled): ${reason}`,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", renderJobId);
-        slotResults.push({
-          slot: slotKey,
-          status: "failed",
-          renderJobId,
-          reason,
-        });
-        continue;
-      }
-
-      await admin
-        .from("render_jobs")
-        .update({
-          status: "complete",
-          result_pin_id: pin.id,
-          completed_at:
-            outcome.completedAt ?? new Date().toISOString(),
-        })
-        .eq("id", renderJobId);
-
+    if (finalized.ok) {
       slotResults.push({
         slot: slotKey,
         status: "succeeded",
         renderJobId,
-        pinId: pin.id as string,
-        signedUrl: rehosted.signedUrl,
+        pinId: finalized.pinId,
+        signedUrl: finalized.signedUrl,
       });
-    } catch (err) {
-      const reason =
-        err instanceof RehostError
-          ? `${err.code}: ${err.message}`
-          : err instanceof Error
-            ? err.message
-            : "Re-host failed";
-      await admin
-        .from("render_jobs")
-        .update({
-          status: "failed",
-          failure_reason: reason,
-          completed_at: new Date().toISOString(),
-        })
-        .eq("id", renderJobId);
+    } else {
       slotResults.push({
         slot: slotKey,
         status: "failed",
         renderJobId,
-        reason,
+        reason: finalized.reason,
       });
     }
   }

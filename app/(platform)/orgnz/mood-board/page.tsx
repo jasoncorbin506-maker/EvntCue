@@ -110,6 +110,18 @@ export default async function MoodBoardPage() {
         slotLoading: t("slotLoading"),
         slotFailed: t("slotFailed"),
         spreadFooterCaption: t("spreadFooterCaption"),
+        // Chunk D Step 3e — per-slot re-roll
+        rerollButton: t("rerollButton"),
+        rerollPending: t("rerollPending"),
+        rerollRemaining: t("rerollRemaining"),
+        rerollWindowClosed: t("rerollWindowClosed"),
+        rerollCapReached: t("rerollCapReached"),
+        // Chunk E — Web Share API
+        shareButton: t("shareButton"),
+        sharePending: t("sharePending"),
+        shareCopied: t("shareCopied"),
+        shareTitleTemplate: t("shareTitleTemplate"),
+        shareText: t("shareText"),
       }}
     />
   );

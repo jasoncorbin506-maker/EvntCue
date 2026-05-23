@@ -24,10 +24,8 @@ import {
   type BoardWithPins,
   type LoadedPinForSnapshot,
 } from "@/lib/moodboard/board-snapshot";
-import {
-  fetchAndRehostImage,
-  RehostError,
-} from "@/lib/moodboard/pinterest-import";
+import { finalizeRenderJob } from "@/lib/moodboard/finalize-render";
+import { mapEventTypeToCategory } from "@/lib/labels/event-category";
 import type { EventCategory } from "@/data/moodboard/types";
 
 /**
@@ -321,101 +319,40 @@ export async function startRenderJob(
       continue;
     }
 
-    // outcome.status === "succeeded" — re-host + INSERT pin + UPDATE job.
-    try {
-      const rehosted = await fetchAndRehostImage({
-        sourceUrl: exec.outcome.imageUrl,
-        tenantId: board.tenant_id as string,
-        boardId: board.id as string,
-        supabase: admin,
-      });
+    // outcome.status === "succeeded" — delegate to the shared finalize helper.
+    // Carry provider_job_id over manually since start-render-job recorded it
+    // separately for the processing branch; finalize will set status='complete'
+    // + result_pin_id + completed_at.
+    await admin
+      .from("render_jobs")
+      .update({ provider_job_id: exec.outcome.providerJobId })
+      .eq("id", exec.renderJobId);
 
-      const { data: pin, error: pinErr } = await admin
-        .from("mood_board_pins")
-        .insert({
-          board_id: board.id,
-          source: "render",
-          url: rehosted.storagePath,
-          added_by: user.id,
-          position: 0,
-          slot_index: exec.slotIndex,
-          prompt_template_id: PROMPT_TEMPLATE_ID,
-          prompt_template_version: PROMPT_TEMPLATE_VERSION,
-          prompt_snapshot: {
-            prompt: exec.prompt,
-            slot: exec.slotKey,
-            aspect_ratio: SLOTS[exec.slotKey].aspectRatio,
-            provider_job_id: exec.outcome.providerJobId,
-            replicate_started_at: exec.outcome.startedAt,
-            replicate_completed_at: exec.outcome.completedAt,
-          },
-          aspect_ratio: SLOTS[exec.slotKey].aspectRatio,
-          frame_subject_key: exec.slotKey,
-        })
-        .select("id")
-        .single();
+    const finalized = await finalizeRenderJob({
+      admin,
+      board: { id: board.id as string, tenant_id: board.tenant_id as string },
+      userId: user.id,
+      renderJobId: exec.renderJobId,
+      slotKey: exec.slotKey,
+      slotIndex: exec.slotIndex,
+      prompt: exec.prompt,
+      outcome: exec.outcome,
+    });
 
-      if (pinErr || !pin) {
-        // Best-effort: drop the just-uploaded object since the pin row failed.
-        await admin.storage
-          .from("mood-board-renders")
-          .remove([rehosted.storagePath]);
-        const reason = pinErr?.message ?? "Pin insert failed";
-        await admin
-          .from("render_jobs")
-          .update({
-            status: "failed",
-            failure_reason: `Pin insert: ${reason}`,
-            completed_at: new Date().toISOString(),
-          })
-          .eq("id", exec.renderJobId);
-        results.push({
-          slot: exec.slotKey,
-          status: "failed",
-          renderJobId: exec.renderJobId,
-          reason,
-        });
-        continue;
-      }
-
-      await admin
-        .from("render_jobs")
-        .update({
-          status: "complete",
-          result_pin_id: pin.id,
-          provider_job_id: exec.outcome.providerJobId,
-          completed_at:
-            exec.outcome.completedAt ?? new Date().toISOString(),
-        })
-        .eq("id", exec.renderJobId);
-
+    if (finalized.ok) {
       results.push({
         slot: exec.slotKey,
         status: "succeeded",
         renderJobId: exec.renderJobId,
-        pinId: pin.id as string,
-        signedUrl: rehosted.signedUrl,
+        pinId: finalized.pinId,
+        signedUrl: finalized.signedUrl,
       });
-    } catch (err) {
-      const reason =
-        err instanceof RehostError
-          ? `${err.code}: ${err.message}`
-          : err instanceof Error
-            ? err.message
-            : "Re-host failed";
-      await admin
-        .from("render_jobs")
-        .update({
-          status: "failed",
-          failure_reason: reason,
-          completed_at: new Date().toISOString(),
-        })
-        .eq("id", exec.renderJobId);
+    } else {
       results.push({
         slot: exec.slotKey,
         status: "failed",
         renderJobId: exec.renderJobId,
-        reason,
+        reason: finalized.reason,
       });
     }
   }
@@ -431,42 +368,8 @@ export async function startRenderJob(
   };
 }
 
-/**
- * v1 event_type → EventCategory mapping. The event_type enum has 21 values
- * (per migration 001 schema); this collapses them to the 5 Lock 13
- * categories. Move to a shared lib/labels/event-category.ts when a second
- * caller needs this — render is the first surface that needs the mapping.
- *
- * 'other' and unrecognized → 'wedding' (the most-populated chip catalog).
- */
-function mapEventTypeToCategory(eventType: string): EventCategory {
-  switch (eventType) {
-    case "wedding":
-    case "reception":
-    case "rehearsal_dinner":
-    case "engagement_party":
-    case "bridal_shower":
-      return "wedding";
-    case "corporate_meeting":
-    case "corporate_gala":
-    case "conference":
-    case "product_launch":
-      return "corporate";
-    case "fundraiser":
-    case "gala":
-      return "nonprofit";
-    case "religious":
-    case "ticketed":
-      return "public";
-    case "quinceanera":
-    case "birthday":
-    case "anniversary":
-    case "baby_shower":
-    case "graduation":
-    case "reunion":
-    case "private":
-      return "social";
-    default:
-      return "wedding";
-  }
-}
+// mapEventTypeToCategory moved to lib/labels/event-category.ts per Lock 15
+// (single source of truth for DB enum → display/category translation). The
+// re-roll path (Step 3e) reuses the parent pin's prompt_snapshot so it
+// doesn't need the mapping; the vendor-brief surface (Lock 18 §47 Upgrade 2)
+// will be the next caller when that lands.

@@ -1,0 +1,137 @@
+/* Mood Board Chunk E — public share surface.
+ * Single-photo editorial framing per Lock 21. Dark luxe; Cormorant footer
+ * doubles as funnel re-entry.
+ */
+
+.page {
+  min-height: 100vh;
+  background: var(--ink);
+  color: var(--txt);
+  display: flex;
+  flex-direction: column;
+}
+
+/* ── Chrome ─────────────────────────────────────────────────────────────── */
+.pubChrome {
+  padding: 18px 24px;
+  display: flex;
+  align-items: center;
+  flex-shrink: 0;
+}
+
+.pubBrand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  text-decoration: none;
+  color: inherit;
+}
+
+.pubMark {
+  width: 24px;
+  height: 24px;
+  border-radius: 7px;
+  background: linear-gradient(135deg, var(--rose), #8C4456);
+  flex-shrink: 0;
+  display: block;
+}
+
+.pubWordmark {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 400;
+  font-style: italic;
+  color: #fff;
+  letter-spacing: -0.4px;
+  line-height: 1;
+}
+
+/* ── Frame ──────────────────────────────────────────────────────────────── */
+.frameSection {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px 32px;
+  gap: 18px;
+}
+
+.frame {
+  width: 100%;
+  max-width: 640px;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+  box-shadow: 0 24px 60px rgba(0, 0, 0, 0.5);
+}
+
+.frame1x1 { aspect-ratio: 1 / 1; }
+.frame16x9 { aspect-ratio: 16 / 9; }
+.frame4x3 { aspect-ratio: 4 / 3; }
+.frame3x4 { aspect-ratio: 3 / 4; max-width: 520px; }
+
+.frameImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.caption {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-style: italic;
+  font-weight: 300;
+  line-height: 1.5;
+  color: var(--txt2);
+  text-align: center;
+  max-width: 520px;
+  margin: 0;
+  padding: 0 16px;
+}
+
+/* ── CTA / funnel re-entry ──────────────────────────────────────────────── */
+.cta {
+  padding: 28px 24px 36px;
+  border-top: 0.5px solid var(--bdr);
+  text-align: center;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+
+.ctaText {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--txt2);
+  line-height: 1.55;
+  margin: 0;
+  max-width: 380px;
+}
+
+.ctaButton {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 12px 26px;
+  border-radius: 12px;
+  background: var(--rose);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  text-decoration: none;
+  box-shadow: 0 6px 20px rgba(212, 119, 138, 0.32);
+}
+
+.ctaButton::after {
+  content: "→";
+  font-size: 13px;
+}

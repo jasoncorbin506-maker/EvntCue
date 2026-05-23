@@ -93,6 +93,18 @@ export type CanvasLabels = {
   slotLoading: string;
   slotFailed: string;
   spreadFooterCaption: string;
+  // Chunk D Step 3e — per-slot re-roll
+  rerollButton: string;
+  rerollPending: string;
+  rerollRemaining: string;
+  rerollWindowClosed: string;
+  rerollCapReached: string;
+  // Chunk E — Web Share API
+  shareButton: string;
+  sharePending: string;
+  shareCopied: string;
+  shareTitleTemplate: string;
+  shareText: string;
 };
 
 type Props = {
@@ -550,6 +562,14 @@ export function MoodBoardCanvas({
           <RenderedSpread
             boardId={boardId}
             initialSlots={renderSlots}
+            // v1: initial budget is 50 per Lock 21 board cap; re-roll action
+            // returns authoritative remaining count + the action is the source
+            // of truth for window closed. Polish-pass: server-side resolve
+            // current consumed + window-ends so the counter is correct from
+            // t=0 (matters if a user reloads mid-window with re-rolls already
+            // spent). See PARKING_LOT #67 follow-ups.
+            initialRemainingReRolls={50}
+            windowEndsAt={null}
             onBackToCanvas={handleBackToCanvas}
             labels={{
               spreadTitle: labels.spreadTitle,
@@ -557,6 +577,16 @@ export function MoodBoardCanvas({
               slotLoading: labels.slotLoading,
               slotFailed: labels.slotFailed,
               footerCaption: labels.spreadFooterCaption,
+              rerollButton: labels.rerollButton,
+              rerollPending: labels.rerollPending,
+              rerollRemaining: labels.rerollRemaining,
+              rerollWindowClosed: labels.rerollWindowClosed,
+              rerollCapReached: labels.rerollCapReached,
+              shareButton: labels.shareButton,
+              sharePending: labels.sharePending,
+              shareCopied: labels.shareCopied,
+              shareTitleTemplate: labels.shareTitleTemplate,
+              shareText: labels.shareText,
             }}
           />
         )}
