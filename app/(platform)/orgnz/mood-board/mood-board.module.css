@@ -981,3 +981,162 @@
 .modalConfirm:active {
   transform: translateY(1px);
 }
+
+/* ─── Chunk D — Rendered spread (Lock 21 10-slot editorial layout) ────── */
+
+.spreadSection {
+  flex: 1;
+  overflow-y: auto;
+  background: var(--ink2);
+  padding: 32px 16px 64px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.spreadHeader {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 24px;
+}
+
+.spreadTitle {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-weight: 300;
+  letter-spacing: 0.02em;
+  color: var(--rt);
+  margin: 0;
+}
+
+.spreadGrid {
+  width: 100%;
+  max-width: 720px;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.spreadPair {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+
+@media (max-width: 480px) {
+  .spreadPair {
+    grid-template-columns: 1fr;
+  }
+}
+
+.spreadCell {
+  width: 100%;
+  background: var(--ink3, #1a1418);
+  border-radius: 6px;
+  overflow: hidden;
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.spreadCell1x1 { aspect-ratio: 1 / 1; }
+.spreadCell16x9 { aspect-ratio: 16 / 9; }
+.spreadCell4x3 { aspect-ratio: 4 / 3; }
+.spreadCell3x4 { aspect-ratio: 3 / 4; }
+
+.spreadCellHero {
+  /* Hero gets slightly more visual weight — subtle ring + larger radius. */
+  border-radius: 8px;
+}
+
+.spreadCellImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.spreadCellLoading {
+  background: linear-gradient(
+    135deg,
+    rgba(255, 255, 255, 0.02),
+    rgba(255, 255, 255, 0.06)
+  );
+}
+
+.spreadCellFailed {
+  background: rgba(180, 60, 60, 0.08);
+  border: 1px dashed rgba(180, 60, 60, 0.4);
+}
+
+.spreadCellPlaceholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  padding: 16px;
+  text-align: center;
+}
+
+.spreadCellSpinner {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid rgba(255, 255, 255, 0.15);
+  border-top-color: var(--rt);
+  animation: spreadSpin 800ms linear infinite;
+}
+
+@keyframes spreadSpin {
+  to { transform: rotate(360deg); }
+}
+
+.spreadCellLabel {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.7);
+}
+
+.spreadCellHint {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: rgba(255, 255, 255, 0.45);
+  max-width: 240px;
+}
+
+.spreadFooter {
+  width: 100%;
+  max-width: 720px;
+  margin-top: 32px;
+  padding-top: 24px;
+  border-top: 1px solid rgba(255, 255, 255, 0.08);
+  text-align: center;
+}
+
+.spreadFooterCaption {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-style: italic;
+  font-weight: 300;
+  color: rgba(255, 255, 255, 0.6);
+  margin: 0;
+  letter-spacing: 0.01em;
+}
+
+/* ─── Chunk D — render error banner ──────────────────────────────────── */
+
+.renderError {
+  background: rgba(180, 60, 60, 0.12);
+  border-bottom: 1px solid rgba(180, 60, 60, 0.3);
+  color: rgba(255, 220, 220, 0.92);
+  font-family: var(--font-body);
+  font-size: 13px;
+  padding: 10px 16px;
+  text-align: center;
+}

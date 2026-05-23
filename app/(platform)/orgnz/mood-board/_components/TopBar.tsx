@@ -8,6 +8,9 @@ type Props = {
   labels: CanvasLabels;
   editMode: boolean;
   onToggleEdit: () => void;
+  onStartRender: () => void;
+  isStartingRender: boolean;
+  renderDisabled: boolean;
 };
 
 /**
@@ -19,10 +22,18 @@ type Props = {
  * action + a Recently Removed entry point. Label flips to "Done" while
  * edit mode is active.
  *
- * Render button remains stubbed-disabled until Chunk D wires the Flux
- * 2 Pro render flow + Stripe one-time charge.
+ * Chunk D — Render button wires to startRenderJob. Pre-Phase-4 ungated in
+ * dev (paywall arrives with Stripe Connect). Disabled while a render is
+ * starting OR while the spread view is showing.
  */
-export function TopBar({ labels, editMode, onToggleEdit }: Props) {
+export function TopBar({
+  labels,
+  editMode,
+  onToggleEdit,
+  onStartRender,
+  isStartingRender,
+  renderDisabled,
+}: Props) {
   return (
     <header className={s.topbar}>
       <div className={s.topbarLeft}>
@@ -72,10 +83,17 @@ export function TopBar({ labels, editMode, onToggleEdit }: Props) {
         <button
           type="button"
           className={s.btnRender}
-          disabled
-          title={labels.renderDisabledTooltip}
+          onClick={onStartRender}
+          disabled={renderDisabled || isStartingRender}
+          title={
+            renderDisabled
+              ? labels.renderDisabledTooltip
+              : isStartingRender
+                ? labels.renderStarting
+                : undefined
+          }
         >
-          {labels.renderButton}
+          {isStartingRender ? labels.renderStarting : labels.renderButton}
           <span className={s.btnRenderPrice}>· $9.99</span>
         </button>
       </div>

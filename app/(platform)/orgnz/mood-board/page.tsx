@@ -102,6 +102,14 @@ export default async function MoodBoardPage() {
         urlImportBoardBodyCap: t("urlImportBoardBodyCap"),
         urlImportBoardCancel: t("urlImportBoardCancel"),
         urlImportBoardConfirm: t("urlImportBoardConfirm"),
+        // Chunk D — render spread
+        renderStarting: t("renderStarting"),
+        renderErrorGeneric: t("renderErrorGeneric"),
+        spreadTitle: t("spreadTitle"),
+        spreadBackToCanvas: t("spreadBackToCanvas"),
+        slotLoading: t("slotLoading"),
+        slotFailed: t("slotFailed"),
+        spreadFooterCaption: t("spreadFooterCaption"),
       }}
     />
   );

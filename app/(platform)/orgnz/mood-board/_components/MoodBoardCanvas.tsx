@@ -17,7 +17,9 @@ import { dropChipPinAction } from "../_actions/drop-chip-pin";
 import { deletePinAction } from "../_actions/delete-pin";
 import { restorePinAction } from "../_actions/restore-pin";
 import { importPinterestUrl } from "../_actions/import-pinterest-url";
+import { startRenderJob } from "../_actions/start-render-job";
 import type { RecentlyDeletedPin } from "../_actions/list-recently-deleted-pins";
+import { RenderedSpread, type SlotResult } from "./RenderedSpread";
 import { classifyPinterestUrl } from "../_lib/pinterest-url";
 import type {
   CanvasPinLayout,
@@ -83,6 +85,14 @@ export type CanvasLabels = {
   urlImportBoardBodyCap: string;
   urlImportBoardCancel: string;
   urlImportBoardConfirm: string;
+  // Chunk D additions (Flux 2 Pro render spread)
+  renderStarting: string;
+  renderErrorGeneric: string;
+  spreadTitle: string;
+  spreadBackToCanvas: string;
+  slotLoading: string;
+  slotFailed: string;
+  spreadFooterCaption: string;
 };
 
 type Props = {
@@ -142,6 +152,13 @@ export function MoodBoardCanvas({
   } | null>(null);
   const [importStatus, setImportStatus] = useState<ImportStatus>({ state: "idle" });
   const [pendingBoardUrl, setPendingBoardUrl] = useState<string | null>(null);
+  // Chunk D — render state. 'idle' = canvas only · 'starting' = startRenderJob
+  // in flight · 'showing' = RenderedSpread mounted with slots state.
+  const [renderMode, setRenderMode] = useState<"idle" | "starting" | "showing">(
+    "idle",
+  );
+  const [renderSlots, setRenderSlots] = useState<SlotResult[]>([]);
+  const [renderError, setRenderError] = useState<string | null>(null);
   const [, startSave] = useTransition();
   const [, startUpload] = useTransition();
   const [, startChipDrop] = useTransition();
@@ -362,6 +379,31 @@ export function MoodBoardCanvas({
     [boardId, queueSave],
   );
 
+  // Chunk D — fire startRenderJob, capture initial 10-slot state, switch to
+  // spread view. The RenderedSpread component takes over from here (polling
+  // for processing slots, displaying results).
+  const handleStartRender = useCallback(async () => {
+    if (renderMode !== "idle") return;
+    setRenderError(null);
+    setRenderMode("starting");
+    const result = await startRenderJob({ boardId });
+    if (!result.ok) {
+      setRenderError(result.error);
+      setRenderMode("idle");
+      return;
+    }
+    setRenderSlots(result.slots);
+    setRenderMode("showing");
+  }, [boardId, renderMode]);
+
+  const handleBackToCanvas = useCallback(() => {
+    setRenderMode("idle");
+    // Keep renderSlots in state — if user returns to spread view we'd want
+    // the existing slots. For v1 we drop them; re-clicking "Render" fires
+    // a fresh spread. Polish-pass: persist + offer "Resume spread" CTA.
+    setRenderSlots([]);
+  }, []);
+
   const handleStraightenAll = useCallback(() => {
     setPins((current) => {
       const next = current.map((pin) => {
@@ -495,7 +537,30 @@ export function MoodBoardCanvas({
           labels={labels}
           editMode={editMode}
           onToggleEdit={() => setEditMode((v) => !v)}
+          onStartRender={handleStartRender}
+          isStartingRender={renderMode === "starting"}
+          renderDisabled={renderMode === "showing"}
         />
+        {renderError && (
+          <div role="alert" className={s.renderError}>
+            {labels.renderErrorGeneric}: {renderError}
+          </div>
+        )}
+        {renderMode === "showing" && (
+          <RenderedSpread
+            boardId={boardId}
+            initialSlots={renderSlots}
+            onBackToCanvas={handleBackToCanvas}
+            labels={{
+              spreadTitle: labels.spreadTitle,
+              spreadBackToCanvas: labels.spreadBackToCanvas,
+              slotLoading: labels.slotLoading,
+              slotFailed: labels.slotFailed,
+              footerCaption: labels.spreadFooterCaption,
+            }}
+          />
+        )}
+        {renderMode !== "showing" && (
         <div className={s.main}>
           <section className={s.stage}>
             {editMode && (
@@ -590,6 +655,7 @@ export function MoodBoardCanvas({
             uploadError={uploadError}
           />
         </div>
+        )}
         {pendingUndo && (
           <UndoToast
             message={labels.pinRemovedToast}
