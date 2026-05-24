@@ -101,4 +101,21 @@ export type RoSRecipe = {
    *  the ritual sense — the keynote takes its place; recipe-author's call
    *  whether to use anchor_moment for the keynote or omit it). */
   items: RoSItem[];
+
+  /** Optional per-recipe phase label overrides. Highest-precedence label
+   *  source in the resolver (phaseLabel() in phase-labels-by-event-type.ts).
+   *
+   *  V1 ships with phase-labels-by-EVENT-TYPE only (wedding / corporate /
+   *  nonprofit get tailored chip + header copy). This field is the hook for
+   *  per-recipe deeper precision: a Catholic wedding's anchor_moment is
+   *  "Nuptial Mass" vs Protestant's "Vows + first dance" vs Hindu's
+   *  "Saptapadi". Cowork populates per recipe in their next session — when
+   *  this field is set on a recipe, its values override the event-type
+   *  defaults for any phase listed.
+   *
+   *  Cowork-author convention when populating: only override phases where
+   *  the recipe-specific term reads materially better than the wedding /
+   *  corporate / nonprofit default. Don't replicate the event-type label
+   *  with a synonym — let the default carry. */
+  phaseLabels?: Partial<Record<RoSPhase, string>>;
 };

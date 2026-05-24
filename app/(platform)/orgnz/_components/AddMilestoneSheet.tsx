@@ -11,6 +11,9 @@ type Props = {
   open: boolean;
   eventId: string;
   startDateIso: string;
+  /** event.event_type — threaded to CustomMilestoneForm so phase chip labels
+   *  reflect the event's flavor (wedding-flavored, corporate-flavored, etc.). */
+  eventType: string | null;
   subtypeKey: string | null;
   existingKeys: Set<string>;
   dismissedSeedKeys: Set<string>;
@@ -21,6 +24,7 @@ export function AddMilestoneSheet({
   open,
   eventId,
   startDateIso,
+  eventType,
   subtypeKey,
   existingKeys,
   dismissedSeedKeys,
@@ -93,6 +97,7 @@ export function AddMilestoneSheet({
             <CustomMilestoneForm
               eventId={eventId}
               defaultDateIso={startDateIso}
+              eventType={eventType}
               onDone={onClose}
               note="Type whatever you want. Leave the name blank if you'd rather not say."
             />

@@ -235,6 +235,7 @@ export default async function OrgnzDashboardPage() {
         pins={pins}
         eventId={event.id}
         startDateIso={event.start_date}
+        eventType={event.event_type}
         subtypeKey={event.event_subtype}
         dismissedSeedKeys={dismissedSeedKeys}
       />
@@ -253,6 +254,7 @@ export default async function OrgnzDashboardPage() {
       <RunOfShow
         headlineDate={longDate}
         recipeLabel={rosRecipe.labelEn}
+        eventType={event.event_type}
         byPhase={rosByPhase}
       />
       <SheetManager budget={budgetSheetData} hasVenu={hasVenu} />

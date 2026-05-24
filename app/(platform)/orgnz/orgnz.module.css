@@ -3613,9 +3613,14 @@
 }
 .railPinDone .railPinWhen { color: var(--txt3) !important; }
 
+/* Session 18x fix 1 — custom milestone pin no longer reads as "faded".
+ * Previously: dashed border at 40% opacity rose, paired with the now-removed
+ * + flag badge (session 18v dropped the badge). Result post-removal was a
+ * dim ghost dot. Now: solid rose border at full opacity + a tinted fill so
+ * custom pins read as first-class but visually identifiable. */
 .railPinCustom .railPinDot {
-  border-style: dashed;
-  border-color: rgba(212,119,138,0.40);
+  border-color: var(--rose);
+  background: rgba(212,119,138,0.20);
 }
 .railCustomFlag {
   position: absolute;

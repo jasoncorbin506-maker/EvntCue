@@ -45,10 +45,13 @@ type Props = {
   pin: RailPin | null;
   eventId: string;
   startDateIso: string;
+  /** event.event_type — threaded to CustomMilestoneForm in edit mode so
+   *  phase chip labels match the event's flavor. */
+  eventType: string | null;
   onClose: () => void;
 };
 
-export function RailDrawer({ pin, eventId, startDateIso, onClose }: Props) {
+export function RailDrawer({ pin, eventId, startDateIso, eventType, onClose }: Props) {
   const [editing, setEditing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   // Session 18w fix E — track in-flight sort bumps to disable buttons
@@ -222,6 +225,7 @@ export function RailDrawer({ pin, eventId, startDateIso, onClose }: Props) {
             <CustomMilestoneForm
               eventId={eventId}
               defaultDateIso={startDateIso}
+              eventType={eventType}
               initial={{
                 customId: pin.customId,
                 label: pin.label === "Reserved time" ? null : pin.label,

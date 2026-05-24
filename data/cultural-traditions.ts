@@ -497,13 +497,13 @@ const ETHIOPIAN: Ceremony[] = [
 const MEXICAN: Ceremony[] = [
   {
     key: "mexican_padrinos_confirmed",
-    label: "Padrinos confirmed",
+    label: "Padrinos",
     detail: "Sponsors for lazo, arras, cojines, church flowers, cake, music, and more. Confirm each padrino's element early.",
     defaultOffsetDays: -180,
   },
   {
     key: "mexican_mariachi_confirmed",
-    label: "Mariachi confirmed",
+    label: "Mariachi",
     detail: "Live mariachi is traditional at the reception and often at the ceremony entrance.",
     defaultOffsetDays: -120,
   },

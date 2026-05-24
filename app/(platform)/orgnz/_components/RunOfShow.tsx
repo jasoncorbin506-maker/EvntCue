@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import styles from "../orgnz.module.css";
 import { showToast } from "../_lib/toast";
 import {
-  PHASE_LABELS,
   PHASE_ORDER,
   type MergedRoSRow,
 } from "@/data/run-of-show/dispatch";
+import { phaseLabel } from "@/data/run-of-show/phase-labels-by-event-type";
 import type { RoSPhase } from "@/data/run-of-show/types";
 
 function formatClock(d: Date): { time: string; period: string } {
@@ -24,6 +24,8 @@ type Props = {
   headlineDate: string;
   /** Display label for the picked recipe (e.g., "Protestant Wedding"). */
   recipeLabel: string;
+  /** event.event_type — drives phase-header label flavor via phaseLabel(). */
+  eventType: string | null;
   /** Phase-bucketed merged rows from data/run-of-show/dispatch.mergeRecipeWithCustoms. */
   byPhase: Record<RoSPhase, MergedRoSRow[]>;
 };
@@ -46,7 +48,7 @@ type Props = {
  * times normalize to wall-clock (likely after a recipe-author pass that
  * resolves anchor-relative to clock per event).
  */
-export function RunOfShow({ headlineDate, recipeLabel, byPhase }: Props) {
+export function RunOfShow({ headlineDate, recipeLabel, eventType, byPhase }: Props) {
   const [clock, setClock] = useState<{ time: string; period: string }>(() =>
     formatClock(new Date()),
   );
@@ -95,7 +97,7 @@ export function RunOfShow({ headlineDate, recipeLabel, byPhase }: Props) {
       <div className={styles.rosTrack}>
         {populatedPhases.map(({ phase, rows }) => (
           <div key={phase} className={styles.rosPhaseGroup}>
-            <div className={styles.rosPhaseHead}>{PHASE_LABELS[phase]}</div>
+            <div className={styles.rosPhaseHead}>{phaseLabel(eventType, phase)}</div>
             {rows.map((row) => (
               <div key={row.key} className={styles.rosBlock}>
                 <div className={styles.rosTime}>{row.time}</div>

@@ -2,8 +2,8 @@
 
 import { useState } from "react";
 import s from "../orgnz.module.css";
-import { TRADITIONS } from "@/data/cultural-traditions";
 import { ROS_PHASES, type RoSPhaseKey } from "@/data/ros-phases";
+import { phaseLabel } from "@/data/run-of-show/phase-labels-by-event-type";
 import { addCustomMilestone } from "../_actions/add-custom-milestone";
 import { updateCustomMilestone } from "../_actions/update-custom-milestone";
 import { showToast } from "../_lib/toast";
@@ -12,6 +12,9 @@ type Props = {
   eventId: string;
   /** Default date when opening fresh. Usually event.start_date. */
   defaultDateIso: string;
+  /** event.event_type — drives wedding/corporate/nonprofit-flavored phase
+   *  chip labels via phaseLabel(). Null falls back to universal labels. */
+  eventType: string | null;
   /** Existing values for edit mode. */
   initial?: {
     customId?: string;
@@ -34,40 +37,35 @@ type Props = {
  *   - Add (initial undefined): inserts a new event_custom_milestones row.
  *   - Edit (initial.customId set): updates the existing row.
  *
- * Session 18w polish — five fixes bundled per Jason's feedback after the
- * hallway smoke:
+ * Session 18x polish — additional fixes after session 18w smoke:
+ *   - Phase chip labels now use phaseLabel(eventType, phase) so wedding
+ *     events see "Ceremony" / "Cocktail hour" / "Vows + first dance" etc.
+ *     instead of the abstract "Opening" / "Transition" / "Anchor moment".
+ *   - Cultural Tradition chip section removed. It served a Browse Traditions
+ *     dedupe purpose that was noise for free-text adds. The traditionKey
+ *     state stays so existing tagged milestones don't lose their tag on
+ *     edit; only the UI is gone.
  *
- *   1. Field order rearranged — identity (Name) → time (When) → day-of placement
- *      (Where in the day?) → vendor (Vendor) → context (Notes, Tradition).
- *      Previous order buried the phase picker AND the vendor section below
- *      Notes/Tradition; the most load-bearing fields are now first.
- *
- *   2. Native date + time inputs replace the cmDateBtn+modal pattern. Mobile
- *      gets the OS numpad time picker (great); desktop Safari gets the WebKit
- *      segment input (functional). Eliminates the modal-on-modal nesting that
- *      made the time selection feel buried.
- *
- *   3. Auto-default `rosPhase = "anchor_moment"` when user sets a custom_time
- *      and rosPhase is still null. The previous "Planning only" default meant
- *      time-set milestones silently never surfaced in RoS — the most reported
- *      smoke bug. User can refine to a different phase or click "Planning
- *      only" to opt back out.
- *
- *   4. Vendor section moved up + hint rewritten as present-tense action ("Add
- *      your vendor here. Matching candidates surface once Vndr Discover opens.")
- *
- *   5. Helper text brightness — .cmHint is now var(--txt2) (CSS-side fix).
- *
- * Sacred-ceremony respect preserved: label is still optional, tradition_key
- * is still optional, neither is required to save.
+ * Sacred-ceremony respect preserved: label is still optional, neither
+ * label nor traditionKey is required to save.
  */
-export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, note }: Props) {
+export function CustomMilestoneForm({
+  eventId,
+  defaultDateIso,
+  eventType,
+  initial,
+  onDone,
+  note,
+}: Props) {
   const isEdit = Boolean(initial?.customId);
   const [label, setLabel] = useState(initial?.label ?? "");
   const [detail, setDetail] = useState(initial?.detail ?? "");
   const [dateIso, setDateIso] = useState(initial?.dateIso ?? defaultDateIso);
   const [time, setTime] = useState<string | null>(initial?.time ?? null);
-  const [traditionKey, setTraditionKey] = useState<string | null>(initial?.traditionKey ?? null);
+  // traditionKey carries through on edit but is no longer user-editable from
+  // this form (session 18x fix 6 — UI removed). Browse Traditions remains
+  // the canonical surface for cultural tagging.
+  const [traditionKey] = useState<string | null>(initial?.traditionKey ?? null);
   const [rosPhase, setRosPhase] = useState<RoSPhaseKey | null>(initial?.rosPhase ?? null);
   const [vendorName, setVendorName] = useState(initial?.vendorName ?? "");
   const [vendorContactEmail, setVendorContactEmail] = useState(
@@ -76,14 +74,9 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
   const [submitting, setSubmitting] = useState(false);
 
   function handleTimeChange(next: string) {
-    // Native <input type="time"> emits "" when cleared; treat empty as null
-    // so the DB stores NULL and the RoS read-path treats it as time-TBD.
     const cleaned = next.trim();
     const nextTime = cleaned === "" ? null : cleaned;
     setTime(nextTime);
-    // Auto-default the phase the first time a user assigns a time — anchor
-    // moment is the natural "the thing the day exists to do." User can click
-    // a different chip or "Planning only" to opt out.
     if (nextTime !== null && rosPhase === null) {
       setRosPhase("anchor_moment");
     }
@@ -133,11 +126,15 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
     }
   }
 
+  // Resolved label for the "anchor_moment" default — surfaces in the helper
+  // copy so it matches the chip's displayed label (e.g., "Vows + first dance"
+  // for weddings instead of the abstract "Anchor moment").
+  const anchorLabel = phaseLabel(eventType, "anchor_moment");
+
   return (
     <div className={s.cmForm}>
       {note && <div className={s.cmNote}>{note}</div>}
 
-      {/* 1. Name (identity) */}
       <label className={s.cmField}>
         <span className={s.cmFieldL}>Name (optional)</span>
         <input
@@ -153,7 +150,6 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
         </span>
       </label>
 
-      {/* 2. When (native date + time, inline — no modal) */}
       <div className={s.cmField}>
         <span className={s.cmFieldL}>When</span>
         <div className={s.cmDateTimeRow}>
@@ -177,8 +173,6 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
         </span>
       </div>
 
-      {/* 3. Where in the day? — auto-defaults to anchor_moment when a time
-       * is set; otherwise stays "Planning only" (NULL). User can refine. */}
       <div className={s.cmField}>
         <span className={s.cmFieldL}>Where in the day? (optional)</span>
         <div className={s.cmChipRow}>
@@ -197,20 +191,17 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
               onClick={() => setRosPhase(p.key)}
               title={p.hintEn}
             >
-              {p.labelEn}
+              {phaseLabel(eventType, p.key)}
             </button>
           ))}
         </div>
         <span className={s.cmHint}>
           {time
-            ? "We defaulted to Anchor moment because you set a time. Pick a different phase to refine, or Planning only if this is a prep task."
+            ? `We defaulted to ${anchorLabel} because you set a time. Pick a different phase to refine, or Planning only if this is a prep task.`
             : "Pick a phase to surface this in the day-of Run of Show. Planning only keeps it on the planning timeline only."}
         </span>
       </div>
 
-      {/* 4. Vendor — first-class section per session 18w polish. The Vndr-
-       * roster surfacing affordance (3-5 candidate cards) lights up when
-       * V-2 Discover ships published vendors. */}
       <div className={s.cmField}>
         <span className={s.cmFieldL}>Vendor (optional)</span>
         <input
@@ -237,7 +228,6 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
         </span>
       </div>
 
-      {/* 5. Notes (context) */}
       <label className={s.cmField}>
         <span className={s.cmFieldL}>Notes (optional)</span>
         <textarea
@@ -249,33 +239,6 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
           maxLength={500}
         />
       </label>
-
-      {/* 6. Cultural tradition (context — last because most users skip it) */}
-      <div className={s.cmField}>
-        <span className={s.cmFieldL}>Cultural tradition (optional)</span>
-        <div className={s.cmChipRow}>
-          <button
-            type="button"
-            className={`${s.cmChip} ${traditionKey === null ? s.cmChipOn : ""}`}
-            onClick={() => setTraditionKey(null)}
-          >
-            (none)
-          </button>
-          {TRADITIONS.map((t) => (
-            <button
-              key={t.key}
-              type="button"
-              className={`${s.cmChip} ${traditionKey === t.key ? s.cmChipOn : ""}`}
-              onClick={() => setTraditionKey(t.key)}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
-        <span className={s.cmHint}>
-          Tag only if it helps you. Sacred ceremonies can stay untagged.
-        </span>
-      </div>
 
       <div className={s.cmActions}>
         <button type="button" className={s.cmCancel} onClick={onDone}>Cancel</button>

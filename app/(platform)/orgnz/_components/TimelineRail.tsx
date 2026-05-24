@@ -10,6 +10,10 @@ type Props = {
   pins: RailPin[];
   eventId: string;
   startDateIso: string;
+  /** event.event_type — threaded through to CustomMilestoneForm (via
+   *  AddMilestoneSheet) and RailDrawer so phase chip labels match the
+   *  event's flavor (wedding → "Ceremony" instead of "Opening", etc.). */
+  eventType: string | null;
   subtypeKey: string | null;
   /** Stable keys of seed milestones that are currently dismissed. Lets the picker offer "re-enable" instead of "already there." */
   dismissedSeedKeys: string[];
@@ -24,7 +28,7 @@ const STATE_CLASS: Record<RailPinState, string> = {
   default: "",
 };
 
-export function TimelineRail({ pins, eventId, startDateIso, subtypeKey, dismissedSeedKeys }: Props) {
+export function TimelineRail({ pins, eventId, startDateIso, eventType, subtypeKey, dismissedSeedKeys }: Props) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [openPin, setOpenPin] = useState<RailPin | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -111,12 +115,14 @@ export function TimelineRail({ pins, eventId, startDateIso, subtypeKey, dismisse
         pin={openPin}
         eventId={eventId}
         startDateIso={startDateIso}
+        eventType={eventType}
         onClose={() => setOpenPin(null)}
       />
       <AddMilestoneSheet
         open={addOpen}
         eventId={eventId}
         startDateIso={startDateIso}
+        eventType={eventType}
         subtypeKey={subtypeKey}
         existingKeys={existingKeys}
         dismissedSeedKeys={dismissedSet}

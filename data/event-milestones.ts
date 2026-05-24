@@ -148,9 +148,9 @@ const WEDDING: Record<string, Milestone[]> = {
   ],
   mexican: [
     { key: "wedding_engagement", label: "Engagement", lead: 9 },
-    { key: "mexican_padrinos_confirmed", label: "Padrinos confirmed", lead: 6, detail: "Sponsors for tiara, cake, dress, etc." },
+    { key: "mexican_padrinos_confirmed", label: "Padrinos", lead: 6, detail: "Sponsors for tiara, cake, dress, etc." },
     { key: "catholic_pre_cana", label: "Pre-Cana (if Catholic)", lead: 6 },
-    { key: "mexican_mariachi_confirmed", label: "Mariachi confirmed", lead: 4 },
+    { key: "mexican_mariachi_confirmed", label: "Mariachi", lead: 4 },
     { key: "wedding_vendor_lock", label: "Vendor lock", lead: 4 },
     { key: "mexican_hora_loca_prep", label: "Hora Loca prep", lead: 2, detail: "Costumes, props, surprise entertainment" },
     { key: "mexican_ceremony", label: "Ceremony", lead: 0, detail: "Often Catholic Mass" },
@@ -193,7 +193,7 @@ const SOCIAL: Record<string, Milestone[]> = {
   quinceanera: [
     { key: "social_quinceanera_planning", label: "Planning", lead: 12 },
     { key: "social_quinceanera_court_of_honor", label: "Court of Honor", lead: 9, detail: "Chambelanes & damas — 14 typical" },
-    { key: "social_quinceanera_padrinos", label: "Padrinos confirmed", lead: 8, detail: "Sponsors offset budget per master spec §46" },
+    { key: "social_quinceanera_padrinos", label: "Padrinos", lead: 8, detail: "Sponsors offset budget per master spec §46" },
     { key: "social_quinceanera_choreography", label: "Choreography rehearsals", lead: 4 },
     { key: "social_quinceanera_fittings", label: "Final fittings", lead: 1 },
     { key: "social_quinceanera_ceremony", label: "Mass / ceremony", lead: 0 },
@@ -301,7 +301,7 @@ const CORPORATE: Record<string, Milestone[]> = {
 const NONPROFIT: Record<string, Milestone[]> = {
   annual_gala: [
     { key: "nonprofit_annual_gala_venue", label: "Date + venue lock", lead: 9 },
-    { key: "nonprofit_annual_gala_honoree", label: "Honoree confirmed", lead: 6 },
+    { key: "nonprofit_annual_gala_honoree", label: "Honoree", lead: 6 },
     { key: "nonprofit_annual_gala_sponsors", label: "Sponsor sales", lead: 6 },
     { key: "nonprofit_annual_gala_auction", label: "Auction items secured", lead: 3 },
     { key: "nonprofit_annual_gala_invitations", label: "Invitations", lead: 2 },
@@ -348,7 +348,7 @@ const PUBLIC_CULTURAL: Record<string, Milestone[]> = {
   ],
   concert: [
     { key: "public_concert_venue", label: "Date + venue", lead: 6 },
-    { key: "public_concert_talent", label: "Talent confirmed", lead: 5 },
+    { key: "public_concert_talent", label: "Talent", lead: 5 },
     { key: "public_concert_production", label: "Production team", lead: 3 },
     { key: "public_concert_tickets", label: "Ticket sales", lead: 2 },
     { key: "public_concert_show", label: "Show", lead: 0 },
@@ -360,7 +360,7 @@ const PUBLIC_CULTURAL: Record<string, Milestone[]> = {
   ],
   cultural_show: [
     { key: "public_cultural_show_venue", label: "Date + venue", lead: 4 },
-    { key: "public_cultural_show_performers", label: "Performers confirmed", lead: 3 },
+    { key: "public_cultural_show_performers", label: "Performers", lead: 3 },
     { key: "public_cultural_show_marketing", label: "Marketing", lead: 1.5 },
     { key: "public_cultural_show_day_of", label: "Showcase day", lead: 0 },
   ],
