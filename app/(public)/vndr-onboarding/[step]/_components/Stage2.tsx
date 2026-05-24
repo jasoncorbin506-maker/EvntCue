@@ -197,6 +197,17 @@ export function Stage2({
               max={60}
               value={yearsInBusiness}
               onChange={(e) => setYearsInBusiness(e.target.value)}
+              // inputMode forces iOS Safari to show the numeric keypad
+              // (not full QWERTY). autoComplete="off" stops Safari from
+              // surfacing the contact / payment auto-fill picker — the
+              // person-with-arrow glyph Jason saw on his phone was iOS
+              // wrongly tagging this field as a "personal info" target.
+              // Hidden spinner buttons are styled in Stage2.module.css
+              // via the .fInputNoSpin selector below.
+              inputMode="numeric"
+              pattern="[0-9]*"
+              autoComplete="off"
+              enterKeyHint="next"
             />
           </div>
           <div className={s.formRow}>

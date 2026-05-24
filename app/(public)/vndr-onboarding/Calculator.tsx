@@ -136,6 +136,12 @@ export function Calculator() {
           step={1}
           value={sliderValue}
           onChange={(e) => setSliderValue(parseInt(e.target.value, 10))}
+          // CSS reads --track-pct on the WebKit slider runnable track to
+          // paint the coral fill from 0% → thumb position. Without this
+          // inline style, the var falls back to its CSS default (55%) and
+          // the orange line freezes there no matter where you drag the
+          // thumb. Slider value is 0-100 so the percent maps 1:1.
+          style={{ "--track-pct": `${sliderValue}%` } as React.CSSProperties}
           aria-label={t("sliderAria")}
         />
         <div className={s.calcTicks}>

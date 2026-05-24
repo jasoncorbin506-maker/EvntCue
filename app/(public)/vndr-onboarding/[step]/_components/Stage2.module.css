@@ -52,6 +52,23 @@
   background: rgba(232, 98, 42, 0.04);
 }
 
+/* Kill native browser spinner buttons on number inputs (years in
+ * business is the only one in this form). On iOS Safari Jason saw
+ * a column of up/down arrows + an autofill person picker glyph
+ * crammed into the right edge — the inputMode="numeric" +
+ * autoComplete="off" attrs in Stage2.tsx kill the autofill picker,
+ * and these selectors hide the spinner controls. The result is a
+ * clean numeric input that opens the numpad on tap. */
+.fInput[type="number"]::-webkit-inner-spin-button,
+.fInput[type="number"]::-webkit-outer-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.fInput[type="number"] {
+  -moz-appearance: textfield; /* Firefox spinner hide */
+}
+
 .fInputReadonly {
   opacity: 0.6;
   cursor: not-allowed;
