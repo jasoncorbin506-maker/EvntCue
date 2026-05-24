@@ -2201,6 +2201,118 @@ async function testRecursionSweep() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST: T-26 — event_vendor_presence cross-tenant isolation (migration 049).
+// -----------------------------------------------------------------------------
+// Concept C primitive (vendor-as-actor track). Orgnz A authors a vendor
+// presence row on their own event; orgnz B must not be able to read it,
+// spoof-insert against A's event, update it, or delete it. All four
+// policies (evp_select/insert/update/delete) gate via user_owns_event.
+async function testEventVendorPresenceIsolation() {
+  const orgnzA = await seedTestUser("orgnz");
+  const orgnzB = await seedTestUser("orgnz");
+
+  // Seed an event for A via admin client (bypasses RLS for setup).
+  const { data: aEvent, error: aEventErr } = await adminClient
+    .from("events")
+    .insert({
+      name: `T-26 vendor presence event ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnzA.tenantId,
+      start_date: "2027-06-15",
+      guest_count: 100,
+      budget_cents: 800_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+  if (aEventErr) throw new Error(`T-26 event seed failed: ${aEventErr.message}`);
+
+  // 1. Positive: A inserts a vendor presence row on their own event.
+  const { data: aPresence, error: aInsertErr } = await orgnzA.authedClient
+    .from("event_vendor_presence")
+    .insert({
+      event_id: aEvent.id,
+      vendor_name: `T-26 Photographer ${TEST_RUN_ID}`,
+      phases: ["pre_day_staging", "load_in", "opening_moment", "first_arc"],
+      role_label: "photographer",
+      created_by: orgnzA.userId,
+    })
+    .select("id")
+    .single();
+  if (aInsertErr) {
+    throw new Error(`A self-insert failed (evp_insert should grant): ${aInsertErr.message}`);
+  }
+  if (!aPresence?.id) throw new Error(`A insert returned no id`);
+
+  // 2. Negative: B cannot SELECT A's vendor presence row (evp_select USING).
+  const { data: bView, error: bSelectErr } = await orgnzB.authedClient
+    .from("event_vendor_presence")
+    .select("id")
+    .eq("id", aPresence.id);
+  if (bSelectErr && bSelectErr.code === "42P17") {
+    throw new Error(`42P17 recursion on T-26 cross-tenant SELECT: ${bSelectErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: B saw A's vendor presence row (${bView.length} rows)`);
+  }
+
+  // 3. Negative: B cannot spoof-INSERT pointing at A's event (evp_insert WITH CHECK).
+  const { data: bSpoofInsert, error: bSpoofErr } = await orgnzB.authedClient
+    .from("event_vendor_presence")
+    .insert({
+      event_id: aEvent.id,
+      vendor_name: `T-26 SPOOF ATTEMPT ${TEST_RUN_ID}`,
+      phases: ["opening_moment"],
+      created_by: orgnzB.userId,
+    })
+    .select("id");
+  if (bSpoofErr && bSpoofErr.code === "42P17") {
+    throw new Error(`42P17 recursion on T-26 spoof INSERT: ${bSpoofErr.message}`);
+  }
+  if (!bSpoofErr && bSpoofInsert && bSpoofInsert.length > 0) {
+    throw new Error(`RLS LEAK: B spoofed a vendor presence row on A's event`);
+  }
+
+  // 4. Negative: B cannot UPDATE A's vendor presence row (evp_update USING).
+  const { data: bUpdate, error: bUpdateErr } = await orgnzB.authedClient
+    .from("event_vendor_presence")
+    .update({ vendor_name: `T-26 HIJACK ATTEMPT ${TEST_RUN_ID}` })
+    .eq("id", aPresence.id)
+    .select("id");
+  if (bUpdateErr && bUpdateErr.code === "42P17") {
+    throw new Error(`42P17 recursion on T-26 UPDATE: ${bUpdateErr.message}`);
+  }
+  if (bUpdate && bUpdate.length > 0) {
+    throw new Error(`RLS LEAK: B updated A's vendor presence row (${bUpdate.length} rows)`);
+  }
+
+  // 5. Negative: B cannot DELETE A's vendor presence row (evp_delete USING).
+  const { data: bDelete, error: bDeleteErr } = await orgnzB.authedClient
+    .from("event_vendor_presence")
+    .delete()
+    .eq("id", aPresence.id)
+    .select("id");
+  if (bDeleteErr && bDeleteErr.code === "42P17") {
+    throw new Error(`42P17 recursion on T-26 DELETE: ${bDeleteErr.message}`);
+  }
+  if (bDelete && bDelete.length > 0) {
+    throw new Error(`RLS LEAK: B deleted A's vendor presence row`);
+  }
+
+  // 6. Sanity: re-read as A, confirm the row survives unhijacked.
+  const { data: aReread, error: aRereadErr } = await orgnzA.authedClient
+    .from("event_vendor_presence")
+    .select("vendor_name")
+    .eq("id", aPresence.id)
+    .single();
+  if (aRereadErr) throw new Error(`A re-read failed: ${aRereadErr.message}`);
+  if (!aReread || aReread.vendor_name.includes("HIJACK") || aReread.vendor_name.includes("SPOOF")) {
+    throw new Error(`RLS LEAK: B's attempt mutated A's row`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
 const TESTS = [
@@ -2233,6 +2345,7 @@ const TESTS = [
   { name: "T-22b Multi-role triangle (orgnz+venue+vndr) — third role doesn't collapse isolation", fn: testMultiRoleTriangle },
   { name: "T-23 Admin-client ownership discipline — static-audit regression", fn: testAdminClientOwnershipDiscipline },
   { name: "T-25 Recursion sweep — (role × multi-tenant table) matrix, no 42P17", fn: testRecursionSweep },
+  { name: "T-26 event_vendor_presence isolation (migration 049 — orgnz A vs B)", fn: testEventVendorPresenceIsolation },
 ];
 
 // -----------------------------------------------------------------------------

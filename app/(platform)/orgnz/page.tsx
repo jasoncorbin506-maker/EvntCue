@@ -6,8 +6,13 @@ import {
   pickRecipe,
   type CustomMilestoneForMerge,
 } from "@/data/run-of-show/dispatch";
+import {
+  computeOpenItemsCounts,
+  deriveOpenItems,
+} from "@/lib/events/open-items";
 import { CuePill } from "./_components/CuePill";
 import { Feed, type FeedCard } from "./_components/Feed";
+import { OpenItemsBanner } from "./_components/OpenItemsBanner";
 import { RunOfShow } from "./_components/RunOfShow";
 import { Hero } from "./_components/Hero";
 import { LockDateCta } from "./_components/LockDateCta";
@@ -174,6 +179,13 @@ export default async function OrgnzDashboardPage() {
   const { pct: variancePct, state: varianceState } = overallVariance(benchmarks);
   const categoryLabel = CATEGORIES.find((c) => c.key === category)?.label.toLowerCase() ?? "event";
 
+  // Open Items — derived view per Concept C (vendor-task-model design,
+  // session 18z). Filters custom milestones to assignment_status='unowned'
+  // + computes urgency band counts. Banner above the timeline renders
+  // only when total > 0. Sheet is rendered by SheetManager with the items.
+  const openItems = deriveOpenItems(customMilestones);
+  const openItemsCounts = computeOpenItemsCounts(openItems);
+
   // Run of Show — Scope B hallway (2026-05-24). Pick the recipe by event
   // type + subtype (universal fallback if no match), merge in any custom
   // milestones tagged with a ros_phase, render in phase order.
@@ -231,6 +243,7 @@ export default async function OrgnzDashboardPage() {
           duration_minutes: event.duration_minutes,
         }}
       />
+      <OpenItemsBanner counts={openItemsCounts} />
       <TimelineRail
         pins={pins}
         eventId={event.id}
@@ -257,7 +270,11 @@ export default async function OrgnzDashboardPage() {
         eventType={event.event_type}
         byPhase={rosByPhase}
       />
-      <SheetManager budget={budgetSheetData} hasVenu={hasVenu} />
+      <SheetManager
+        budget={budgetSheetData}
+        hasVenu={hasVenu}
+        openItems={openItems}
+      />
     </>
   );
 }

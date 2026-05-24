@@ -72,6 +72,18 @@ export async function addCustomMilestone(input: {
   } = await supabase.auth.getUser();
   if (!user) return { ok: false, error: "Not authenticated" };
 
+  // Concept C lifecycle (migration 050): new rows default to 'unowned' AND
+  // surface in Open Items; if the user provided vendor info at creation
+  // (the "Define your own" path), flip to 'manually_defined' so the
+  // milestone doesn't immediately surface as "needs attention" — they've
+  // already declared who handles it. The Open Items derived-view filters
+  // on assignment_status='unowned', so this is the difference between
+  // "shows up in the banner count" vs "doesn't."
+  const assignmentStatus =
+    vendorName !== null || vendorContactEmail !== null
+      ? "manually_defined"
+      : "unowned";
+
   const { data, error } = await supabase
     .from("event_custom_milestones")
     .insert({
@@ -85,6 +97,7 @@ export async function addCustomMilestone(input: {
       ros_phase: rosPhase,
       vendor_name: vendorName,
       vendor_contact_email: vendorContactEmail,
+      assignment_status: assignmentStatus,
       created_by: user.id,
     })
     .select("id")

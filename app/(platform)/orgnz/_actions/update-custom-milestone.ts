@@ -18,6 +18,13 @@ import { isRoSPhaseKey } from "@/data/ros-phases";
  *     in v1. Custom pins don't track a done state separately yet (delete is
  *     the equivalent action for a custom pin that no longer applies).
  */
+const VALID_ASSIGNMENT_STATUSES = new Set([
+  "unowned",
+  "vendor_assigned",
+  "manually_defined",
+  "resolved",
+]);
+
 export async function updateCustomMilestone(input: {
   id: string;
   label?: string | null;
@@ -29,6 +36,11 @@ export async function updateCustomMilestone(input: {
   rosPhase?: string | null;
   vendorName?: string | null;
   vendorContactEmail?: string | null;
+  /** Concept C lifecycle — caller flips this when work state changes
+   *  (e.g., "resolved" when user marks the item complete from Open Items). */
+  assignmentStatus?: "unowned" | "vendor_assigned" | "manually_defined" | "resolved";
+  /** Day-of mode suppression flag (migration 050). */
+  dayOfRelevant?: boolean;
 }): Promise<{ ok: true } | { ok: false; error: string }> {
   if (!input.id) return { ok: false, error: "Missing id" };
   if (input.customDateIso && !/^\d{4}-\d{2}-\d{2}$/.test(input.customDateIso)) {
@@ -43,6 +55,13 @@ export async function updateCustomMilestone(input: {
     !isRoSPhaseKey(input.rosPhase)
   ) {
     return { ok: false, error: "Invalid Run-of-Show phase" };
+  }
+  if (
+    "assignmentStatus" in input &&
+    input.assignmentStatus !== undefined &&
+    !VALID_ASSIGNMENT_STATUSES.has(input.assignmentStatus)
+  ) {
+    return { ok: false, error: "Invalid assignment status" };
   }
 
   const patch: Record<string, unknown> = {};
@@ -62,6 +81,8 @@ export async function updateCustomMilestone(input: {
         ? null
         : input.vendorContactEmail?.trim() || null;
   }
+  if ("assignmentStatus" in input) patch.assignment_status = input.assignmentStatus;
+  if ("dayOfRelevant" in input) patch.day_of_relevant = input.dayOfRelevant;
 
   if (Object.keys(patch).length === 0) return { ok: true };
 

@@ -50,6 +50,12 @@ export type OrgnzCustomMilestone = {
   ros_phase?: string | null;
   vendor_name?: string | null;
   vendor_contact_email?: string | null;
+  // Migration 050 — Concept C lifecycle. assignment_status drives the
+  // derived Open Items view (lib/events/open-items.ts). day_of_relevant is
+  // the day-of mode suppression flag. Optional on the type so pre-050
+  // schema reads keep working.
+  assignment_status?: "unowned" | "vendor_assigned" | "manually_defined" | "resolved";
+  day_of_relevant?: boolean;
 };
 
 export type OrgnzContext = {
@@ -144,16 +150,31 @@ export const loadOrgnzContext = cache(async (): Promise<OrgnzContext | null> => 
       if (customMilestones.length > 0) {
         const { data: rosData, error: rosErr } = await admin
           .from("event_custom_milestones")
-          .select("id,ros_phase,vendor_name,vendor_contact_email")
+          .select(
+            "id,ros_phase,vendor_name,vendor_contact_email,assignment_status,day_of_relevant",
+          )
           .eq("event_id", event.id);
         if (!rosErr && rosData) {
-          const byId = new Map<string, { ros_phase: string | null; vendor_name: string | null; vendor_contact_email: string | null }>();
+          const byId = new Map<
+            string,
+            {
+              ros_phase: string | null;
+              vendor_name: string | null;
+              vendor_contact_email: string | null;
+              assignment_status?: OrgnzCustomMilestone["assignment_status"];
+              day_of_relevant?: boolean;
+            }
+          >();
           for (const row of rosData) {
             byId.set(row.id as string, {
               ros_phase: (row.ros_phase as string | null) ?? null,
               vendor_name: (row.vendor_name as string | null) ?? null,
               vendor_contact_email:
                 (row.vendor_contact_email as string | null) ?? null,
+              assignment_status:
+                (row.assignment_status as OrgnzCustomMilestone["assignment_status"]) ??
+                undefined,
+              day_of_relevant: (row.day_of_relevant as boolean | null) ?? undefined,
             });
           }
           customMilestones = customMilestones.map((m) => {
