@@ -15,9 +15,10 @@
  *   - `optional`    — offered at Stage 4 if applicable to the vendor's
  *                     discipline. Smaller trust bump. Never blocks.
  *   - `conditional` — surfaces in Stage 4 only when triggerSubTypes match
- *                     the vendor's primary_sub_type (falls back to
- *                     primary_category when sub_type is NULL — see Stage 4
- *                     reveal logic in app/(public)/vndr-onboarding/[step]/).
+ *                     ANY of the vendor's selected sub_types (V-1c semantic —
+ *                     fires if at least one selected sub-type matches; falls
+ *                     back to primary_category when sub_types is empty — see
+ *                     Stage 4 reveal logic in app/(public)/vndr-onboarding/[step]/).
  *
  * There is no `hard` gate type — hard certs are Catr territory (migration
  * 010 TABC + SafeTab immutability for alcohol/food caterers). Vndr's posture
@@ -59,9 +60,9 @@ export type CertTypeEntry = {
   tagEs: string;
   gateType: CertGateType;
   trustReward: number;
-  // For conditional gates only. Match against vendors.primary_sub_type
-  // (preferred) or fall back to primary_category-based reveal in the Stage
-  // 4 component when sub_type is NULL. Empty array for non-conditional.
+  // For conditional gates only. Match (ANY-of semantic per V-1c) against
+  // vendors.sub_types or fall back to primary_category-based reveal when
+  // sub_types is empty. Empty array for non-conditional cert types.
   triggerSubTypes: readonly string[];
 };
 
@@ -199,18 +200,29 @@ export function certTypeTrustReward(key: CertTypeKey): number {
 
 /**
  * Stage 4 conditional-reveal predicate. Returns true if the cert card should
- * surface for a vendor with the given primary_sub_type (preferred) or
- * primary_category (fallback when sub_type is NULL).
+ * surface for a vendor with the given sub-type selection (preferred) or
+ * primary_category (fallback when sub_types is empty).
  *
- * Falls back to category-based reveal when sub_type is null. Category 'dessert'
- * is the only Lock 14 category that contains TABC + food_handler sub-types,
- * so reveal both conditional cards when category='dessert' and sub_type is
- * unknown — graceful over-reveal (vendor sees an extra card they can skip)
- * is preferred over a compliance miss.
+ * V-1c semantic — ANY-match across the sub_types array:
+ *   reveal if AT LEAST ONE selected sub-type triggers this cert.
+ * Rationale: a vendor who picked "Wedding DJ" + "Mixologist" needs TABC for
+ * the alcohol side regardless of which they ranked primary. Compliance-
+ * gated certs (TABC, food_handler) are over-reveal-tolerant by design —
+ * surfacing one extra optional card is cheaper than missing one.
+ *
+ * Fallback when sub_types is empty: category-based reveal. The Lock 14
+ * amendment (session 18o) removed 'dessert' from Vndr taxonomy, so the
+ * fallback is effectively never-fires in V-1c — kept for V-2+ surfaces
+ * that may re-introduce conditional categories.
+ *
+ * Note: as of V-1c this helper is dead code in the live Stage 4 UI
+ * (Stage4.tsx hard-codes general_liability_insurance + business_license
+ * unconditionally per Lock 14). The signature is correct for future V-2+
+ * profile / discovery surfaces that surface cert badges per vendor.
  */
 export function certTypeShouldReveal(
   key: CertTypeKey,
-  vendor: { primarySubType: string | null; primaryCategory: string | null },
+  vendor: { primarySubTypes: string[]; primaryCategory: string | null },
 ): boolean {
   const entry = CERT_TYPES.find((c) => c.key === key);
   if (!entry) return false;
@@ -221,10 +233,14 @@ export function certTypeShouldReveal(
     // not part of Stage 4 V-1b — the page filters those out.
     return entry.gateType === "soft" || entry.key === "business_license";
   }
-  if (vendor.primarySubType) {
-    return entry.triggerSubTypes.includes(vendor.primarySubType);
+  if (vendor.primarySubTypes.length > 0) {
+    return vendor.primarySubTypes.some((st) =>
+      entry.triggerSubTypes.includes(st),
+    );
   }
-  // Fallback: sub_type missing — reveal conditional cards when category is
-  // 'dessert' (the umbrella for TABC + food_handler sub-types).
+  // Fallback: sub_types empty — reveal conditional cards when category is
+  // 'dessert' (the umbrella that historically held TABC + food_handler
+  // sub-types). Effectively unreachable in V-1c post-Lock-14; preserved
+  // for V-2+ surfaces.
   return vendor.primaryCategory === "dessert";
 }

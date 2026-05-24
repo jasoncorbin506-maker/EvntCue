@@ -413,10 +413,13 @@
         },
         "s1": {
           "headline": "Primero — <em>¿qué haces?</em>",
-          "description": "Elige tu disciplina principal. Lo afinamos juntos. Más adelante puedes listar otras especialidades — ahora estamos encontrando el corazón de tu trabajo.",
+          "description": "Elige tu disciplina principal. Lo afinamos juntos. Abajo puedes listar más especialidades — ahora estamos encontrando el corazón de tu trabajo.",
           "cueTag": "Cue · leyendo el momento",
           "cueText": "Tómate tu tiempo. La categoría define para qué eventos te muestra Cue, así que vale la pena escogerla bien — los sub-tipos los ajustas enseguida.",
-          "subtypeHead": "Elige lo que más se acerque · opcional",
+          "subtypeHead": "Elige lo que aplique · varios OK · opcional",
+          "subtypeHelper": "Tu primera selección es tu especialidad principal. Agrega más si tu trabajo de verdad las abarca.",
+          "primaryBadge": "Principal",
+          "subtypeCapHint": "La mayoría elige una o dos. Tres o más está bien si tu negocio realmente cubre ese terreno.",
           "metaPickCategory": "Elige una categoría para continuar",
           "metaSavedOnContinue": "Paso 1 de 4 · se guarda al continuar"
         },

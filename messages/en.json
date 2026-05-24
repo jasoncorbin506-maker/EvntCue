@@ -413,10 +413,13 @@
         },
         "s1": {
           "headline": "First — <em>what do you do?</em>",
-          "description": "Pick your primary discipline. We’ll narrow it together. You can list multiple specialties later — right now we’re finding the heart of your work.",
+          "description": "Pick your primary discipline. We’ll narrow it together. You can list multiple specialties below — right now we’re finding the heart of your work.",
           "cueTag": "Cue · reading the room",
           "cueText": "Take your time. The category sets which events Cue surfaces you for, so it’s worth getting right — you can refine the sub-types right after.",
-          "subtypeHead": "Pick what fits closest · optional",
+          "subtypeHead": "Pick what fits · multiple OK · optional",
+          "subtypeHelper": "Your first pick is your primary specialty. Add more if your work genuinely spans them.",
+          "primaryBadge": "Primary",
+          "subtypeCapHint": "Most vendors pick one or two. Three or more is fine if your business really covers that ground.",
           "metaPickCategory": "Pick a category to continue",
           "metaSavedOnContinue": "Step 1 of 4 · saved on continue"
         },

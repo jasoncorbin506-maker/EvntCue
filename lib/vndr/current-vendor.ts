@@ -6,6 +6,10 @@ export type CurrentVendor = {
   displayName: string;
   primaryCategory: string | null;
   primarySubType: string | null;
+  // Multi-select sub-types per V-1c (migration 047). First element mirrors
+  // primarySubType (back-compat invariant). Empty array when no sub-types
+  // selected — same semantic as primarySubType being null.
+  primarySubTypes: string[];
   claimStatus: string;
 };
 
@@ -53,7 +57,7 @@ export async function getCurrentVendor(): Promise<CurrentVendor | null> {
   const { data: vendors } = await supabase
     .from("vendors")
     .select(
-      "id, tenant_id, display_name, primary_category, primary_sub_type, claim_status",
+      "id, tenant_id, display_name, primary_category, primary_sub_type, sub_types, claim_status",
     )
     .eq("tenant_id", tenantId)
     .order("created_at", { ascending: false })
@@ -62,12 +66,15 @@ export async function getCurrentVendor(): Promise<CurrentVendor | null> {
   const vendor = vendors?.[0];
   if (!vendor) return null;
 
+  const rawSubTypes = vendor.sub_types as string[] | null | undefined;
+
   return {
     id: vendor.id as string,
     tenantId: vendor.tenant_id as string,
     displayName: vendor.display_name as string,
     primaryCategory: (vendor.primary_category as string | null) ?? null,
     primarySubType: (vendor.primary_sub_type as string | null) ?? null,
+    primarySubTypes: Array.isArray(rawSubTypes) ? rawSubTypes : [],
     claimStatus: vendor.claim_status as string,
   };
 }

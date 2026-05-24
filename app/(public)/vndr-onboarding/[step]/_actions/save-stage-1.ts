@@ -10,7 +10,8 @@ import {
 
 /**
  * Stage 1 server action. Writes vendors.primary_category +
- * vendors.primary_sub_type (migration 042) for the currently-signed-in vndr.
+ * vendors.primary_sub_type (migration 042) + vendors.sub_types (migration
+ * 047, V-1c multi-select) for the currently-signed-in vndr.
  *
  * Uses the RLS-scoped client — migration 041's vendors_update policy allows
  * the owning tenant to UPDATE their own row (USING tenant_id IN
@@ -18,9 +19,21 @@ import {
  * role + the row's tenant matches their tenant.
  *
  * Validates inputs against the canonical catalog (data/vndr-categories.ts)
- * to defend against arbitrary form-submission payloads. Sub-type may be
- * null (drill is optional); when provided, it must belong to the selected
- * category's sub-types list.
+ * to defend against arbitrary form-submission payloads. subTypes may be
+ * empty (drill is optional); when non-empty, every element must belong to
+ * the selected category's sub-types list AND be unique.
+ *
+ * V-1c additive-write contract (locked session 18t):
+ *   - subTypes[0] (or null if empty) → primary_sub_type   (back-compat)
+ *   - subTypes (full ordered array)  → sub_types          (multi-select)
+ * Both writes happen in a single UPDATE; the back-compat invariant
+ * (sub_types[0] === primary_sub_type when non-empty) is preserved by
+ * deriving both from the same input.
+ *
+ * No schema-level cap on subTypes.length — UI nudges at 3, but the server
+ * accepts any non-empty array of valid sub-types. Over-constraining here
+ * would create a "your save was lost" failure class for power users with
+ * genuinely cross-discipline business shapes.
  *
  * Returns a result object; the client (Stage1.tsx) handles navigation via
  * router.push on success and shows the error inline on failure.
@@ -32,7 +45,7 @@ export type SaveStage1Result =
 
 export async function saveStage1Action(input: {
   category: VndrCategoryKey;
-  subType: string | null;
+  subTypes: string[];
 }): Promise<SaveStage1Result> {
   if (!isVndrCategoryKey(input.category)) {
     return { ok: false, error: "Pick a category to continue." };
@@ -43,16 +56,31 @@ export async function saveStage1Action(input: {
     return { ok: false, error: "Pick a category to continue." };
   }
 
-  // Sub-type, if provided, must belong to the selected category's catalog.
-  if (input.subType !== null) {
-    const subTypes: readonly string[] = cat.subTypes;
-    if (!subTypes.includes(input.subType)) {
+  if (!Array.isArray(input.subTypes)) {
+    return { ok: false, error: "Could not save right now. Try again." };
+  }
+
+  // Every selected sub-type must belong to the category's catalog. Dedupe
+  // defensively so a client-side state glitch can't double-write a chip.
+  const validSet = new Set<string>(cat.subTypes);
+  const seen = new Set<string>();
+  const cleaned: string[] = [];
+  for (const st of input.subTypes) {
+    if (typeof st !== "string") {
+      return { ok: false, error: "Could not save right now. Try again." };
+    }
+    if (!validSet.has(st)) {
       return {
         ok: false,
-        error: "That sub-type doesn't match the category. Pick again.",
+        error: "A sub-type doesn't match the category. Pick again.",
       };
     }
+    if (seen.has(st)) continue;
+    seen.add(st);
+    cleaned.push(st);
   }
+
+  const primarySubType = cleaned.length > 0 ? cleaned[0] : null;
 
   const vendor = await getCurrentVendor();
   if (!vendor) {
@@ -67,7 +95,8 @@ export async function saveStage1Action(input: {
     .from("vendors")
     .update({
       primary_category: input.category,
-      primary_sub_type: input.subType,
+      primary_sub_type: primarySubType,
+      sub_types: cleaned,
     })
     .eq("id", vendor.id);
 

@@ -43,7 +43,7 @@ export default async function VndrOnboardingStagePage({
       return (
         <Stage1
           initialCategory={vendor.primaryCategory}
-          initialSubType={vendor.primarySubType}
+          initialSubTypes={vendor.primarySubTypes}
         />
       );
     case "2": {

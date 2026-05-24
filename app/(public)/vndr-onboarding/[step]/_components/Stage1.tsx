@@ -15,25 +15,37 @@ import sShell from "../vndr-onboarding-stage.module.css";
 import s from "./Stage1.module.css";
 
 /**
- * Stage 1 — What you do. Category chip grid + optional sub-type drill.
+ * Stage 1 — What you do. Category chip grid + multi-select sub-type drill.
  *
  * Source: 02_Locked_Prototypes/Vndr/evntcue_vndr_freemium_v1.html lines
  * 782-867. Mockup uses imperative goStage(N); React version persists via
  * a server action and navigates on success.
  *
- * State: selectedCategory + selectedSubType. Continue is enabled once a
- * category is picked; sub-type drill is optional (the column is nullable,
- * Stage 4 falls back to category-based reveal when sub_type is NULL).
+ * V-1c multi-select (migration 047). State holds an ordered array of
+ * sub-types — first selected stays in position 0 as the primary specialty.
+ * Toggle semantics: clicking a chip adds it to the array end if not present,
+ * removes it (preserving order of remaining items) if present. Removing
+ * index 0 promotes index 1 to primary.
  *
- * Initial values hydrate from props (vendor.primaryCategory / primarySubType)
- * so a returning user sees their prior selection re-checked.
+ * Visual treatment: when N > 1 the position-0 chip carries a "Primary"
+ * badge. Single-selection vendors see no badge — same UX as today. Soft
+ * cap at 3 is a non-blocking hint, not enforced; the schema accepts any
+ * non-empty array of valid sub-types.
+ *
+ * Continue is enabled once a category is picked; sub-type drill is optional
+ * (sub_types defaults to '{}' if vendor skips the drill).
+ *
+ * Initial values hydrate from props (vendor.primaryCategory /
+ * primarySubTypes) so a returning user sees their prior selection
+ * re-checked. primarySubTypes invariant: when non-empty, primarySubTypes[0]
+ * mirrors vendors.primary_sub_type (back-compat).
  */
 export function Stage1({
   initialCategory,
-  initialSubType,
+  initialSubTypes,
 }: {
   initialCategory: string | null;
-  initialSubType: string | null;
+  initialSubTypes: string[];
 }) {
   const router = useRouter();
   const locale = useLocale() as Locale;
@@ -46,10 +58,27 @@ export function Stage1({
     (c) => c.key === initialCategory,
   )?.key ?? null;
 
+  // Trust hydrated sub-types only if they still belong to the validated
+  // category's catalog. Dedupe defensively (same posture as save-stage-1).
+  const initialSubTypesValidated = (() => {
+    if (initialCatValidated === null) return [];
+    const cat = VNDR_CATEGORIES.find((c) => c.key === initialCatValidated);
+    if (!cat) return [];
+    const valid = new Set<string>(cat.subTypes);
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const st of initialSubTypes) {
+      if (!valid.has(st) || seen.has(st)) continue;
+      seen.add(st);
+      out.push(st);
+    }
+    return out;
+  })();
+
   const [category, setCategory] = useState<VndrCategoryKey | null>(
     initialCatValidated,
   );
-  const [subType, setSubType] = useState<string | null>(initialSubType);
+  const [subTypes, setSubTypes] = useState<string[]>(initialSubTypesValidated);
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -57,23 +86,29 @@ export function Stage1({
     ? VNDR_CATEGORIES.find((c) => c.key === category)
     : null;
   const canContinue = category !== null && !pending;
+  const showPrimaryBadges = subTypes.length > 1;
+  const showCapHint = subTypes.length >= 3;
 
   const handleCategoryPick = (key: VndrCategoryKey) => {
     if (category === key) return;
     setCategory(key);
-    setSubType(null); // reset sub-type when category changes
+    setSubTypes([]); // reset sub-types when category changes
     setError(null);
   };
 
   const handleSubTypePick = (st: string) => {
-    setSubType((cur) => (cur === st ? null : st));
+    setSubTypes((cur) => {
+      const idx = cur.indexOf(st);
+      if (idx === -1) return [...cur, st];
+      return cur.filter((s) => s !== st);
+    });
   };
 
   const handleContinue = () => {
     if (!canContinue || category === null) return;
     setError(null);
     startTransition(async () => {
-      const result = await saveStage1Action({ category, subType });
+      const result = await saveStage1Action({ category, subTypes });
       if (result.ok === false) {
         setError(result.error);
         return;
@@ -128,9 +163,12 @@ export function Stage1({
       {selectedCat && (
         <div className={s.subtypePanel}>
           <div className={s.subtypeH}>{t("subtypeHead")}</div>
+          <div className={s.subtypeHelper}>{t("subtypeHelper")}</div>
           <div className={s.subtypeGrid}>
             {selectedCat.subTypes.map((st) => {
-              const on = subType === st;
+              const idx = subTypes.indexOf(st);
+              const on = idx !== -1;
+              const isPrimary = on && idx === 0 && showPrimaryBadges;
               return (
                 <button
                   key={st}
@@ -140,10 +178,18 @@ export function Stage1({
                   aria-pressed={on}
                 >
                   {st}
+                  {isPrimary && (
+                    <span className={s.subtypePrimaryBadge}>
+                      {t("primaryBadge")}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
+          {showCapHint && (
+            <div className={s.subtypeCapHint}>{t("subtypeCapHint")}</div>
+          )}
         </div>
       )}
 
