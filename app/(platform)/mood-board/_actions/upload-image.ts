@@ -135,7 +135,7 @@ export async function uploadImageAction(formData: FormData): Promise<UploadResul
     return { ok: false, error: `Signed URL failed: ${signErr?.message ?? "unknown"}` };
   }
 
-  revalidatePath("/orgnz/mood-board");
+  revalidatePath("/mood-board");
 
   return {
     ok: true,

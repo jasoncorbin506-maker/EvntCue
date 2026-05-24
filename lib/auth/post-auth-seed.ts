@@ -237,7 +237,7 @@ export async function postAuthSeed(args: {
   void (await createClient()).auth.getUser();
 
   if (desiredRole === "vndr") return "/vndr-onboarding/1";
-  if (args.intent === "mood_board") return "/orgnz/mood-board";
+  if (args.intent === "mood_board") return "/mood-board";
   return "/orgnz";
 }
 

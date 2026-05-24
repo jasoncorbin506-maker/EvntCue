@@ -249,7 +249,7 @@ export async function pollRenderJobs(
   }
 
   if (slotResults.some((r) => r.status === "succeeded" || r.status === "failed")) {
-    revalidatePath("/orgnz/mood-board");
+    revalidatePath("/mood-board");
   }
 
   return { ok: true, slots: slotResults };

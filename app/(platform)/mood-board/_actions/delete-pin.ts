@@ -52,6 +52,6 @@ export async function deletePinAction(args: {
     .is("deleted_at", null);
   if (updateErr) return { ok: false, error: `Delete failed: ${updateErr.message}` };
 
-  revalidatePath("/orgnz/mood-board");
+  revalidatePath("/mood-board");
   return { ok: true };
 }

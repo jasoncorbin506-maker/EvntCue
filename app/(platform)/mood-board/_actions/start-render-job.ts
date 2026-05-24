@@ -357,7 +357,7 @@ export async function startRenderJob(
     }
   }
 
-  revalidatePath("/orgnz/mood-board");
+  revalidatePath("/mood-board");
 
   return {
     ok: true,

@@ -109,7 +109,7 @@ export function TileGrid(props: Props) {
       </button>
 
       {/* MOOD — free */}
-      <Link href="/orgnz/mood-board" className={`${styles.tile} ${styles.tileMood}`}>
+      <Link href="/mood-board" className={`${styles.tile} ${styles.tileMood}`}>
         <div className={styles.tileH}>
           <div className={styles.tileIco}>
             <svg viewBox="0 0 24 24">

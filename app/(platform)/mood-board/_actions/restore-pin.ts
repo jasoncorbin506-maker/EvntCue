@@ -52,6 +52,6 @@ export async function restorePinAction(args: {
     .not("deleted_at", "is", null);
   if (updateErr) return { ok: false, error: `Restore failed: ${updateErr.message}` };
 
-  revalidatePath("/orgnz/mood-board");
+  revalidatePath("/mood-board");
   return { ok: true };
 }

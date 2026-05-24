@@ -272,7 +272,7 @@ export async function rerollSlot(
     .update({ deleted_at: new Date().toISOString() })
     .eq("id", parentPin.id);
 
-  revalidatePath("/orgnz/mood-board");
+  revalidatePath("/mood-board");
 
   return {
     ok: true,

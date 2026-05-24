@@ -98,7 +98,7 @@ export async function dropChipPinAction(args: {
     pinId = tryChip.data.id as string;
   }
 
-  revalidatePath("/orgnz/mood-board");
+  revalidatePath("/mood-board");
 
   return {
     ok: true,

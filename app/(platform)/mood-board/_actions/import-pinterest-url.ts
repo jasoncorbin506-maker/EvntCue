@@ -211,7 +211,7 @@ export async function importPinterestUrl(
     };
   }
 
-  revalidatePath("/orgnz/mood-board");
+  revalidatePath("/mood-board");
 
   return {
     ok: true,

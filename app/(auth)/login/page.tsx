@@ -69,7 +69,7 @@ export default async function LoginPage(props: {
       redirect(next ?? "/vndr-onboarding/1");
     }
     if (roleSet.has("orgnz") || roleSet.has("admin")) {
-      redirect(next ?? (intent === "mood_board" ? "/orgnz/mood-board" : "/orgnz"));
+      redirect(next ?? (intent === "mood_board" ? "/mood-board" : "/orgnz"));
     }
     if (roleSet.has("vndr")) {
       redirect(next ?? "/vndr-onboarding/1");
