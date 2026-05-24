@@ -6,7 +6,7 @@ import { getCurrentVendor } from "@/lib/vndr/current-vendor";
 
 /**
  * Stage 4 final commit. Flips vendors.claim_status from 'pending_claim' to
- * 'published' and redirects to the V-2 dashboard placeholder.
+ * 'published' and redirects to the V-2a Home dashboard at /vndr.
  *
  * Per master spec §75 soft-gate semantics: this action runs unconditionally.
  * Cert uploads at Stage 4 are optional discoverability gates; a vendor who
@@ -31,7 +31,7 @@ export async function finishOnboardingAction(): Promise<FinishResult | void> {
 
   if (vendor.claimStatus === "published") {
     // Already published — just route to dashboard.
-    redirect("/vndr/discover?welcome=signup");
+    redirect("/vndr?welcome=signup");
   }
 
   const supabase = await createClient();
@@ -44,5 +44,5 @@ export async function finishOnboardingAction(): Promise<FinishResult | void> {
     return { ok: false, error: "Could not finalize. Try again." };
   }
 
-  redirect("/vndr/discover?welcome=signup");
+  redirect("/vndr?welcome=signup");
 }

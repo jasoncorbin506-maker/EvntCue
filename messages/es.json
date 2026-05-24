@@ -166,8 +166,10 @@
   "login": {
     "metaTitle": "Iniciar sesión · EvntCue",
     "signupHeadline": "Mantén tu evento vivo.",
+    "signupHeadlineVndr": "Mantén tu negocio reservado.",
     "signinHeadline": "Bienvenido de vuelta.",
     "signupSub": "Tu presupuesto, tus hitos y tu mood board te están esperando. A un paso de aquí.",
+    "signupSubVndr": "Tus paquetes, consultas y reservas te están esperando. A un paso de aquí.",
     "signinSub": "Inicia sesión para seguir donde te quedaste.",
     "createAccount": "Crear cuenta",
     "signIn": "Iniciar sesión",

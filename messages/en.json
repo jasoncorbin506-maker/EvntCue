@@ -166,8 +166,10 @@
   "login": {
     "metaTitle": "Sign in · EvntCue",
     "signupHeadline": "Keep your event live.",
+    "signupHeadlineVndr": "Keep your business booked.",
     "signinHeadline": "Welcome back.",
     "signupSub": "Your budget, milestones, and mood board are waiting. One step from here.",
+    "signupSubVndr": "Your packages, inquiries, and bookings are waiting. One step from here.",
     "signinSub": "Sign in to pick up where you left off.",
     "createAccount": "Create account",
     "signIn": "Sign in",

@@ -78,8 +78,23 @@ export default async function LoginPage(props: {
   }
 
   const t = await getTranslations("login");
-  const headline = mode === "signup" ? t("signupHeadline") : t("signinHeadline");
-  const sub = mode === "signup" ? t("signupSub") : t("signinSub");
+  // Vndr-flavored copy when arriving from the vendor onboarding funnel
+  // (?role=vndr). Without this, the signup card shows organizer voice
+  // ("Keep your event live") to vendors converting from the V-1b funnel.
+  // Sign-in copy is generic across roles; only signup needs the branch.
+  const isVndrSignup = mode === "signup" && role === "vndr";
+  const headline =
+    mode === "signup"
+      ? isVndrSignup
+        ? t("signupHeadlineVndr")
+        : t("signupHeadline")
+      : t("signinHeadline");
+  const sub =
+    mode === "signup"
+      ? isVndrSignup
+        ? t("signupSubVndr")
+        : t("signupSub")
+      : t("signinSub");
 
   const otherMode = mode === "signup" ? "signin" : "signup";
   const otherLabel = mode === "signup" ? t("signIn") : t("createAccount");
