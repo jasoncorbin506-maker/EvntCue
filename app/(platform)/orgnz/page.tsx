@@ -1,6 +1,11 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { CATEGORIES, type CategoryKey } from "@/data/budget-presets";
+import {
+  mergeRecipeWithCustoms,
+  pickRecipe,
+  type CustomMilestoneForMerge,
+} from "@/data/run-of-show/dispatch";
 import { CuePill } from "./_components/CuePill";
 import { Feed, type FeedCard } from "./_components/Feed";
 import { RunOfShow } from "./_components/RunOfShow";
@@ -169,6 +174,21 @@ export default async function OrgnzDashboardPage() {
   const { pct: variancePct, state: varianceState } = overallVariance(benchmarks);
   const categoryLabel = CATEGORIES.find((c) => c.key === category)?.label.toLowerCase() ?? "event";
 
+  // Run of Show — Scope B hallway (2026-05-24). Pick the recipe by event
+  // type + subtype (universal fallback if no match), merge in any custom
+  // milestones tagged with a ros_phase, render in phase order.
+  const rosRecipe = pickRecipe(event.event_type, event.event_subtype);
+  const customsForRos: CustomMilestoneForMerge[] = customMilestones.map(
+    (m) => ({
+      id: m.id,
+      label: m.label,
+      custom_time: m.custom_time,
+      ros_phase: m.ros_phase ?? null,
+      vendor_name: m.vendor_name ?? null,
+    }),
+  );
+  const rosByPhase = mergeRecipeWithCustoms(rosRecipe, customsForRos);
+
   const budgetSheetData = {
     spentCents: allocatedCents,
     budgetCents: event.budget_cents ?? 0,
@@ -230,7 +250,11 @@ export default async function OrgnzDashboardPage() {
         hasVenu={hasVenu}
         isPaidTier={isPaidTier}
       />
-      <RunOfShow />
+      <RunOfShow
+        headlineDate={longDate}
+        recipeLabel={rosRecipe.labelEn}
+        byPhase={rosByPhase}
+      />
       <SheetManager budget={budgetSheetData} hasVenu={hasVenu} />
     </>
   );

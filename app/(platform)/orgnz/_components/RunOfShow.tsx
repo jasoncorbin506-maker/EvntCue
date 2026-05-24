@@ -3,7 +3,12 @@
 import { useEffect, useState } from "react";
 import styles from "../orgnz.module.css";
 import { showToast } from "../_lib/toast";
-import { ROS_BLOCKS, ROS_HEAD_LABEL, ROS_NOW } from "../_lib/ros-data";
+import {
+  PHASE_LABELS,
+  PHASE_ORDER,
+  type MergedRoSRow,
+} from "@/data/run-of-show/dispatch";
+import type { RoSPhase } from "@/data/run-of-show/types";
 
 function formatClock(d: Date): { time: string; period: string } {
   let h = d.getHours();
@@ -14,12 +19,34 @@ function formatClock(d: Date): { time: string; period: string } {
   return { time: `${h}:${mm}`, period };
 }
 
+type Props = {
+  /** Display string for the section header — usually the event's start date. */
+  headlineDate: string;
+  /** Display label for the picked recipe (e.g., "Protestant Wedding"). */
+  recipeLabel: string;
+  /** Phase-bucketed merged rows from data/run-of-show/dispatch.mergeRecipeWithCustoms. */
+  byPhase: Record<RoSPhase, MergedRoSRow[]>;
+};
+
 /**
  * Day-of mode Run-of-Show. CSS-gated to render only when `.app.dayof` is on
  * (mockup convention — same way Feed/TileGrid/Rail are gated to planning).
- * Clock ticks every 30s; cheap enough to leave running across modes.
+ *
+ * V-Scope-B rewrite (2026-05-24, EXISTENTIAL hallway brief): RoS now reads
+ * the merged recipe + custom-milestone sequence rather than the prior
+ * stubbed `ROS_BLOCKS` array. Recipe picked by event_type + event_subtype
+ * via data/run-of-show/dispatch.pickRecipe; custom milestones with
+ * ros_phase IS NOT NULL merged in per phase. Empty phases collapse.
+ *
+ * Live "now" strip is still here (clock ticks every 30s) but states on
+ * individual rows are deliberately NOT computed — recipes mix anchor-
+ * relative ("ceremony − 90 min") and wall-clock ("4:30 PM") time strings,
+ * so a single done/live/next state derivation across both formats would
+ * be unreliable in V1. State coloring is a polish-pass item once item
+ * times normalize to wall-clock (likely after a recipe-author pass that
+ * resolves anchor-relative to clock per event).
  */
-export function RunOfShow() {
+export function RunOfShow({ headlineDate, recipeLabel, byPhase }: Props) {
   const [clock, setClock] = useState<{ time: string; period: string }>(() =>
     formatClock(new Date()),
   );
@@ -31,13 +58,22 @@ export function RunOfShow() {
     return () => window.clearInterval(id);
   }, []);
 
+  // Only render phases that actually have content — keeps the surface tight
+  // on recipes that skip phases (e.g., a corporate sales kickoff with no
+  // ritual anchor_moment).
+  const populatedPhases: { phase: RoSPhase; rows: MergedRoSRow[] }[] =
+    PHASE_ORDER.flatMap((phase) => {
+      const rows = byPhase[phase];
+      return rows.length > 0 ? [{ phase, rows }] : [];
+    });
+
   return (
     <section className={styles.ros}>
       <div className={styles.rosNowStrip}>
         <div className={styles.rosNowL}>
-          <div className={styles.rosNowEye}>{ROS_NOW.eyebrow}</div>
-          <div className={styles.rosNowT}>{ROS_NOW.title}</div>
-          <div className={styles.rosNowD}>{ROS_NOW.detail}</div>
+          <div className={styles.rosNowEye}>Day-of view</div>
+          <div className={styles.rosNowT}>{recipeLabel}</div>
+          <div className={styles.rosNowD}>Local time</div>
         </div>
         <div className={styles.rosNowTime} suppressHydrationWarning>
           {clock.time}
@@ -46,7 +82,7 @@ export function RunOfShow() {
       </div>
 
       <div className={styles.rosHead}>
-        <span className={styles.rosHeadL}>{ROS_HEAD_LABEL}</span>
+        <span className={styles.rosHeadL}>Run of Show · {headlineDate}</span>
         <button
           type="button"
           className={styles.rosHeadR}
@@ -57,66 +93,49 @@ export function RunOfShow() {
       </div>
 
       <div className={styles.rosTrack}>
-        {ROS_BLOCKS.map((b, i) => {
-          const stateClass =
-            b.state === "live"
-              ? styles.rosBlockLive
-              : b.state === "done"
-              ? styles.rosBlockDone
-              : b.state === "next"
-              ? styles.rosBlockNext
-              : "";
-          const statusLabel =
-            b.state === "live"
-              ? "Live"
-              : b.state === "done"
-              ? "Done"
-              : b.state === "next"
-              ? "Next"
-              : null;
-          return (
-            <div key={i} className={`${styles.rosBlock} ${stateClass}`}>
-              <div className={styles.rosTime}>{b.time}</div>
-              <div className={styles.rosBlockDot} />
-              <button
-                type="button"
-                className={styles.rosBlockCard}
-                onClick={() => showToast(`Editing <em>${b.title}</em>…`)}
-              >
-                <div className={styles.rosBlockBody}>
-                  <div className={styles.rosBlockT}>{b.title}</div>
-                  <div className={styles.rosBlockMeta}>
-                    <span className={styles.rosBlockMetaVendor}>{b.vendor}</span>
+        {populatedPhases.map(({ phase, rows }) => (
+          <div key={phase} className={styles.rosPhaseGroup}>
+            <div className={styles.rosPhaseHead}>{PHASE_LABELS[phase]}</div>
+            {rows.map((row) => (
+              <div key={row.key} className={styles.rosBlock}>
+                <div className={styles.rosTime}>{row.time}</div>
+                <div className={styles.rosBlockDot} />
+                <button
+                  type="button"
+                  className={styles.rosBlockCard}
+                  onClick={() => showToast(`Editing <em>${row.title}</em>…`)}
+                >
+                  <div className={styles.rosBlockBody}>
+                    <div className={styles.rosBlockT}>{row.title}</div>
+                    <div className={styles.rosBlockMeta}>
+                      {row.vendor && (
+                        <span className={styles.rosBlockMetaVendor}>
+                          {row.vendor}
+                        </span>
+                      )}
+                      {row.isCustom && (
+                        <span className={styles.rosBlockCustomBadge}>
+                          Custom
+                        </span>
+                      )}
+                    </div>
                   </div>
-                </div>
-                {statusLabel && (
-                  <span
-                    className={`${styles.rosBlockStatus} ${
-                      b.state === "live"
-                        ? styles.rosStatusLive
-                        : b.state === "done"
-                        ? styles.rosStatusDone
-                        : styles.rosStatusNext
-                    }`}
-                  >
-                    {statusLabel}
-                  </span>
-                )}
-              </button>
-            </div>
-          );
-        })}
+                </button>
+              </div>
+            ))}
+          </div>
+        ))}
       </div>
 
       <button
         type="button"
         className={styles.rosAdd}
         onClick={() =>
-          showToast("Insert speech, toast, dance, or custom moment.")
+          showToast("Add milestones from the planning timeline — they show up here when you tag them with a phase.")
         }
       >
         <span className={styles.rosAddPlus}>+</span>
-        <span>Insert moment · speech · dance · toast</span>
+        <span>Add a moment to the Run of Show</span>
       </button>
     </section>
   );

@@ -43,6 +43,13 @@ export type OrgnzCustomMilestone = {
   custom_time: string | null;
   sort_order: number | null;
   tradition_key: string | null;
+  // Migration 046 — Scope B hallway. NULL = planning-only milestone (lives
+  // on the planning timeline only). Non-NULL surfaces in RunOfShow at the
+  // matching phase slot. Optional on the type so pre-046 schema reads keep
+  // working — the SELECT is best-effort below.
+  ros_phase?: string | null;
+  vendor_name?: string | null;
+  vendor_contact_email?: string | null;
 };
 
 export type OrgnzContext = {
@@ -121,13 +128,39 @@ export const loadOrgnzContext = cache(async (): Promise<OrgnzContext | null> => 
       }
 
       // Best-effort: event_custom_milestones is a new table from migration 024.
-      // Pre-migration, this errors and we fall through with an empty list.
+      // Migration 046 adds ros_phase + vendor_name + vendor_contact_email
+      // (Scope B hallway). Pre-046 the extra columns don't exist; SELECT'ing
+      // them would error and drop ALL custom milestones from the page. Two
+      // queries: minimal-shape first (guaranteed to work post-024), then a
+      // best-effort 046-columns enrichment pass.
       const { data: customs, error: customsErr } = await admin
         .from("event_custom_milestones")
         .select("id,label,detail,custom_date,custom_time,sort_order,tradition_key")
         .eq("event_id", event.id);
       if (!customsErr) {
         customMilestones = (customs as OrgnzCustomMilestone[] | null) ?? [];
+      }
+
+      if (customMilestones.length > 0) {
+        const { data: rosData, error: rosErr } = await admin
+          .from("event_custom_milestones")
+          .select("id,ros_phase,vendor_name,vendor_contact_email")
+          .eq("event_id", event.id);
+        if (!rosErr && rosData) {
+          const byId = new Map<string, { ros_phase: string | null; vendor_name: string | null; vendor_contact_email: string | null }>();
+          for (const row of rosData) {
+            byId.set(row.id as string, {
+              ros_phase: (row.ros_phase as string | null) ?? null,
+              vendor_name: (row.vendor_name as string | null) ?? null,
+              vendor_contact_email:
+                (row.vendor_contact_email as string | null) ?? null,
+            });
+          }
+          customMilestones = customMilestones.map((m) => {
+            const extras = byId.get(m.id);
+            return extras ? { ...m, ...extras } : m;
+          });
+        }
       }
     }
   }

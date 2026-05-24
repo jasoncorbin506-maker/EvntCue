@@ -1338,6 +1338,45 @@
   width: 0.5px;
   background: linear-gradient(180deg, var(--gb), transparent 92%);
 }
+
+/* RoS phase grouping — Scope B (2026-05-24 hallway). Each non-empty phase
+ * renders as its own group with a small caps eyebrow. Empty phases collapse
+ * in the renderer (zero items → group not rendered). */
+.rosPhaseGroup {
+  display: flex;
+  flex-direction: column;
+}
+.rosPhaseHead {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  font-weight: 600;
+  padding: 14px 0 4px 60px;
+}
+.rosPhaseGroup:first-child .rosPhaseHead {
+  padding-top: 4px;
+}
+
+/* "Custom" badge — user-added milestone marker on RoS rows. Lock 14 ban
+ * on emoji applies; text chip in the meta row, sits next to vendor. */
+.rosBlockCustomBadge {
+  display: inline-flex;
+  align-items: center;
+  margin-left: 6px;
+  padding: 1px 6px;
+  background: rgba(212, 119, 138, 0.12);
+  border: 0.5px solid rgba(212, 119, 138, 0.4);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--rose);
+  line-height: 1.25;
+}
 .rosBlock {
   display: grid;
   grid-template-columns: 56px 16px 1fr;
