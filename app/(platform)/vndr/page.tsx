@@ -27,12 +27,24 @@ import s from "./vndr.module.css";
  *
  * If the user is gated by proxy.ts to /vndr but no vendors row exists for
  * their tenant, bounce them through the V-1b onboarding funnel.
+ *
+ * searchParams.welcome === "signup" surfaces the funnel-completion welcome
+ * strip (V-1c bonus, mirrors Venu's discover/?welcome=claim pattern). Strip
+ * only renders for that exact param; refreshing /vndr without it hides it.
+ * Future "?welcome=claim" support can branch the copy when the Door A claim
+ * flow lands its post-claim redirect at /vndr instead of /vndr/discover.
  */
-export default async function VndrHome() {
+export default async function VndrHome({
+  searchParams,
+}: {
+  searchParams: Promise<{ welcome?: string }>;
+}) {
+  const { welcome } = await searchParams;
   const vendor = await getCurrentVendor();
   if (!vendor) {
     redirect("/vndr-onboarding/1");
   }
+  const isFirstTimeSignup = welcome === "signup";
 
   // Display meta — category for now. Real geo (city, state) lands when V-1b
   // Stage 2's service-area fields populate vendors.service_areas. Chrome
@@ -55,6 +67,23 @@ export default async function VndrHome() {
           </>
         }
       />
+
+      {/* Welcome strip — only on funnel completion (?welcome=signup).
+       * Persistent (no dismiss), matches Venu's pattern. Copy hardcoded EN
+       * to match V-2a portal-interior convention; per-portal i18n pass
+       * lands in a future session per START_HERE Phase 5+ note. */}
+      {isFirstTimeSignup && (
+        <section className={s.welcomeStrip}>
+          <div className={s.welcomeEyebrow}>You&apos;re in</div>
+          <div className={s.welcomeHeadline}>
+            Welcome to EvntCue, <i>{vendor.displayName}</i>.
+          </div>
+          <p className={s.welcomeBody}>
+            Your profile is live. Inquiries land here as Cue matches you to
+            events — the response window below ticks down the moment one arrives.
+          </p>
+        </section>
+      )}
 
       {/* 1 — Response Window Alert (illustrative urgent inquiry) */}
       <ResponseWindowAlert
