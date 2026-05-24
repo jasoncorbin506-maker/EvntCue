@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentVendor } from "@/lib/vndr/current-vendor";
-import { Chrome, AskCueButton, NotifButton } from "./_components/Chrome";
+import { Chrome, AskCueButton, NotifButton, ChromeSignOut } from "./_components/Chrome";
 import { ResponseWindowAlert } from "./_components/ResponseWindowAlert";
 import { PackageRow } from "./_components/PackageRow";
 import s from "./vndr.module.css";
@@ -51,6 +51,7 @@ export default async function VndrHome() {
           <>
             <AskCueButton />
             <NotifButton hasUnread />
+            <ChromeSignOut />
           </>
         }
       />

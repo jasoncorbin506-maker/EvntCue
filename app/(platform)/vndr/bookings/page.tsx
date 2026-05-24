@@ -1,6 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentVendor } from "@/lib/vndr/current-vendor";
-import { Chrome, NotifButton } from "../_components/Chrome";
+import { Chrome, NotifButton, ChromeSignOut } from "../_components/Chrome";
 import s from "../vndr.module.css";
 
 /**
@@ -13,7 +13,16 @@ export default async function VndrBookings() {
 
   return (
     <>
-      <Chrome vendorName={vendor.displayName} meta="Bookings" right={<NotifButton />} />
+      <Chrome
+        vendorName={vendor.displayName}
+        meta="Bookings"
+        right={
+          <>
+            <NotifButton />
+            <ChromeSignOut />
+          </>
+        }
+      />
       <div className={s.placeholder}>
         <div className={s.placeholderTitle}>Bookings</div>
         <div className={s.placeholderBody}>

@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 import { getCurrentVendor } from "@/lib/vndr/current-vendor";
+import { SignOutButton } from "@/app/_components/SignOutButton";
 import s from "./vndr-onboarding-stage.module.css";
 
 /**
@@ -13,7 +14,7 @@ import s from "./vndr-onboarding-stage.module.css";
  *
  * Already-published guard: if vendor.claim_status === 'published', the user
  * has finished onboarding and is revisiting an old funnel URL. Send them to
- * the dashboard (V-2 placeholder at /vndr/discover?welcome=signup).
+ * the V-2a Home dashboard at /vndr.
  *
  * Step validation: only "1", "2", "3", "4" are valid. Anything else 404s
  * (notFound throws and Next.js renders the closest not-found.tsx).
@@ -45,7 +46,7 @@ export default async function VndrOnboardingStageLayout({
   }
 
   if (vendor.claimStatus === "published") {
-    redirect("/vndr/discover?welcome=signup");
+    redirect("/vndr?welcome=signup");
   }
 
   const stepNum = parseInt(step, 10);
@@ -77,6 +78,23 @@ export default async function VndrOnboardingStageLayout({
       </header>
 
       <div className={s.stageBody}>{children}</div>
+
+      {/* Sign-out escape — hotfix-2. Without this, an authed vendor
+          who hits the funnel mid-flow has no way out except clearing
+          cookies manually. Plain text link, low visual weight. */}
+      <div
+        style={{
+          padding: "16px",
+          textAlign: "center",
+          fontFamily: "var(--font-ui)",
+          fontSize: "11px",
+          letterSpacing: "0.04em",
+          color: "var(--txt3)",
+        }}
+      >
+        Signed in as {vendor.displayName} ·{" "}
+        <SignOutButton variant="link" label="Sign out" />
+      </div>
     </main>
   );
 }

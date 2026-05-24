@@ -4,6 +4,7 @@ import { getTranslations } from "next-intl/server";
 import { createClient } from "@/lib/supabase/server";
 import { LoginForm } from "./LoginForm";
 import { LangToggle } from "@/app/_components/LangToggle";
+import { SignOutButton } from "@/app/_components/SignOutButton";
 import styles from "./login.module.css";
 
 export async function generateMetadata() {
@@ -58,6 +59,10 @@ export default async function LoginPage(props: {
   const {
     data: { user },
   } = await supabase.auth.getUser();
+  // Captured for the footer "Signed in as X · Sign out" escape. We only
+  // render the form when a user has fallen through (no matching role) OR
+  // is genuinely unauthed; in both cases letting them sign out is helpful.
+  let stuckSessionEmail: string | null = null;
   if (user) {
     const { data: roleRows } = await supabase
       .from("user_roles")
@@ -74,7 +79,9 @@ export default async function LoginPage(props: {
     if (roleSet.has("vndr")) {
       redirect(next ?? "/vndr-onboarding/1");
     }
-    // No matching role — fall through to render the form.
+    // No matching role — fall through to render the form, AND expose a
+    // sign-out link in the footer so the user can escape the stale session.
+    stuckSessionEmail = user.email ?? "this account";
   }
 
   const t = await getTranslations("login");
@@ -143,6 +150,18 @@ export default async function LoginPage(props: {
             </Link>
           </p>
         </div>
+
+        {/* Stale-session escape. Only renders when the request has an
+            authed user that doesn't match any portal — proxy.ts + the
+            block above would have redirected an authed user with a
+            usable role. Without this, a fallthrough user has no way to
+            sign out from /login except by clearing cookies manually. */}
+        {stuckSessionEmail ? (
+          <p className={styles.foot}>
+            Signed in as {stuckSessionEmail} ·{" "}
+            <SignOutButton variant="link" label="Sign out" />
+          </p>
+        ) : null}
 
         <p className={styles.foot}>
           {t("footTerms")}{" "}

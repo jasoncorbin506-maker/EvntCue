@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
 import styles from "../orgnz.module.css";
-import { signOutAction } from "../_actions/sign-out";
+import { signOutAction } from "@/lib/auth/sign-out-action";
 import { showToast } from "../_lib/toast";
 import { setLocaleAction } from "@/i18n/set-locale";
 import type { Locale } from "@/i18n/locale";

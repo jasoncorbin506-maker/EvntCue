@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SignOutButton } from "@/app/_components/SignOutButton";
 import s from "../vndr.module.css";
 
 /**
@@ -74,4 +75,15 @@ export function NotifButton({ hasUnread = false }: { hasUnread?: boolean }) {
       {hasUnread ? <span className={s.notifDot} aria-hidden="true" /> : null}
     </button>
   );
+}
+
+/**
+ * Sign-out icon button styled to match Notif/Cue. Door-out glyph. Lifted
+ * into the Vndr Chrome right slot as a hotfix because there was no escape
+ * hatch from the portal otherwise (proxy.ts kept bouncing back to /vndr
+ * once you were authed). When the orgnz-style "..." overflow menu lands
+ * we can demote this into the menu; for now it stays visible.
+ */
+export function ChromeSignOut() {
+  return <SignOutButton variant="icon" className={s.notifBtn} ariaLabel="Sign out" />;
 }
