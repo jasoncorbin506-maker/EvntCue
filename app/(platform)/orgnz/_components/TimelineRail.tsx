@@ -85,9 +85,6 @@ export function TimelineRail({ pins, eventId, startDateIso, subtypeKey, dismisse
                 {pin.state === "today" && (
                   <span className={styles.railTodayFlag}>Today</span>
                 )}
-                {pin.origin === "custom" && (
-                  <span className={styles.railCustomFlag} aria-label="Your custom milestone">+</span>
-                )}
                 <div className={styles.railPinDot} />
                 <div className={styles.railPinWhen}>
                   {pin.when}
