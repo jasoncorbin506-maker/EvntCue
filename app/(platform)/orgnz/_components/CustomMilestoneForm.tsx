@@ -7,19 +7,6 @@ import { ROS_PHASES, type RoSPhaseKey } from "@/data/ros-phases";
 import { addCustomMilestone } from "../_actions/add-custom-milestone";
 import { updateCustomMilestone } from "../_actions/update-custom-milestone";
 import { showToast } from "../_lib/toast";
-import { DateTimePickerModal } from "./DateTimePickerModal";
-
-function formatDateChip(iso: string, time: string | null): string {
-  const d = new Date(iso + "T00:00:00");
-  const base = d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
-  if (!time) return base;
-  const [h, m] = time.split(":").map(Number);
-  const tdisp = new Date(2000, 0, 1, h, m).toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-  return `${base} · ${tdisp}`;
-}
 
 type Props = {
   eventId: string;
@@ -47,24 +34,32 @@ type Props = {
  *   - Add (initial undefined): inserts a new event_custom_milestones row.
  *   - Edit (initial.customId set): updates the existing row.
  *
- * Sacred-ceremony respect: label is optional. The placeholder normalizes the
- * private-ceremony case so the user doesn't feel pressure to disclose.
- * tradition_key is also optional — the chip selector includes a "(none)"
- * choice and starts on it.
+ * Session 18w polish — five fixes bundled per Jason's feedback after the
+ * hallway smoke:
  *
- * V-1c/Scope-A additions per inbox-cc/2026-05-24-custom-milestone-planning-
- * to-ros-hallway.md:
- *   - "Where in the day?" chip picker over the 12 universal RoS phases.
- *     NULL = planning-only (milestone lives on planning timeline only).
- *     Non-NULL surfaces the milestone in the day-of Run of Show at the
- *     matching phase slot (read path lands in Scope B after Cowork delivers
- *     structured recipes per outbox-cc/2026-05-24-recipe-library-structured-
- *     format-request.md).
- *   - Vendor section — vendor_name + vendor_contact_email inputs for the
- *     "Define your own" path. The Vndr-roster surfacing affordance (3–5
- *     candidate vendor cards) is deferred until V-2 Discover ships real
- *     published vendors; for V1 every milestone falls through to the
- *     define-your-own inputs.
+ *   1. Field order rearranged — identity (Name) → time (When) → day-of placement
+ *      (Where in the day?) → vendor (Vendor) → context (Notes, Tradition).
+ *      Previous order buried the phase picker AND the vendor section below
+ *      Notes/Tradition; the most load-bearing fields are now first.
+ *
+ *   2. Native date + time inputs replace the cmDateBtn+modal pattern. Mobile
+ *      gets the OS numpad time picker (great); desktop Safari gets the WebKit
+ *      segment input (functional). Eliminates the modal-on-modal nesting that
+ *      made the time selection feel buried.
+ *
+ *   3. Auto-default `rosPhase = "anchor_moment"` when user sets a custom_time
+ *      and rosPhase is still null. The previous "Planning only" default meant
+ *      time-set milestones silently never surfaced in RoS — the most reported
+ *      smoke bug. User can refine to a different phase or click "Planning
+ *      only" to opt back out.
+ *
+ *   4. Vendor section moved up + hint rewritten as present-tense action ("Add
+ *      your vendor here. Matching candidates surface once Vndr Discover opens.")
+ *
+ *   5. Helper text brightness — .cmHint is now var(--txt2) (CSS-side fix).
+ *
+ * Sacred-ceremony respect preserved: label is still optional, tradition_key
+ * is still optional, neither is required to save.
  */
 export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, note }: Props) {
   const isEdit = Boolean(initial?.customId);
@@ -78,8 +73,21 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
   const [vendorContactEmail, setVendorContactEmail] = useState(
     initial?.vendorContactEmail ?? "",
   );
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
+
+  function handleTimeChange(next: string) {
+    // Native <input type="time"> emits "" when cleared; treat empty as null
+    // so the DB stores NULL and the RoS read-path treats it as time-TBD.
+    const cleaned = next.trim();
+    const nextTime = cleaned === "" ? null : cleaned;
+    setTime(nextTime);
+    // Auto-default the phase the first time a user assigns a time — anchor
+    // moment is the natural "the thing the day exists to do." User can click
+    // a different chip or "Planning only" to opt out.
+    if (nextTime !== null && rosPhase === null) {
+      setRosPhase("anchor_moment");
+    }
+  }
 
   async function submit() {
     setSubmitting(true);
@@ -129,6 +137,7 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
     <div className={s.cmForm}>
       {note && <div className={s.cmNote}>{note}</div>}
 
+      {/* 1. Name (identity) */}
       <label className={s.cmField}>
         <span className={s.cmFieldL}>Name (optional)</span>
         <input
@@ -136,14 +145,99 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
           className={s.cmInput}
           value={label}
           onChange={(e) => setLabel(e.target.value)}
-          placeholder="e.g., Private ceremony · Family blessing · Speech"
+          placeholder="e.g., Door games · Private ceremony · Family blessing"
           maxLength={120}
         />
         <span className={s.cmHint}>
-          You can leave this blank to block a time without naming the ceremony.
+          Leave blank to block a time without naming the ceremony.
         </span>
       </label>
 
+      {/* 2. When (native date + time, inline — no modal) */}
+      <div className={s.cmField}>
+        <span className={s.cmFieldL}>When</span>
+        <div className={s.cmDateTimeRow}>
+          <input
+            type="date"
+            className={s.cmInput}
+            value={dateIso}
+            onChange={(e) => setDateIso(e.target.value)}
+          />
+          <input
+            type="time"
+            className={s.cmInput}
+            value={time ?? ""}
+            onChange={(e) => handleTimeChange(e.target.value)}
+            step={300}
+          />
+        </div>
+        <span className={s.cmHint}>
+          Set a specific time if this happens on the day of the event. Leave
+          the time blank for prep tasks.
+        </span>
+      </div>
+
+      {/* 3. Where in the day? — auto-defaults to anchor_moment when a time
+       * is set; otherwise stays "Planning only" (NULL). User can refine. */}
+      <div className={s.cmField}>
+        <span className={s.cmFieldL}>Where in the day? (optional)</span>
+        <div className={s.cmChipRow}>
+          <button
+            type="button"
+            className={`${s.cmChip} ${rosPhase === null ? s.cmChipOn : ""}`}
+            onClick={() => setRosPhase(null)}
+          >
+            Planning only
+          </button>
+          {ROS_PHASES.map((p) => (
+            <button
+              key={p.key}
+              type="button"
+              className={`${s.cmChip} ${rosPhase === p.key ? s.cmChipOn : ""}`}
+              onClick={() => setRosPhase(p.key)}
+              title={p.hintEn}
+            >
+              {p.labelEn}
+            </button>
+          ))}
+        </div>
+        <span className={s.cmHint}>
+          {time
+            ? "We defaulted to Anchor moment because you set a time. Pick a different phase to refine, or Planning only if this is a prep task."
+            : "Pick a phase to surface this in the day-of Run of Show. Planning only keeps it on the planning timeline only."}
+        </span>
+      </div>
+
+      {/* 4. Vendor — first-class section per session 18w polish. The Vndr-
+       * roster surfacing affordance (3-5 candidate cards) lights up when
+       * V-2 Discover ships published vendors. */}
+      <div className={s.cmField}>
+        <span className={s.cmFieldL}>Vendor (optional)</span>
+        <input
+          type="text"
+          className={s.cmInput}
+          value={vendorName}
+          onChange={(e) => setVendorName(e.target.value)}
+          placeholder="Vendor or person responsible"
+          maxLength={200}
+        />
+        <input
+          type="email"
+          className={s.cmInput}
+          value={vendorContactEmail}
+          onChange={(e) => setVendorContactEmail(e.target.value)}
+          placeholder="Contact email (optional)"
+          autoComplete="off"
+          maxLength={200}
+          style={{ marginTop: 6 }}
+        />
+        <span className={s.cmHint}>
+          Add your vendor here. Matching candidates from EvntCue’s Vndr roster
+          surface as cards once Vndr Discover opens.
+        </span>
+      </div>
+
+      {/* 5. Notes (context) */}
       <label className={s.cmField}>
         <span className={s.cmFieldL}>Notes (optional)</span>
         <textarea
@@ -156,17 +250,7 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
         />
       </label>
 
-      <div className={s.cmField}>
-        <span className={s.cmFieldL}>When</span>
-        <button
-          type="button"
-          className={s.cmDateBtn}
-          onClick={() => setPickerOpen(true)}
-        >
-          {formatDateChip(dateIso, time)}
-        </button>
-      </div>
-
+      {/* 6. Cultural tradition (context — last because most users skip it) */}
       <div className={s.cmField}>
         <span className={s.cmFieldL}>Cultural tradition (optional)</span>
         <div className={s.cmChipRow}>
@@ -193,70 +277,6 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
         </span>
       </div>
 
-      {/* Where in the day? — Scope A from the EXISTENTIAL hallway brief.
-       * NULL = planning-only milestone (default — e.g., "book the tea master").
-       * Non-NULL surfaces the milestone in the day-of Run of Show at the
-       * matching phase slot once the read-path lands (Scope B follow-up). */}
-      <div className={s.cmField}>
-        <span className={s.cmFieldL}>Where in the day? (optional)</span>
-        <div className={s.cmChipRow}>
-          <button
-            type="button"
-            className={`${s.cmChip} ${rosPhase === null ? s.cmChipOn : ""}`}
-            onClick={() => setRosPhase(null)}
-          >
-            Planning only
-          </button>
-          {ROS_PHASES.map((p) => (
-            <button
-              key={p.key}
-              type="button"
-              className={`${s.cmChip} ${rosPhase === p.key ? s.cmChipOn : ""}`}
-              onClick={() => setRosPhase(p.key)}
-              title={p.hintEn}
-            >
-              {p.labelEn}
-            </button>
-          ))}
-        </div>
-        <span className={s.cmHint}>
-          Leave on Planning only if this milestone is a prep task (booking a
-          vendor, ordering supplies). Pick a phase if the milestone happens
-          during the event itself — it will surface in the Run of Show on the
-          day of.
-        </span>
-      </div>
-
-      {/* Vendor section — Scope A "Define your own" path. Vndr-roster
-       * surfacing (3-5 candidate cards) is deferred until V-2 Discover ships
-       * real published vendors; today every milestone falls through to these
-       * inputs. */}
-      <div className={s.cmField}>
-        <span className={s.cmFieldL}>Vendor (optional)</span>
-        <input
-          type="text"
-          className={s.cmInput}
-          value={vendorName}
-          onChange={(e) => setVendorName(e.target.value)}
-          placeholder="Vendor or person responsible"
-          maxLength={200}
-        />
-        <input
-          type="email"
-          className={s.cmInput}
-          value={vendorContactEmail}
-          onChange={(e) => setVendorContactEmail(e.target.value)}
-          placeholder="Contact email (optional)"
-          autoComplete="off"
-          maxLength={200}
-          style={{ marginTop: 6 }}
-        />
-        <span className={s.cmHint}>
-          Vendor matching from EvntCue&apos;s Vndr roster will surface here
-          once Vndr Discover launches. For now, add who you have.
-        </span>
-      </div>
-
       <div className={s.cmActions}>
         <button type="button" className={s.cmCancel} onClick={onDone}>Cancel</button>
         <button
@@ -268,19 +288,6 @@ export function CustomMilestoneForm({ eventId, defaultDateIso, initial, onDone, 
           {submitting ? "Saving…" : isEdit ? "Save changes" : "Add to timeline"}
         </button>
       </div>
-
-      <DateTimePickerModal
-        open={pickerOpen}
-        selectedDateIso={dateIso}
-        selectedTime={time}
-        allowPast
-        onConfirm={(iso, t) => {
-          setDateIso(iso);
-          setTime(t);
-          setPickerOpen(false);
-        }}
-        onClose={() => setPickerOpen(false)}
-      />
     </div>
   );
 }

@@ -3737,45 +3737,75 @@
 
 .drSortRow {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 8px;
-  padding: 10px 13px;
+  padding: 12px 13px;
   background: rgba(255,255,255,0.012);
   border: 0.5px solid var(--bdr);
   border-radius: 11px;
   margin-bottom: 7px;
 }
 .drSortL {
-  flex: 1;
+  flex: 1 1 100%;
   font-family: var(--font-ui);
-  font-size: 11px;
-  color: var(--txt2);
+  font-size: 11.5px;
+  color: var(--txt1);
   font-weight: 500;
   letter-spacing: 0.02em;
+  margin-bottom: 2px;
 }
+/* Session 18w fix E — larger touch targets with visible "Earlier" / "Later"
+ * labels. Previous 32×32 icon-only buttons were too small (~12pt) AND
+ * ambiguous (up/down arrow alone without label). New shape: 44px min height
+ * (Apple HIG touch target), icon + word, flex-half so the pair fills the row. */
 .drSortBtn {
-  width: 32px;
-  height: 32px;
-  border-radius: 9px;
+  flex: 1 1 calc(50% - 4px);
+  min-height: 44px;
+  border-radius: 10px;
   background: rgba(255,255,255,0.04);
   border: 0.5px solid var(--bdr);
-  color: var(--txt2);
+  color: var(--txt1);
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
-  padding: 0;
-  transition: background 150ms ease, color 150ms ease;
+  gap: 8px;
+  padding: 0 14px;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  transition: background 150ms ease, color 150ms ease, border-color 150ms ease;
 }
-.drSortBtn svg {
-  width: 14px;
-  height: 14px;
+.drSortBtnIco {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+}
+.drSortBtnIco svg {
+  width: 16px;
+  height: 16px;
   stroke: currentColor;
   fill: none;
 }
-.drSortBtn:hover, .drSortBtn:active {
+.drSortBtnLbl {
+  font-family: var(--font-ui);
+}
+.drSortBtn:hover {
   background: rgba(255,255,255,0.08);
   color: var(--rt);
+  border-color: rgba(212,119,138,0.30);
+}
+.drSortBtn:active {
+  background: rgba(255,255,255,0.10);
+}
+.drSortBtn:disabled,
+.drSortBtnPending {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 /* ─── Add sheet (tabbed picker container) ───────────────────────────────── */
@@ -3868,12 +3898,15 @@
 }
 .cmHint {
   font-family: var(--font-ui);
-  font-size: 10.5px;
-  color: var(--txt3);
+  font-size: 11px;
+  color: var(--txt2);
   letter-spacing: 0.02em;
-  line-height: 1.4;
+  line-height: 1.45;
 }
 .cmDateBtn {
+  /* Retained for any caller still using the legacy modal-trigger button
+   * (e.g., RailDrawer's reschedule action). CustomMilestoneForm itself
+   * uses native inline date + time inputs per session 18w polish. */
   display: inline-flex;
   align-items: center;
   padding: 10px 14px;
@@ -3891,6 +3924,20 @@
 .cmDateBtn:hover, .cmDateBtn:active {
   background: rgba(255,255,255,0.06);
   border-color: rgba(212,119,138,0.30);
+}
+/* Native date + time inputs side-by-side. Wraps to two rows on narrow
+ * screens via flex-wrap. Per session 18w fix B — Jason's "should be native"
+ * directive after the modal-on-modal pattern proved unintuitive. */
+.cmDateTimeRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.cmDateTimeRow > .cmInput {
+  flex: 1 1 140px;
+  /* Strip Safari's faded look on date/time inputs so they read as live
+   * fields, not disabled placeholders. */
+  color-scheme: dark;
 }
 .cmChipRow {
   display: flex;

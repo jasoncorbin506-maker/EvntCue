@@ -51,6 +51,12 @@ type Props = {
 export function RailDrawer({ pin, eventId, startDateIso, onClose }: Props) {
   const [editing, setEditing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
+  // Session 18w fix E — track in-flight sort bumps to disable buttons
+  // momentarily (prevents double-bump from rapid taps) and to keep the
+  // drawer open across taps. The previous bumpSort closed the drawer on
+  // every action, which on mobile led to stray taps landing on whatever
+  // was now exposed underneath (commonly the Mood board tile).
+  const [pendingSort, setPendingSort] = useState<"up" | "down" | null>(null);
 
   useEffect(() => {
     if (!pin) {
@@ -113,28 +119,38 @@ export function RailDrawer({ pin, eventId, startDateIso, onClose }: Props) {
 
   async function bumpSort(delta: number) {
     if (!pin) return;
-    const current = pin.sortOrder;
-    const next = (current ?? 0) + delta;
-    if (isSeed && pin.milestoneKey) {
-      const res = await updateSeedMilestone({
-        eventId,
-        milestoneKey: pin.milestoneKey,
-        patch: { sortOrder: next },
-      });
-      if (!res.ok) {
-        showToast(`Couldn’t reorder: ${res.error}`);
-        return;
+    if (pendingSort !== null) return; // ignore taps while an action is in flight
+    setPendingSort(delta < 0 ? "up" : "down");
+    try {
+      const current = pin.sortOrder;
+      const next = (current ?? 0) + delta;
+      if (isSeed && pin.milestoneKey) {
+        const res = await updateSeedMilestone({
+          eventId,
+          milestoneKey: pin.milestoneKey,
+          patch: { sortOrder: next },
+        });
+        if (!res.ok) {
+          showToast(`Couldn’t reorder: ${res.error}`);
+          return;
+        }
+      } else if (isCustom && pin.customId) {
+        // Imported here to avoid circular imports.
+        const { updateCustomMilestone } = await import("../_actions/update-custom-milestone");
+        const res = await updateCustomMilestone({ id: pin.customId, sortOrder: next });
+        if (!res.ok) {
+          showToast(`Couldn’t reorder: ${res.error}`);
+          return;
+        }
       }
-    } else if (isCustom && pin.customId) {
-      // Imported here to avoid circular imports.
-      const { updateCustomMilestone } = await import("../_actions/update-custom-milestone");
-      const res = await updateCustomMilestone({ id: pin.customId, sortOrder: next });
-      if (!res.ok) {
-        showToast(`Couldn’t reorder: ${res.error}`);
-        return;
-      }
+      showToast(delta < 0 ? "Moved earlier." : "Moved later.");
+      // Deliberately do NOT call onClose() here — leaving the drawer open
+      // lets the user tap arrows multiple times in a row. Closing after each
+      // tap was the source of the "took me to mood board" stray-tap bug
+      // reported in session 18v smoke.
+    } finally {
+      setPendingSort(null);
     }
-    onClose();
   }
 
   async function handlePickerConfirm(iso: string, time: string | null) {
@@ -295,21 +311,33 @@ export function RailDrawer({ pin, eventId, startDateIso, onClose }: Props) {
                   </button>
 
                   <div className={styles.drSortRow}>
-                    <span className={styles.drSortL}>Order on the same time</span>
+                    <span className={styles.drSortL}>Order on same time</span>
                     <button
                       type="button"
-                      className={styles.drSortBtn}
+                      className={`${styles.drSortBtn} ${pendingSort === "up" ? styles.drSortBtnPending : ""}`}
                       onClick={() => bumpSort(-1)}
-                      aria-label="Bump earlier"
-                      dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.up }}
-                    />
+                      disabled={pendingSort !== null}
+                      aria-label="Move earlier"
+                    >
+                      <span
+                        className={styles.drSortBtnIco}
+                        dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.up }}
+                      />
+                      <span className={styles.drSortBtnLbl}>Earlier</span>
+                    </button>
                     <button
                       type="button"
-                      className={styles.drSortBtn}
+                      className={`${styles.drSortBtn} ${pendingSort === "down" ? styles.drSortBtnPending : ""}`}
                       onClick={() => bumpSort(1)}
-                      aria-label="Bump later"
-                      dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.down }}
-                    />
+                      disabled={pendingSort !== null}
+                      aria-label="Move later"
+                    >
+                      <span
+                        className={styles.drSortBtnIco}
+                        dangerouslySetInnerHTML={{ __html: DRAWER_ICONS.down }}
+                      />
+                      <span className={styles.drSortBtnLbl}>Later</span>
+                    </button>
                   </div>
 
                   {isCustom && (
