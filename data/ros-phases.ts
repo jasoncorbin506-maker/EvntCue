@@ -6,7 +6,7 @@
  * Consumed by:
  *   - The custom-milestone popup's "where in the day?" chip picker
  *     (app/(platform)/orgnz/_components/CustomMilestoneForm.tsx)
- *   - Migration 046's CHECK constraint on event_custom_milestones.ros_phase
+ *   - Migration 048's CHECK constraint on event_custom_milestones.ros_phase
  *     (the literal phase strings must match the constraint exactly)
  *   - The future RunOfShow read path (after Cowork delivers structured
  *     recipes per inbox-cc/2026-05-24-recipe-library-structured-format-

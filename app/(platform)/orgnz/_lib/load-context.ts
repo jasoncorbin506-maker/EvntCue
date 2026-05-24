@@ -43,9 +43,9 @@ export type OrgnzCustomMilestone = {
   custom_time: string | null;
   sort_order: number | null;
   tradition_key: string | null;
-  // Migration 046 — Scope B hallway. NULL = planning-only milestone (lives
+  // Migration 048 — Scope B hallway. NULL = planning-only milestone (lives
   // on the planning timeline only). Non-NULL surfaces in RunOfShow at the
-  // matching phase slot. Optional on the type so pre-046 schema reads keep
+  // matching phase slot. Optional on the type so pre-048 schema reads keep
   // working — the SELECT is best-effort below.
   ros_phase?: string | null;
   vendor_name?: string | null;
@@ -128,11 +128,11 @@ export const loadOrgnzContext = cache(async (): Promise<OrgnzContext | null> => 
       }
 
       // Best-effort: event_custom_milestones is a new table from migration 024.
-      // Migration 046 adds ros_phase + vendor_name + vendor_contact_email
-      // (Scope B hallway). Pre-046 the extra columns don't exist; SELECT'ing
+      // Migration 048 adds ros_phase + vendor_name + vendor_contact_email
+      // (Scope B hallway). Pre-048 the extra columns don't exist; SELECT'ing
       // them would error and drop ALL custom milestones from the page. Two
       // queries: minimal-shape first (guaranteed to work post-024), then a
-      // best-effort 046-columns enrichment pass.
+      // best-effort 048-columns enrichment pass.
       const { data: customs, error: customsErr } = await admin
         .from("event_custom_milestones")
         .select("id,label,detail,custom_date,custom_time,sort_order,tradition_key")

@@ -21,7 +21,7 @@ import { isRoSPhaseKey } from "@/data/ros-phases";
  * picker can dedupe future browses ("already on your timeline").
  *
  * `rosPhase` is OPTIONAL — when set, the milestone surfaces in the day-of
- * Run of Show at the matching phase slot (migration 046 + RoS read-path
+ * Run of Show at the matching phase slot (migration 048 + RoS read-path
  * follow-up session). When NULL, the milestone is planning-only (lives on
  * the planning timeline only, no day-of expression).
  *
