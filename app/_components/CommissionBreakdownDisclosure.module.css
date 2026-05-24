@@ -1,0 +1,139 @@
+/* Commission breakdown disclosure — Lock 25 v2a brief #10 ship.
+ * Mounts below the headline two-column take-home breakdown in Stage 0 calc;
+ * portable to any pricing surface that needs the consolidated-rate framing. */
+
+.wrap {
+  margin-top: 18px;
+  padding: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+}
+
+.headlines {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.headlineRow {
+  flex: 1 1 140px;
+  min-width: 0;
+}
+.tierLabel {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+.headlineRate {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-style: italic;
+  color: #fff;
+  line-height: 1.25;
+}
+.headlineIncludes {
+  margin-top: 3px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  color: var(--txt2);
+  letter-spacing: 0.02em;
+}
+
+.disclosureToggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 14px;
+  padding: 6px 10px;
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  color: var(--txt2);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  transition: border-color 150ms ease, color 150ms ease, background 150ms ease;
+}
+.disclosureToggle:hover {
+  color: var(--txt1);
+  border-color: rgba(232, 98, 42, 0.4);
+  background: rgba(232, 98, 42, 0.04);
+}
+.disclosureChevron {
+  font-size: 10px;
+  line-height: 1;
+  color: var(--coral);
+}
+
+.breakdownGrid {
+  margin-top: 12px;
+  display: flex;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.breakdownCol {
+  flex: 1 1 150px;
+  min-width: 0;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.025);
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+}
+.breakdownTierLabel {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--coral);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.breakdownRow {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  padding: 4px 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt2);
+  letter-spacing: 0.02em;
+}
+.breakdownRow:not(:last-child) {
+  border-bottom: 0.5px dashed rgba(255, 255, 255, 0.05);
+}
+.breakdownRowEmphasis {
+  margin-top: 4px;
+  padding-top: 6px;
+  border-top: 0.5px solid var(--bdr);
+  color: var(--txt1);
+  font-weight: 600;
+}
+.breakdownRowEmphasis .breakdownRowValue {
+  color: var(--coral);
+}
+.breakdownRowLabel {
+  flex: 1;
+  min-width: 0;
+}
+.breakdownRowValue {
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.proCallout {
+  margin-top: 12px;
+  padding: 10px 12px;
+  background: rgba(232, 98, 42, 0.04);
+  border: 0.5px solid rgba(232, 98, 42, 0.2);
+  border-radius: 9px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt2);
+  line-height: 1.5;
+}

@@ -2,6 +2,8 @@
 
 import { useCallback, useMemo, useState, useTransition } from "react";
 import { useTranslations } from "next-intl";
+import { CommissionBreakdownDisclosure } from "@/app/_components/CommissionBreakdownDisclosure";
+import { COMMISSION_RATES } from "@/data/commission-rates";
 import s from "./vndr-onboarding.module.css";
 import { saveAndAdvance, type SaveVndrSessionPayload } from "./_actions/save-vndr-session";
 
@@ -11,18 +13,20 @@ import { saveAndAdvance, type SaveVndrSessionPayload } from "./_actions/save-vnd
  * §75 one-glance rule honest — at narrow widths the eye reads "you keep $X"
  * one card at a time, not as a side-by-side spreadsheet.
  *
- * Math ported verbatim from
- * 02_Locked_Prototypes/Vndr/evntcue_vndr_freemium_v1.html lines 1610–1631:
+ * Math — Lock 25 v2a (2026-05-24) — see decisions-log/2026-05-24-pricing-model-v2a.md:
  *
- *   booking_commission(amt, isPro) =
- *     amt <= 2000  → isPro ? 3% : 5%
- *     amt <= 8000  → isPro ? 3% : 4%
- *     amt >  8000  → isPro ? 2% : 3%
+ *   Vndr Free total fee:  amt × 0.075   (7.5% consolidated; payment processing included)
+ *   Vndr Pro total fee:   amt × 0.06    (6%   consolidated; payment processing included)
+ *   Vndr Pro subscription: $129/mo
  *
- *   total_fee(amt, isPro) = amt × (booking_commission + 2.5% platform fee)
+ * Replaces the prior per-amount-tiered math (5%/4%/3% Listed × 3%/3%/2% Pro
+ * + 2.5% platform fee) which was the pre-Lock-25 placeholder per
+ * PARKING_LOT #21. The flat-rate model honors Lock 25's consolidated-fee
+ * presentation rule — one number, processing baked in — and aligns with
+ * the CommissionBreakdownDisclosure mounted below.
  *
- * Reference smoke value: slider=55 → amt $5,000 → Listed $4,612 / Pro $4,675
- * / delta $63.
+ * Reference smoke value (Lock 25 v2a): slider=55 → amt $5,000 → Listed
+ * $4,625 (5000×0.925) / Pro $4,700 (5000×0.94) / delta $75/booking.
  *
  * The CTA button submits the live slider state to a server action that
  * persists to landing_capture_sessions then redirects to /login with the
@@ -35,8 +39,11 @@ const SLIDER_MAX = 100;
 const SLIDER_DEFAULT = 55;
 const LN_500 = Math.log(500);
 const LN_30K = Math.log(30000);
-const PLATFORM_FEE = 0.025;
-const PRO_MONTHLY = 49;
+
+// Lock 25 v2a — consolidated rates (processing included).
+const VNDR_FREE_RATE = COMMISSION_RATES.vndr.free.commissionRate ?? 0.075;
+const VNDR_PRO_RATE = COMMISSION_RATES.vndr.pro.commissionRate ?? 0.06;
+const PRO_MONTHLY = COMMISSION_RATES.vndr.pro.monthlyPrice ?? 129;
 
 function bookingFromSlider(v: number): number {
   const val = Math.exp(LN_500 + (LN_30K - LN_500) * (v / 100));
@@ -51,14 +58,8 @@ function fmtCalc(n: number): string {
   return "$" + Math.round(n).toLocaleString("en-US");
 }
 
-function commissionRate(amt: number, isPro: boolean): number {
-  if (amt <= 2000) return isPro ? 0.03 : 0.05;
-  if (amt <= 8000) return isPro ? 0.03 : 0.04;
-  return isPro ? 0.02 : 0.03;
-}
-
 function feeOn(amt: number, isPro: boolean): number {
-  return amt * (commissionRate(amt, isPro) + PLATFORM_FEE);
+  return amt * (isPro ? VNDR_PRO_RATE : VNDR_FREE_RATE);
 }
 
 type TierPreference = "listed" | "pro" | null;
@@ -187,6 +188,11 @@ export function Calculator() {
         </div>
 
         <p className={s.calcDelta}>{delta}</p>
+
+        {/* Lock 25 v2a brief #10 mount — consolidated-rate disclosure with
+         * expandable breakdown. Mounts below the headline take-home grid
+         * (Listed/Pro columns) per the brief. */}
+        <CommissionBreakdownDisclosure portal="vndr" />
       </div>
 
       <p className={s.calcFoot}>{t.rich("foot", { strong: (chunks) => <strong>{chunks}</strong> })}</p>

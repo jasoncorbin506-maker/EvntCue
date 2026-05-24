@@ -553,5 +553,19 @@
         "locking": "Locking…"
       }
     }
+  },
+  "pricing": {
+    "commissionBreakdown": {
+      "headlineTotal": "Total fee: {rate}",
+      "headlineIncludes": "Includes payment processing.",
+      "disclosureLabel": "What’s in the fee?",
+      "stripeProcessing": "Payment processing",
+      "evntcuePlatform": "EvntCue platform",
+      "marketplaceCommission": "Marketplace discovery",
+      "vendorKeeps": "You keep",
+      "noBreakdown": "Contact us for Enterprise pricing.",
+      "proCalloutVndrCatr": "Pro removes listing caps and unlocks CRM, marketplace access, and integrated payments — most vendors book more on Pro than Free.",
+      "proCalloutPlnrVenu": "Pro drops your fee from 11% to 5% and unlocks marketplace access, commission automation, and CRM. Active operators upgrade for the savings + tools."
+    }
   }
 }

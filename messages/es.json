@@ -553,5 +553,19 @@
         "locking": "Asegurando…"
       }
     }
+  },
+  "pricing": {
+    "commissionBreakdown": {
+      "headlineTotal": "Comisión total: {rate}",
+      "headlineIncludes": "Incluye el procesamiento del pago.",
+      "disclosureLabel": "¿Qué incluye la comisión?",
+      "stripeProcessing": "Procesamiento del pago",
+      "evntcuePlatform": "Plataforma EvntCue",
+      "marketplaceCommission": "Descubrimiento en el marketplace",
+      "vendorKeeps": "Te quedas con",
+      "noBreakdown": "Contáctanos para el plan Enterprise.",
+      "proCalloutVndrCatr": "Pro elimina los límites de listings y desbloquea CRM, acceso al marketplace y pagos integrados — la mayoría de vendors reservan más con Pro que con Free.",
+      "proCalloutPlnrVenu": "Pro baja tu comisión del 11% al 5% y desbloquea acceso al marketplace, automatización de comisiones y CRM. Los operadores activos se actualizan por el ahorro y las herramientas."
+    }
   }
 }
