@@ -912,6 +912,27 @@
   cursor: default;
 }
 
+/* Per-date commission override marker (V-2b smoke-fix session 23,
+   migration 057). Small "$" badge in the corner of cells that have a
+   custom commission rate set. */
+.calCommMark {
+  position: absolute;
+  top: 2px;
+  right: 3px;
+  font-family: var(--font-display);
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--coral);
+  line-height: 1;
+  pointer-events: none;
+}
+
+/* Calendar cells need to be position:relative so the absolute-positioned
+   marker anchors correctly. */
+.calCellBtn {
+  position: relative;
+}
+
 .calInquiry {
   background: var(--al);
   color: var(--at);

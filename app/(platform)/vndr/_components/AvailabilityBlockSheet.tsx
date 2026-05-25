@@ -3,6 +3,8 @@
 import { useState, useTransition } from "react";
 import { upsertAvailabilityBlock } from "../_actions/upsert-availability-block";
 import { deleteAvailabilityBlock } from "../_actions/delete-availability-block";
+import { upsertDateCommission } from "../_actions/upsert-date-commission";
+import { deleteDateCommission } from "../_actions/delete-date-commission";
 import s from "./AvailabilityBlockSheet.module.css";
 
 /**
@@ -34,13 +36,31 @@ export type ExistingBlock = {
 type Props = {
   date: string;
   existingBlocks: ExistingBlock[];
+  /**
+   * Existing commission override for this date, if any (migration 057,
+   * V-2b smoke-fix session 23). Null = no override; date uses the vendor's
+   * default rate (vendors.referral_rate_pct).
+   */
+  existingCommissionPct: number | null;
+  /**
+   * Vendor's default commission rate, for showing "Default: X%" copy on
+   * the commission section so the vendor knows what the override deviates
+   * from. Null when the vendor hasn't set a profile-level default.
+   */
+  defaultCommissionPct: number | null;
   onClose: () => void;
 };
 
 const HOUR_OPTIONS = Array.from({ length: 12 }, (_, i) => i + 1);
 const MINUTE_OPTIONS = [0, 15, 30, 45];
 
-export function AvailabilityBlockSheet({ date, existingBlocks, onClose }: Props) {
+export function AvailabilityBlockSheet({
+  date,
+  existingBlocks,
+  existingCommissionPct,
+  defaultCommissionPct,
+  onClose,
+}: Props) {
   const [pending, startTransition] = useTransition();
   const [existing, setExisting] = useState<ExistingBlock[]>(existingBlocks);
   const [mode, setMode] = useState<"allDay" | "partial">("allDay");
@@ -52,6 +72,19 @@ export function AvailabilityBlockSheet({ date, existingBlocks, onClose }: Props)
   const [endPm, setEndPm] = useState(true);
   const [reason, setReason] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  // Commission-override state (V-2b smoke-fix session 23 — Jason's
+  // per-date commission lock). Toggle ON reveals the input; saving with
+  // toggle ON upserts; saving with toggle OFF deletes any existing override.
+  const [commissionToggle, setCommissionToggle] = useState(
+    existingCommissionPct !== null,
+  );
+  const [commissionStr, setCommissionStr] = useState(
+    existingCommissionPct !== null ? String(existingCommissionPct) : "",
+  );
+  const [committedCommissionPct, setCommittedCommissionPct] = useState(
+    existingCommissionPct,
+  );
 
   function toHHMMSS(hour12: number, minute: number, isPm: boolean): string {
     let h = hour12 % 12;
@@ -96,6 +129,41 @@ export function AvailabilityBlockSheet({ date, existingBlocks, onClose }: Props)
         return;
       }
       setExisting((prev) => prev.filter((b) => b.id !== id));
+    });
+  }
+
+  function handleSaveCommission() {
+    setError(null);
+    const pct = Number(commissionStr);
+    if (!commissionStr || !Number.isFinite(pct) || pct < 0 || pct > 100) {
+      setError("Commission must be 0–100.");
+      return;
+    }
+    startTransition(async () => {
+      const res = await upsertDateCommission({
+        date,
+        commissionPct: pct,
+        note: null,
+      });
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setCommittedCommissionPct(pct);
+    });
+  }
+
+  function handleRemoveCommission() {
+    setError(null);
+    startTransition(async () => {
+      const res = await deleteDateCommission(date);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      setCommittedCommissionPct(null);
+      setCommissionToggle(false);
+      setCommissionStr("");
     });
   }
 
@@ -264,6 +332,79 @@ export function AvailabilityBlockSheet({ date, existingBlocks, onClose }: Props)
           >
             {pending ? "Saving…" : "Block this date"}
           </button>
+        </div>
+
+        {/* ── COMMISSION FOR THIS DATE ─────────────────────────────────
+           V-2b smoke-fix session 23 (Jason's per-date commission lock).
+           Toggle ON reveals an input + Save / Remove buttons. Toggle OFF
+           hides; if a previous override exists, "Remove" deletes it +
+           closes the section. Vendor-wide override (applies to all the
+           vendor's packages on this date); per-package per-date is V-2c.
+        */}
+        <div className={s.commissionSection}>
+          <div className={s.commissionHead}>
+            <span className={s.sectionLbl}>Commission for this date</span>
+            <button
+              type="button"
+              className={`${s.commToggle} ${commissionToggle ? s.commToggleOn : ""}`.trim()}
+              onClick={() => {
+                const next = !commissionToggle;
+                setCommissionToggle(next);
+                if (!next && committedCommissionPct !== null) {
+                  // Toggle OFF with an existing override = remove it.
+                  handleRemoveCommission();
+                }
+              }}
+              aria-pressed={commissionToggle}
+              disabled={pending}
+            >
+              <span className={s.commToggleDot} />
+            </button>
+          </div>
+          {commissionToggle ? (
+            <>
+              <div className={s.commRow}>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  className={s.commInput}
+                  value={commissionStr}
+                  onChange={(e) => setCommissionStr(e.target.value)}
+                  min={0}
+                  max={100}
+                  step={0.5}
+                  placeholder={
+                    defaultCommissionPct !== null
+                      ? String(defaultCommissionPct)
+                      : "0"
+                  }
+                  aria-label="Commission percentage for this date"
+                />
+                <span className={s.commPct}>%</span>
+                <button
+                  type="button"
+                  className={`${s.btn} ${s.btnPrimary}`}
+                  onClick={handleSaveCommission}
+                  disabled={pending}
+                >
+                  {pending ? "Saving…" : "Save"}
+                </button>
+              </div>
+              <div className={s.commHint}>
+                {defaultCommissionPct !== null
+                  ? `Overrides your default of ${defaultCommissionPct}% for this date only.`
+                  : "Applies only to this date. Set a default in Profile → Pricing."}
+              </div>
+            </>
+          ) : (
+            <div className={s.commHint}>
+              {committedCommissionPct !== null
+                ? `Currently overridden to ${committedCommissionPct}%. Toggle off to remove.`
+                : defaultCommissionPct !== null
+                  ? `This date uses your default rate (${defaultCommissionPct}%). Toggle on to override.`
+                  : "Toggle on to set a custom commission for this date."}
+            </div>
+          )}
         </div>
       </div>
     </>

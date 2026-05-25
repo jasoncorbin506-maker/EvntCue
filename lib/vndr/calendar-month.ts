@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getVndrAvailabilityBlocksForMonth } from "@/lib/vndr/availability";
+import { getVendorDateCommissionsForMonth } from "@/lib/vndr/date-commissions";
 
 /**
  * Vendor Home Mini Calendar — month grid data per V-2b brief §6. Returns
@@ -27,6 +28,12 @@ export type CalendarCell = {
   date: string;
   state: CalendarCellState;
   partial: boolean;
+  /**
+   * Per-date commission override (migration 057). Null when the vendor
+   * hasn't set a custom commission for this date. UI renders a small "$"
+   * marker on cells where this is set (V-2b smoke-fix session 23).
+   */
+  commissionPct: number | null;
 };
 
 export type CalendarMonth = {
@@ -56,6 +63,12 @@ export async function getVndrCalendarMonth(
     month,
   );
 
+  const commissionsPromise = getVendorDateCommissionsForMonth(
+    vendorTenantId,
+    year,
+    month,
+  );
+
   const bookingsPromise = supabase
     .from("bookings")
     .select("status, events!bookings_event_id_fkey!inner(start_date)")
@@ -72,8 +85,9 @@ export async function getVndrCalendarMonth(
     .gte("event_date", start)
     .lte("event_date", end);
 
-  const [blocks, bookingsRes, inquiriesRes] = await Promise.all([
+  const [blocks, commissions, bookingsRes, inquiriesRes] = await Promise.all([
     blocksPromise,
+    commissionsPromise,
     bookingsPromise,
     inquiriesPromise,
   ]);
@@ -109,6 +123,10 @@ export async function getVndrCalendarMonth(
     blockMap.set(blk.blockedDate, existing);
   }
 
+  // Map date → commission_pct (V-2b smoke-fix session 23, migration 057).
+  const commissionByDate = new Map<string, number>();
+  for (const c of commissions) commissionByDate.set(c.overrideDate, c.commissionPct);
+
   const cells: CalendarCell[] = [];
   for (let day = 1; day <= lastDay; day++) {
     const date = isoDate(year, month, day);
@@ -121,7 +139,13 @@ export async function getVndrCalendarMonth(
       const blk = blockMap.get(date)!;
       partial = blk.partial && !blk.whole;
     }
-    cells.push({ day, date, state, partial });
+    cells.push({
+      day,
+      date,
+      state,
+      partial,
+      commissionPct: commissionByDate.get(date) ?? null,
+    });
   }
 
   // First day-of-week index (0=Sunday) for grid leading-blanks.

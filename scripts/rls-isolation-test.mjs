@@ -2178,6 +2178,8 @@ async function testRecursionSweep() {
     "vendors",
     // 056 — vendor portfolio photos
     "vendor_photos",
+    // 057 — vendor per-date commission overrides
+    "vendor_date_commission_overrides",
   ];
 
   const failures = [];
@@ -2522,6 +2524,71 @@ async function testCrossTenantVndrPackageAddonsIsolation() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST T-31: vendor_date_commission_overrides isolation (migration 057,
+// V-2b smoke-fix session 23). Vndr A's per-date commission override hidden
+// from vndr B + cross-tenant insert denied. The (tenant_id, override_date)
+// UNIQUE constraint means upsert semantics; this test exercises the
+// straightforward isolation paths (SELECT + INSERT adversarial).
+// -----------------------------------------------------------------------------
+async function testCrossTenantVendorDateCommissionsIsolation() {
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  const { data: aRow, error: aErr } = await adminClient
+    .from("vendor_date_commission_overrides")
+    .insert({
+      tenant_id: vndrA.tenantId,
+      override_date: "2026-05-10",
+      commission_pct: 15.0,
+      note: `T-VDCO seed ${TEST_RUN_ID}`,
+      created_by: vndrA.userId,
+    })
+    .select("id")
+    .single();
+  if (aErr || !aRow) throw new Error(`seed A override failed: ${aErr?.message}`);
+
+  // Negative: B cannot SELECT A's override (vdco_select tenant-private).
+  const { data: bView, error: bErr } = await vndrB.authedClient
+    .from("vendor_date_commission_overrides")
+    .select("id")
+    .eq("id", aRow.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr VDCO SELECT: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: vndr B saw vndr A's vendor_date_commission_overrides row`);
+  }
+
+  // Negative: B cannot INSERT an override under A's tenant (vdco_insert WITH CHECK).
+  const { data: spoof, error: spoofErr } = await vndrB.authedClient
+    .from("vendor_date_commission_overrides")
+    .insert({
+      tenant_id: vndrA.tenantId,
+      override_date: "2026-05-11",
+      commission_pct: 99.0,
+      note: `T-VDCO spoof ${TEST_RUN_ID}`,
+      created_by: vndrB.userId,
+    })
+    .select("id");
+  if (spoofErr && spoofErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr VDCO INSERT: ${spoofErr.message}`);
+  }
+  if (!spoofErr && spoof && spoof.length > 0) {
+    throw new Error(`RLS LEAK: vndr B inserted vendor_date_commission_overrides row under vndr A's tenant`);
+  }
+
+  // Positive: A CAN read their own override.
+  const { data: aView, error: aReadErr } = await vndrA.authedClient
+    .from("vendor_date_commission_overrides")
+    .select("id")
+    .eq("id", aRow.id);
+  if (aReadErr) throw new Error(`A positive control failed: ${aReadErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // TEST T-30: vendor_photos isolation (migration 056) — vndr A's portfolio
 // photo metadata row hidden from vndr B + cross-tenant insert denied. The
 // storage bucket itself is public-read (so photos can appear in marketplace
@@ -2621,6 +2688,7 @@ const TESTS = [
   { name: "T-28 vndr_packages SELECT+UPDATE isolation (post-054 consolidation — vndr A vs B)", fn: testCrossTenantVndrPackagesIsolation },
   { name: "T-29 vndr_package_addons isolation (migration 054 — vndr A vs B via user_owns_vndr_package)", fn: testCrossTenantVndrPackageAddonsIsolation },
   { name: "T-30 vendor_photos isolation (migration 056 — vndr A vs B)", fn: testCrossTenantVendorPhotosIsolation },
+  { name: "T-31 vendor_date_commission_overrides isolation (migration 057 — vndr A vs B)", fn: testCrossTenantVendorDateCommissionsIsolation },
 ];
 
 // -----------------------------------------------------------------------------

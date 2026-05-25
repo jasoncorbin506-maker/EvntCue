@@ -6,6 +6,7 @@ import { getVndrActivePipeline } from "@/lib/vndr/active-pipeline";
 import { getVndrCalendarMonth } from "@/lib/vndr/calendar-month";
 import { getVndrAvailabilityBlocksForMonth } from "@/lib/vndr/availability";
 import { getVndrPackages } from "@/lib/vndr/packages";
+import { getVendorProfile } from "@/lib/vndr/profile";
 import { assembleVndrHomeCue } from "@/lib/cue/vndr-home-prompt";
 import { Chrome, AskCueButton, NotifButton, ChromeSignOut } from "./_components/Chrome";
 import { ResponseWindowAlert } from "./_components/ResponseWindowAlert";
@@ -57,8 +58,10 @@ export default async function VndrHome({
   const year = now.getFullYear();
   const month = now.getMonth() + 1;
 
-  // Load all 6 data sources in parallel. Trust score is inside hero-metrics
-  // (computed alongside the 4 tile values).
+  // Load all 7 data sources in parallel. Trust score is inside hero-metrics
+  // (computed alongside the 4 tile values). Profile is fetched for the
+  // MiniCalendar's defaultCommissionPct prop — V-2b smoke-fix session 23
+  // surfaces vendor's default commission in the per-date override sheet.
   const [
     oldestUnresponded,
     heroMetrics,
@@ -66,6 +69,7 @@ export default async function VndrHome({
     calendarMonth,
     blocks,
     packages,
+    vendorProfile,
   ] = await Promise.all([
     getOldestUnrespondedInquiry(vendor.tenantId),
     getVndrHeroMetrics(vendor),
@@ -73,7 +77,10 @@ export default async function VndrHome({
     getVndrCalendarMonth(vendor.tenantId, year, month),
     getVndrAvailabilityBlocksForMonth(vendor.tenantId, year, month),
     getVndrPackages(vendor.tenantId),
+    getVendorProfile(vendor.tenantId),
   ]);
+
+  const defaultCommissionPct = vendorProfile?.referralRatePct ?? null;
 
   const cue = assembleVndrHomeCue({
     metrics: heroMetrics,
@@ -348,7 +355,11 @@ export default async function VndrHome({
       </div>
 
       {/* 6 — Mini Calendar */}
-      <MiniCalendar month={calendarMonth} blocks={blocks} />
+      <MiniCalendar
+        month={calendarMonth}
+        blocks={blocks}
+        defaultCommissionPct={defaultCommissionPct}
+      />
 
       {/* 7 — Packages (V-2b smoke-fix G4/G5/G6: PackagesSection owns the
           EditPackageSheet open state for both add + edit flows). */}

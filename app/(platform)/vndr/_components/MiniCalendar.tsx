@@ -32,6 +32,13 @@ import type { ExistingBlock } from "./AvailabilityBlockSheet";
 type Props = {
   month: CalendarMonth;
   blocks: VndrAvailabilityBlock[];
+  /**
+   * Vendor's profile-level default commission rate (vendors.referral_rate_pct).
+   * Shown in the AvailabilityBlockSheet's Commission section as the
+   * "default" the override deviates from. Null when vendor hasn't set
+   * a profile default yet.
+   */
+  defaultCommissionPct: number | null;
 };
 
 const DAY_LABELS = ["S", "M", "T", "W", "T", "F", "S"] as const;
@@ -50,9 +57,18 @@ const MONTH_LABELS = [
   "December",
 ] as const;
 
-export function MiniCalendar({ month, blocks }: Props) {
+export function MiniCalendar({ month, blocks, defaultCommissionPct }: Props) {
   const router = useRouter();
   const [sheetDate, setSheetDate] = useState<string | null>(null);
+
+  // Map of date → commissionPct for fast lookup when opening the sheet.
+  const commissionByDate = useMemo(() => {
+    const m = new Map<string, number>();
+    for (const c of month.cells) {
+      if (c.commissionPct !== null) m.set(c.date, c.commissionPct);
+    }
+    return m;
+  }, [month.cells]);
 
   const todayIso = new Date().toISOString().slice(0, 10);
   const monthLabel = `${MONTH_LABELS[month.month - 1]} ${month.year}`;
@@ -132,6 +148,7 @@ export function MiniCalendar({ month, blocks }: Props) {
           // tabs; open + blocked open the AvailabilityBlockSheet (V-2b
           // smoke-fix session 23). Previously booked/inquiry were disabled
           // which read as a broken click target.
+          const hasOverride = cell.commissionPct !== null;
           return (
             <button
               key={cell.date}
@@ -141,6 +158,14 @@ export function MiniCalendar({ month, blocks }: Props) {
               aria-label={cellAriaLabel(cell)}
             >
               {cell.day}
+              {hasOverride && (
+                <span
+                  className={s.calCommMark}
+                  aria-label={`Commission override ${cell.commissionPct}%`}
+                >
+                  $
+                </span>
+              )}
             </button>
           );
         })}
@@ -163,6 +188,8 @@ export function MiniCalendar({ month, blocks }: Props) {
         <AvailabilityBlockSheet
           date={sheetDate}
           existingBlocks={blocksByDate.get(sheetDate) ?? []}
+          existingCommissionPct={commissionByDate.get(sheetDate) ?? null}
+          defaultCommissionPct={defaultCommissionPct}
           onClose={() => setSheetDate(null)}
         />
       )}
