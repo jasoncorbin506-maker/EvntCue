@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Hard-delete a vendor package addon (migration 053). RLS gates via
- * user_owns_vendor_package() on the parent package.
+ * Hard-delete a vendor package addon against public.vndr_package_addons
+ * (created 2026-05-25 in migration 054 during consolidation). RLS gates
+ * via user_owns_vndr_package() on the parent package.
  */
 
 export type DeletePackageAddonResult =
@@ -18,7 +19,7 @@ export async function deletePackageAddon(
   if (!addonId) return { ok: false, error: "Missing addon id." };
   const supabase = await createClient();
   const { error, count } = await supabase
-    .from("vendor_package_addons")
+    .from("vndr_package_addons")
     .delete({ count: "exact" })
     .eq("id", addonId);
   if (error) return { ok: false, error: error.message };

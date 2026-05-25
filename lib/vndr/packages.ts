@@ -2,9 +2,17 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Vendor packages + addons (migrations 052 + 053). Per Jason's 2026-05-24
- * lock: flat + sub-items table. Each package is a top-level row; addons are
- * optional sub-items priced on top.
+ * Vendor packages + addons. Per Jason's 2026-05-24 lock: flat + sub-items
+ * table. Each package is a top-level row; addons are optional sub-items
+ * priced on top.
+ *
+ * Source tables (post-2026-05-25 consolidation, migration 054):
+ *   - public.vndr_packages       — legacy survivor (migration 007), absorbed
+ *                                  V-2b columns (is_visible, display_order,
+ *                                  updated_at, created_by) + referral_rate_pct
+ *                                  renamed to referral_pct + CHECK widened 0-100.
+ *   - public.vndr_package_addons — new child table (migration 054), gated via
+ *                                  user_owns_vndr_package() helper.
  *
  * V-2b ships read + simple field-update server actions (price, referral_pct,
  * is_visible). Full edit-in-place + addon CRUD UI lands in Session B's
@@ -35,7 +43,7 @@ export type VndrPackageAddon = {
 };
 
 const PKG_COLS =
-  "id, vendor_tenant_id, name, description, price_cents, referral_pct, is_visible, display_order, created_at, updated_at";
+  "id, tenant_id, name, description, price_cents, referral_pct, is_visible, display_order, created_at, updated_at";
 const ADDON_COLS =
   "id, package_id, name, description, price_cents, display_order";
 
@@ -45,7 +53,7 @@ function shapePackage(
 ): VndrPackage {
   return {
     id: row.id as string,
-    vendorTenantId: row.vendor_tenant_id as string,
+    vendorTenantId: row.tenant_id as string,
     name: row.name as string,
     description: (row.description as string | null) ?? null,
     priceCents: row.price_cents as number,
@@ -80,16 +88,16 @@ function shapeAddon(row: Record<string, unknown>): VndrPackageAddon {
 export async function getVndrPackages(vendorTenantId: string): Promise<VndrPackage[]> {
   const supabase = await createClient();
   const { data: pkgRows } = await supabase
-    .from("vendor_packages")
+    .from("vndr_packages")
     .select(PKG_COLS)
-    .eq("vendor_tenant_id", vendorTenantId)
+    .eq("tenant_id", vendorTenantId)
     .order("display_order", { ascending: true });
   const packages = pkgRows ?? [];
   if (packages.length === 0) return [];
 
   const packageIds = packages.map((p) => (p as Record<string, unknown>).id as string);
   const { data: addonRows } = await supabase
-    .from("vendor_package_addons")
+    .from("vndr_package_addons")
     .select(ADDON_COLS)
     .in("package_id", packageIds)
     .order("display_order", { ascending: true });

@@ -5,10 +5,11 @@ import { createClient } from "@/lib/supabase/server";
 import { getCurrentVendor } from "@/lib/vndr/current-vendor";
 
 /**
- * Upsert a vendor package (migration 052). Used by the Packages section's
- * full-edit flow (Session B Profile tab). Lightweight in-row updates
- * (referral % slider, visibility toggle) use updatePackageFields below
- * to avoid round-tripping the full row.
+ * Upsert a vendor package against public.vndr_packages (legacy survivor
+ * post-2026-05-25 consolidation, migration 054). Used by the Packages
+ * section's full-edit flow (Session B Profile tab). Lightweight in-row
+ * updates (referral % slider, visibility toggle) use updatePackageFields
+ * below to avoid round-tripping the full row.
  */
 
 export type UpsertPackageInput = {
@@ -43,7 +44,7 @@ export async function upsertPackage(
 
   const supabase = await createClient();
   const payload = {
-    vendor_tenant_id: vendor.tenantId,
+    tenant_id: vendor.tenantId,
     name,
     description: input.description ?? null,
     price_cents: input.priceCents,
@@ -54,7 +55,7 @@ export async function upsertPackage(
 
   if (input.id) {
     const { data, error } = await supabase
-      .from("vendor_packages")
+      .from("vndr_packages")
       .update(payload)
       .eq("id", input.id)
       .select("id")
@@ -72,7 +73,7 @@ export async function upsertPackage(
   if (!user) return { ok: false, error: "Not signed in." };
 
   const { data, error } = await supabase
-    .from("vendor_packages")
+    .from("vndr_packages")
     .insert({ ...payload, created_by: user.id })
     .select("id")
     .single();
@@ -112,7 +113,7 @@ export async function updatePackageFields(
   }
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("vendor_packages")
+    .from("vndr_packages")
     .update(patch)
     .eq("id", input.id)
     .select("id")

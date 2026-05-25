@@ -28,7 +28,7 @@ import s from "./vndr.module.css";
  *                               completion 20 / profile 10) per Jason 2026-05-24
  *   6. Mini Calendar          — current month booked/inquiry/blocked + tap to
  *                               manage availability blocks (whole or partial-day)
- *   7. Packages               — vendor's vendor_packages with slider + visibility
+ *   7. Packages               — vendor's vndr_packages with slider + visibility
  *                               wired to updatePackageFields server action
  *
  * Empty states are honest — a brand-new vendor with no inquiries/bookings sees

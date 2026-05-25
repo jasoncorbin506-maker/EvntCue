@@ -1608,11 +1608,13 @@ async function testVndrCrossTenantVendorsIsolation() {
 // -----------------------------------------------------------------------------
 // TEST: vndr_packages — vndr can INSERT own package; cross-tenant denied.
 // -----------------------------------------------------------------------------
-// vp_select is USING (TRUE) by design (public marketplace catalog), so the
-// adversarial path lives on the WRITE side. vp_write USING + WITH CHECK
-// both require tenant_id IN current_user_tenants(). This test exercises
-// both: own-tenant INSERT must succeed; cross-tenant INSERT (spoofing
-// tenant_id = B) must fail with 42501 or zero-rows return.
+// Post-2026-05-25 consolidation (migration 054), vp_select is per-verb +
+// tenant-private: USING (is_admin() OR tenant_id IN current_user_tenants()).
+// SELECT isolation is now covered by T-28 (testCrossTenantVndrPackagesIsolation
+// below). This pair focuses on the WRITE side: vp_insert WITH CHECK + vp_update
+// USING both require tenant_id IN current_user_tenants(). Own-tenant INSERT
+// must succeed; cross-tenant INSERT (spoofing tenant_id = B) must fail with
+// 42501 or zero-rows return.
 async function testVndrPackagesWriteOwnTenant() {
   const vndr = await seedTestUser("vndr");
 
@@ -2379,19 +2381,21 @@ async function testCrossTenantVendorAvailabilityBlocksIsolation() {
 }
 
 // -----------------------------------------------------------------------------
-// TEST: vendor_packages (migration 052) — vndr A's package hidden from vndr B
-// + cross-tenant insert denied. Distinct from the LEGACY vndr_packages table
-// from migration 007 (which has its own test pair above). The v-2b spec
-// chose `vendor_packages` as the new table name; both coexist for now.
+// TEST T-28: vndr_packages SELECT + UPDATE isolation (post-consolidation,
+// migration 054). Repointed from the V-2b parallel package table (dropped in
+// migration 055) to the legacy survivor vndr_packages. The pre-existing
+// testVndrPackagesWriteOwnTenant + testVndrPackagesWriteCrossTenantDenied
+// pair covers INSERT isolation; this test adds SELECT + UPDATE coverage that
+// the prior public-read vp_select policy didn't enforce.
 // -----------------------------------------------------------------------------
-async function testCrossTenantVendorPackagesIsolation() {
+async function testCrossTenantVndrPackagesIsolation() {
   const vndrA = await seedTestUser("vndr");
   const vndrB = await seedTestUser("vndr");
 
   const { data: aPkg, error: aErr } = await adminClient
-    .from("vendor_packages")
+    .from("vndr_packages")
     .insert({
-      vendor_tenant_id: vndrA.tenantId,
+      tenant_id: vndrA.tenantId,
       name: `T-VPKG seed ${TEST_RUN_ID}`,
       price_cents: 200000,
       referral_pct: 15,
@@ -2402,34 +2406,34 @@ async function testCrossTenantVendorPackagesIsolation() {
     .single();
   if (aErr || !aPkg) throw new Error(`seed A package failed: ${aErr?.message}`);
 
-  // Negative: B cannot SELECT A's package (vp_select).
+  // Negative: B cannot SELECT A's package (vp_select tenant-private).
   const { data: bView, error: bErr } = await vndrB.authedClient
-    .from("vendor_packages")
+    .from("vndr_packages")
     .select("id")
     .eq("id", aPkg.id);
   if (bErr && bErr.code === "42P17") {
-    throw new Error(`42P17 recursion on cross-vndr VPKG SELECT: ${bErr.message}`);
+    throw new Error(`42P17 recursion on cross-vndr vndr_packages SELECT: ${bErr.message}`);
   }
   if (bView && bView.length > 0) {
-    throw new Error(`RLS LEAK: vndr B saw vndr A's vendor_packages row`);
+    throw new Error(`RLS LEAK: vndr B saw vndr A's vndr_packages row`);
   }
 
   // Negative: B cannot UPDATE A's package (vp_update USING).
   const { data: bUpd, error: bUpdErr } = await vndrB.authedClient
-    .from("vendor_packages")
+    .from("vndr_packages")
     .update({ name: `T-VPKG HIJACK ${TEST_RUN_ID}` })
     .eq("id", aPkg.id)
     .select("id");
   if (bUpdErr && bUpdErr.code === "42P17") {
-    throw new Error(`42P17 recursion on cross-vndr VPKG UPDATE: ${bUpdErr.message}`);
+    throw new Error(`42P17 recursion on cross-vndr vndr_packages UPDATE: ${bUpdErr.message}`);
   }
   if (bUpd && bUpd.length > 0) {
-    throw new Error(`RLS LEAK: vndr B updated vndr A's vendor_packages row`);
+    throw new Error(`RLS LEAK: vndr B updated vndr A's vndr_packages row`);
   }
 
   // Positive: A CAN read their own package.
   const { data: aView, error: aReadErr } = await vndrA.authedClient
-    .from("vendor_packages")
+    .from("vndr_packages")
     .select("id, name")
     .eq("id", aPkg.id)
     .single();
@@ -2440,18 +2444,19 @@ async function testCrossTenantVendorPackagesIsolation() {
 }
 
 // -----------------------------------------------------------------------------
-// TEST: vendor_package_addons (migration 053) — child table gated via
-// user_owns_vendor_package() helper from migration 052. Vndr B cannot read
-// or insert addons under vndr A's package.
+// TEST T-29: vndr_package_addons isolation (post-consolidation, migration 054).
+// Child table gated via user_owns_vndr_package() helper. Vndr B cannot read
+// or insert addons under vndr A's package. Repointed from the V-2b parallel
+// addons table (dropped in migration 055) to the new vndr_package_addons.
 // -----------------------------------------------------------------------------
-async function testCrossTenantVendorPackageAddonsIsolation() {
+async function testCrossTenantVndrPackageAddonsIsolation() {
   const vndrA = await seedTestUser("vndr");
   const vndrB = await seedTestUser("vndr");
 
   const { data: aPkg, error: pkgErr } = await adminClient
-    .from("vendor_packages")
+    .from("vndr_packages")
     .insert({
-      vendor_tenant_id: vndrA.tenantId,
+      tenant_id: vndrA.tenantId,
       name: `T-VPA parent ${TEST_RUN_ID}`,
       price_cents: 100000,
       referral_pct: 10,
@@ -2463,7 +2468,7 @@ async function testCrossTenantVendorPackageAddonsIsolation() {
   if (pkgErr || !aPkg) throw new Error(`seed A package failed: ${pkgErr?.message}`);
 
   const { data: aAddon, error: addonErr } = await adminClient
-    .from("vendor_package_addons")
+    .from("vndr_package_addons")
     .insert({
       package_id: aPkg.id,
       name: `T-VPA addon ${TEST_RUN_ID}`,
@@ -2474,9 +2479,9 @@ async function testCrossTenantVendorPackageAddonsIsolation() {
     .single();
   if (addonErr || !aAddon) throw new Error(`seed A addon failed: ${addonErr?.message}`);
 
-  // Negative: B cannot SELECT A's addon (gated via user_owns_vendor_package).
+  // Negative: B cannot SELECT A's addon (gated via user_owns_vndr_package).
   const { data: bView, error: bErr } = await vndrB.authedClient
-    .from("vendor_package_addons")
+    .from("vndr_package_addons")
     .select("id")
     .eq("id", aAddon.id);
   if (bErr && bErr.code === "42P17") {
@@ -2488,7 +2493,7 @@ async function testCrossTenantVendorPackageAddonsIsolation() {
 
   // Negative: B cannot INSERT addon under A's package.
   const { data: spoof, error: spoofErr } = await vndrB.authedClient
-    .from("vendor_package_addons")
+    .from("vndr_package_addons")
     .insert({
       package_id: aPkg.id,
       name: `T-VPA spoof ${TEST_RUN_ID}`,
@@ -2505,7 +2510,7 @@ async function testCrossTenantVendorPackageAddonsIsolation() {
 
   // Positive: A CAN read their own addon.
   const { data: aView, error: aReadErr } = await vndrA.authedClient
-    .from("vendor_package_addons")
+    .from("vndr_package_addons")
     .select("id")
     .eq("id", aAddon.id);
   if (aReadErr) throw new Error(`A positive control failed: ${aReadErr.message}`);
@@ -2549,8 +2554,8 @@ const TESTS = [
   { name: "T-25 Recursion sweep — (role × multi-tenant table) matrix, no 42P17", fn: testRecursionSweep },
   { name: "T-26 event_vendor_presence isolation (migration 049 — orgnz A vs B)", fn: testEventVendorPresenceIsolation },
   { name: "T-27 vendor_availability_blocks isolation (migration 051 — vndr A vs B)", fn: testCrossTenantVendorAvailabilityBlocksIsolation },
-  { name: "T-28 vendor_packages isolation (migration 052 — vndr A vs B)", fn: testCrossTenantVendorPackagesIsolation },
-  { name: "T-29 vendor_package_addons isolation (migration 053 — vndr A vs B via user_owns_vendor_package)", fn: testCrossTenantVendorPackageAddonsIsolation },
+  { name: "T-28 vndr_packages SELECT+UPDATE isolation (post-054 consolidation — vndr A vs B)", fn: testCrossTenantVndrPackagesIsolation },
+  { name: "T-29 vndr_package_addons isolation (migration 054 — vndr A vs B via user_owns_vndr_package)", fn: testCrossTenantVndrPackageAddonsIsolation },
 ];
 
 // -----------------------------------------------------------------------------

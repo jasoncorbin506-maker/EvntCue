@@ -6,7 +6,8 @@ import { visibilityTier, type VndrPackage } from "@/lib/vndr/packages";
 import s from "../vndr.module.css";
 
 /**
- * V-2b: Package row wired to migration 052. Slider persists referral_pct
+ * V-2b: Package row wired to public.vndr_packages (legacy survivor
+ * post-2026-05-25 consolidation, migration 054). Slider persists referral_pct
  * via updatePackageFields server action (debounced 400ms so dragging
  * doesn't flood the wire). Visibility toggle wraps the whole row; the
  * derived tier (low/medium/high) re-renders from referral_pct + isVisible.

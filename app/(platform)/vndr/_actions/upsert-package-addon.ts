@@ -4,8 +4,9 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Upsert a vendor package addon (migration 053). RLS gates via the
- * user_owns_vendor_package() helper from migration 052.
+ * Upsert a vendor package addon against public.vndr_package_addons (created
+ * 2026-05-25 in migration 054 during package-table consolidation). RLS gates
+ * via the user_owns_vndr_package() helper from the same migration.
  */
 
 export type UpsertPackageAddonInput = {
@@ -43,7 +44,7 @@ export async function upsertPackageAddon(
 
   if (input.id) {
     const { data, error } = await supabase
-      .from("vendor_package_addons")
+      .from("vndr_package_addons")
       .update(payload)
       .eq("id", input.id)
       .select("id")
@@ -61,7 +62,7 @@ export async function upsertPackageAddon(
   if (!user) return { ok: false, error: "Not signed in." };
 
   const { data, error } = await supabase
-    .from("vendor_package_addons")
+    .from("vndr_package_addons")
     .insert({ ...payload, created_by: user.id })
     .select("id")
     .single();
