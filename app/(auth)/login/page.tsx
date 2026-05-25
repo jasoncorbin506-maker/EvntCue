@@ -76,11 +76,19 @@ export default async function LoginPage(props: {
     if (roleSet.has("orgnz") || roleSet.has("admin")) {
       redirect(next ?? (intent === "mood_board" ? "/mood-board" : "/orgnz"));
     }
-    if (roleSet.has("vndr")) {
+    // Fallback to vndr-onboarding ONLY when the requested role is vndr
+    // (or unspecified). Without the role guard, an authed vndr-only user
+    // visiting /login?role=orgnz (e.g., from the event-preview "Build Mood
+    // Board" CTA) gets bounced into vndr-onboarding instead of the form —
+    // they can't sign out + create an organizer account from the routed
+    // destination. With the guard, they fall through to the "stuck session"
+    // form below with a sign-out escape.
+    if (roleSet.has("vndr") && (role === "vndr" || role === null)) {
       redirect(next ?? "/vndr-onboarding/1");
     }
-    // No matching role — fall through to render the form, AND expose a
-    // sign-out link in the footer so the user can escape the stale session.
+    // No matching role for the requested portal — fall through to render
+    // the form, AND expose a sign-out link in the footer so the user can
+    // escape the stale session.
     stuckSessionEmail = user.email ?? "this account";
   }
 
