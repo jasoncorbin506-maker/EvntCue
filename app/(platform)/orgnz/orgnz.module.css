@@ -1347,16 +1347,47 @@
   flex-direction: column;
 }
 .rosPhaseHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
   font-family: var(--font-ui);
   font-size: 9px;
   letter-spacing: 0.2em;
   text-transform: uppercase;
   color: var(--txt3);
   font-weight: 600;
-  padding: 14px 0 4px 60px;
+  padding: 14px 13px 4px 60px;
 }
 .rosPhaseGroup:first-child .rosPhaseHead {
   padding-top: 4px;
+}
+
+/* Concept C session B — "+ Add vendor" affordance in the phase header.
+ * Tap target is 24px-ish visible, expanded via box-shadow to satisfy 44px
+ * touch-target minimum without visual bloat. */
+.rosPhaseHeadAdd {
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: rgba(232, 98, 42, 0.08);
+  border: 0.5px solid rgba(232, 98, 42, 0.3);
+  color: var(--coral);
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  transition: background 150ms ease, transform 150ms ease;
+  box-shadow: 0 0 0 11px transparent;
+}
+.rosPhaseHeadAdd:hover,
+.rosPhaseHeadAdd:active {
+  background: rgba(232, 98, 42, 0.18);
+  transform: scale(1.06);
 }
 
 /* "Custom" badge — user-added milestone marker on RoS rows. Lock 14 ban

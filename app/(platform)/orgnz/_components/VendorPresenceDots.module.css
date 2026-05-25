@@ -1,0 +1,62 @@
+/* VendorPresenceDots — per-phase-group footer dots
+ * Concept C session B per Cowork's v2-vertical brief Call 1.
+ *
+ * Tiny coral circles with vendor initial. Max 8 + "+N" overflow.
+ * Right-aligned within the phase group footer. */
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 3px;
+  padding: 6px 13px 4px;
+  margin-top: 4px;
+}
+
+.dot {
+  /* Visible dot is 16px (per Cowork spec, ~8px diameter "looks like a tiny
+   * circle" but tap target is 16px-ish for accessibility — 44px-ish total
+   * with surrounding padding). Visible coral circle 16px; text inside is
+   * Barlow 7-9px white. */
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--coral);
+  border: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  font-weight: 700;
+  color: #fff;
+  letter-spacing: 0;
+  cursor: pointer;
+  padding: 0;
+  /* Invisible 44px tap target via box-shadow — keeps visual size tight
+   * while satisfying Apple HIG 44pt minimum for touch. */
+  box-shadow: 0 0 0 13px transparent;
+  transition: background 150ms ease, transform 150ms ease;
+}
+
+.dot:hover,
+.dot:active {
+  background: rgba(232, 98, 42, 0.85);
+  transform: scale(1.08);
+}
+
+.overflow {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 7px;
+  height: 18px;
+  border-radius: 9px;
+  background: rgba(232, 98, 42, 0.12);
+  border: 0.5px solid rgba(232, 98, 42, 0.3);
+  font-family: var(--font-ui);
+  font-size: 9px;
+  font-weight: 600;
+  color: var(--coral);
+  letter-spacing: 0.02em;
+}

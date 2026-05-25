@@ -10,6 +10,11 @@ import {
   computeOpenItemsCounts,
   deriveOpenItems,
 } from "@/lib/events/open-items";
+import {
+  getEventVendorPresence,
+  sortPresences,
+} from "@/lib/events/vendor-presence";
+import { PHASE_ORDER } from "@/data/run-of-show/dispatch";
 import { CuePill } from "./_components/CuePill";
 import { Feed, type FeedCard } from "./_components/Feed";
 import { OpenItemsBanner } from "./_components/OpenItemsBanner";
@@ -112,6 +117,13 @@ export default async function OrgnzDashboardPage() {
   }
 
   const { event, lineItems, customMilestones } = ctx;
+  // Concept C session B — load vendor presences in parallel with the
+  // existing context. Empty array gracefully when migration 049 isn't
+  // applied (the query helper swallows the relation-does-not-exist error).
+  const vendorPresences = sortPresences(
+    await getEventVendorPresence(event.id),
+    PHASE_ORDER,
+  );
   const allocatedCents = lineItems.reduce((sum, item) => sum + item.amount_cents, 0);
   const days = daysUntil(event.start_date);
   const category = toCategory(event.event_type);
@@ -265,10 +277,12 @@ export default async function OrgnzDashboardPage() {
         isPaidTier={isPaidTier}
       />
       <RunOfShow
+        eventId={event.id}
         headlineDate={longDate}
         recipeLabel={rosRecipe.labelEn}
         eventType={event.event_type}
         byPhase={rosByPhase}
+        vendorPresences={vendorPresences}
       />
       <SheetManager
         budget={budgetSheetData}

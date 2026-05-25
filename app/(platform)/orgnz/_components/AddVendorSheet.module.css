@@ -1,0 +1,225 @@
+/* AddVendorSheet — generic-entry bottom sheet for vendor presence
+ * Concept C session B. Reuses drawer / scrim primitives from orgnz.module.css. */
+
+.rosterSection {
+  margin-bottom: 18px;
+}
+
+.sectionLabel {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+.rosterPlaceholder {
+  padding: 14px 16px;
+  background: rgba(232, 98, 42, 0.04);
+  border: 0.5px dashed rgba(232, 98, 42, 0.3);
+  border-radius: 10px;
+  text-align: center;
+}
+
+.rosterPlaceholderText {
+  margin: 0 0 10px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt2);
+  line-height: 1.5;
+}
+
+.rosterCta {
+  display: inline-flex;
+  align-items: center;
+  padding: 7px 14px;
+  background: transparent;
+  border: 0.5px solid rgba(232, 98, 42, 0.4);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--coral);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background 150ms ease;
+}
+.rosterCta:hover {
+  background: rgba(232, 98, 42, 0.08);
+}
+
+.divider {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 12px 0 18px;
+  position: relative;
+}
+.divider::before,
+.divider::after {
+  content: "";
+  flex: 1;
+  height: 0.5px;
+  background: var(--bdr);
+}
+.divider span {
+  padding: 0 14px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--txt3);
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.fieldL {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  font-weight: 600;
+}
+
+.input,
+.textarea {
+  background: rgba(255, 255, 255, 0.04);
+  border: 0.5px solid var(--bdr);
+  border-radius: 9px;
+  padding: 10px 12px;
+  color: var(--txt);
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color 150ms ease, background 150ms ease;
+  width: 100%;
+}
+.input:focus,
+.textarea:focus {
+  border-color: rgba(232, 98, 42, 0.4);
+  background: rgba(255, 255, 255, 0.06);
+}
+.textarea {
+  resize: vertical;
+  min-height: 60px;
+  line-height: 1.5;
+  font-family: var(--font-ui);
+}
+
+.hint {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt2);
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.chip {
+  padding: 6px 11px;
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  color: var(--txt2);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+.chip:hover {
+  border-color: rgba(232, 98, 42, 0.4);
+}
+.chipOn {
+  border-color: var(--coral);
+  background: rgba(232, 98, 42, 0.1);
+  color: #fff;
+}
+
+.notesToggle {
+  align-self: flex-start;
+  padding: 6px 0;
+  background: transparent;
+  border: none;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--coral);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: color 150ms ease;
+}
+.notesToggle:hover {
+  color: rgba(232, 98, 42, 0.85);
+}
+
+.errorBanner {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(232, 98, 42, 0.08);
+  border: 0.5px solid rgba(232, 98, 42, 0.3);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--coral);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  padding-top: 12px;
+  margin-top: 8px;
+  border-top: 0.5px solid var(--bdr);
+}
+
+.cancel {
+  padding: 9px 16px;
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  border-radius: 9px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--txt2);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background 150ms ease, color 150ms ease;
+}
+.cancel:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--txt1);
+}
+
+.submit {
+  padding: 9px 18px;
+  background: var(--coral);
+  border: 0.5px solid var(--coral);
+  border-radius: 9px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background 150ms ease, opacity 150ms ease;
+}
+.submit:hover {
+  background: rgba(232, 98, 42, 0.85);
+}
+.submit:disabled,
+.submitDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}

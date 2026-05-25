@@ -1,0 +1,127 @@
+/* VendorsAtEventSection — top cast list above the first phase group
+ * Concept C session B per Cowork's v2-vertical brief Call 1. */
+
+.section {
+  margin: 12px 16px 18px;
+  padding: 14px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+}
+
+.header {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  font-weight: 600;
+  margin-bottom: 10px;
+}
+
+.empty {
+  padding: 8px 0 12px;
+  font-family: var(--font-display);
+  font-size: 14px;
+  color: var(--txt2);
+  line-height: 1.5;
+}
+
+.empty em {
+  font-style: italic;
+  color: var(--txt2);
+}
+
+.rows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 10px;
+}
+
+.row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 9px 11px;
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  border-radius: 9px;
+  cursor: pointer;
+  text-align: left;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+
+.row:hover,
+.row:active {
+  background: rgba(232, 98, 42, 0.04);
+  border-color: rgba(232, 98, 42, 0.3);
+}
+
+/* Highlight pulse — parent toggles `.rowPulse` class for ~400ms on dot tap
+ * to orient the user to which row corresponds to the tapped dot. */
+.rowPulse {
+  animation: vendor-row-pulse 400ms ease-out;
+}
+@keyframes vendor-row-pulse {
+  0%   { background: rgba(232, 98, 42, 0.18); }
+  100% { background: transparent; }
+}
+
+.rowL {
+  flex: 1;
+  min-width: 0;
+}
+
+.primary {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--txt1);
+  line-height: 1.3;
+}
+
+.secondary {
+  margin-top: 2px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  color: var(--txt2);
+  letter-spacing: 0.02em;
+  line-height: 1.3;
+}
+
+.rowR {
+  flex-shrink: 0;
+}
+
+.addBtn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 0 2px;
+  background: transparent;
+  border: none;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--coral);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: color 150ms ease;
+}
+
+.addBtn:hover {
+  color: rgba(232, 98, 42, 0.85);
+}
+
+.addPlus {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 16px;
+  height: 16px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1;
+}

@@ -1,0 +1,38 @@
+/* VendorRangePill — 12-segment coverage indicator
+ * Concept C session B per Cowork's v2-vertical brief Call 1.
+ *
+ * 12 segments × ~6px wide + 1px gap = ~80px total. Coral for present,
+ * faint gray for absent. 4px tall, 2px rounded ends. */
+
+.pill {
+  display: inline-flex;
+  gap: 1px;
+  height: 4px;
+  border-radius: 2px;
+  overflow: hidden;
+  /* The pill is a fixed visual width; rows that include it should reserve
+   * space for ~80px so layouts don't shift when phase counts vary. */
+  width: 79px; /* 12 × 6 + 11 × 1 = 83; tweaked to fit at 6px segments */
+  vertical-align: middle;
+  background: transparent;
+}
+
+.segment {
+  flex: 1;
+  height: 100%;
+  background: rgba(255, 255, 255, 0.08);
+}
+
+.segmentOn {
+  background: var(--coral);
+}
+
+.segment:first-child {
+  border-top-left-radius: 2px;
+  border-bottom-left-radius: 2px;
+}
+
+.segment:last-child {
+  border-top-right-radius: 2px;
+  border-bottom-right-radius: 2px;
+}

@@ -1,0 +1,196 @@
+/* AddVendorPopup — phase-anchored popup for vendor presence add
+ * Concept C session B. Reuses scrim from orgnz.module.css; popup is its
+ * own positioned container (not the drawer pattern — narrower intent,
+ * tighter visual). */
+
+.popup {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: calc(100% - 32px);
+  max-width: 420px;
+  max-height: 86vh;
+  background: var(--ink3);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  z-index: 1001;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.4);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  padding: 14px 16px 10px;
+  border-bottom: 0.5px solid var(--bdr);
+}
+
+.headL {
+  flex: 1;
+  min-width: 0;
+}
+
+.eye {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--coral);
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 300;
+  color: #fff;
+  margin: 0;
+  line-height: 1.3;
+}
+.title em {
+  font-style: italic;
+}
+
+.close {
+  background: transparent;
+  border: none;
+  color: var(--txt2);
+  font-size: 24px;
+  line-height: 1;
+  padding: 0 4px;
+  cursor: pointer;
+  transition: color 150ms ease;
+}
+.close:hover {
+  color: var(--txt1);
+}
+
+.body {
+  padding: 14px 16px 16px;
+  overflow-y: auto;
+}
+
+.field {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 14px;
+}
+
+.fieldL {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  font-weight: 600;
+}
+
+.input {
+  background: rgba(255, 255, 255, 0.04);
+  border: 0.5px solid var(--bdr);
+  border-radius: 9px;
+  padding: 9px 12px;
+  color: var(--txt);
+  font-family: var(--font-body);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 150ms ease;
+  width: 100%;
+}
+.input:focus {
+  border-color: rgba(232, 98, 42, 0.4);
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.chip {
+  padding: 5px 10px;
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+  color: var(--txt2);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  cursor: pointer;
+  transition: border-color 150ms ease, background 150ms ease, color 150ms ease;
+}
+.chip:hover {
+  border-color: rgba(232, 98, 42, 0.4);
+}
+.chipOn {
+  border-color: var(--coral);
+  background: rgba(232, 98, 42, 0.1);
+  color: #fff;
+}
+/* Prefill phase gets a subtle emphasis ring so user knows which phase
+ * triggered the popup — even when they toggle other phases on. */
+.chipPrefill {
+  box-shadow: 0 0 0 1px rgba(232, 98, 42, 0.35);
+}
+
+.errorBanner {
+  margin-bottom: 10px;
+  padding: 9px 12px;
+  background: rgba(232, 98, 42, 0.08);
+  border: 0.5px solid rgba(232, 98, 42, 0.3);
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--coral);
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.cancel {
+  padding: 8px 14px;
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  border-radius: 9px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 500;
+  color: var(--txt2);
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background 150ms ease, color 150ms ease;
+}
+.cancel:hover {
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--txt1);
+}
+
+.submit {
+  padding: 8px 16px;
+  background: var(--coral);
+  border: 0.5px solid var(--coral);
+  border-radius: 9px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  transition: background 150ms ease, opacity 150ms ease;
+}
+.submit:hover {
+  background: rgba(232, 98, 42, 0.85);
+}
+.submit:disabled,
+.submitDisabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
