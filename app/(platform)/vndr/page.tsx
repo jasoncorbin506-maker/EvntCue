@@ -1,38 +1,45 @@
 import { redirect } from "next/navigation";
 import { getCurrentVendor } from "@/lib/vndr/current-vendor";
+import { getOldestUnrespondedInquiry } from "@/lib/vndr/oldest-unresponded-inquiry";
+import { getVndrHeroMetrics } from "@/lib/vndr/hero-metrics";
+import { getVndrActivePipeline } from "@/lib/vndr/active-pipeline";
+import { getVndrCalendarMonth } from "@/lib/vndr/calendar-month";
+import { getVndrAvailabilityBlocksForMonth } from "@/lib/vndr/availability";
+import { getVndrPackages } from "@/lib/vndr/packages";
+import { assembleVndrHomeCue } from "@/lib/cue/vndr-home-prompt";
 import { Chrome, AskCueButton, NotifButton, ChromeSignOut } from "./_components/Chrome";
 import { ResponseWindowAlert } from "./_components/ResponseWindowAlert";
 import { PackageRow } from "./_components/PackageRow";
+import { MiniCalendar } from "./_components/MiniCalendar";
 import s from "./vndr.module.css";
 
 /**
- * Vndr portal Home (V-2a).
+ * Vndr portal Home (V-2b — real-data wiring).
  *
- * Source mockup: 02_Locked_Prototypes/Vndr/EvntCue_Vndr_P1_Dashboard.html.
- * Translated desktop sidebar+two-col layout into mobile-first single column
- * per Jason's V-2a directive. Sections, top to bottom:
+ * V-2a (commit 1292eb8 + edbb8da) shipped this page with hardcoded
+ * illustrative state on all 7 sections. V-2b wires real data per Cowork
+ * brief inbox-cc/2026-05-24-v2b-vndr-home-real-data-wiring.md:
  *
- *   1. Response Window Alert     — countdown card (client; below)
- *   2. Hero Metrics (2x2 grid)   — month rev, conversion, response time, trust
- *   3. Cue Panel                 — Cue guidance card
- *   4. Active Inquiries          — bookings/inquiries list with urgent state
- *   5. Trust Score               — score + sub-metric bars
- *   6. Mini Calendar             — month grid with booked/inquiry/blocked
- *   7. Packages                  — referral % sliders + visibility bars
+ *   1. Response Window Alert  — oldest unresponded inquiry + 24h SLA
+ *   2. Hero Metrics (2x2)     — bookings, conversion, response time, trust
+ *   3. Cue Panel              — assembleVndrHomeCue() guidance ladder
+ *   4. Active pipeline        — top 5 inquiries+bookings by urgency
+ *   5. Trust Score            — weighted formula (reviews 40 / response 30 /
+ *                               completion 20 / profile 10) per Jason 2026-05-24
+ *   6. Mini Calendar          — current month booked/inquiry/blocked + tap to
+ *                               manage availability blocks (whole or partial-day)
+ *   7. Packages               — vendor's vendor_packages with slider + visibility
+ *                               wired to updatePackageFields server action
  *
- * Data: all illustrative for V-2a (mirrors how Venu chunk A shipped — real
- * bindings come in V-2b once we wire current-vendor → packages / inquiries /
- * bookings / trust_metrics tables). The vendor display name + meta come
- * from getCurrentVendor() so the chrome reflects real session state today.
+ * Empty states are honest — a brand-new vendor with no inquiries/bookings sees
+ * the alert suppressed (per brief: "don't show '0 active inquiries'"), zero
+ * metrics, Cue's onboarding-progress guidance, an empty pipeline section, a
+ * low trust score (mostly profile completeness), an open calendar, and an
+ * empty packages list.
  *
- * If the user is gated by proxy.ts to /vndr but no vendors row exists for
- * their tenant, bounce them through the V-1b onboarding funnel.
- *
- * searchParams.welcome === "signup" surfaces the funnel-completion welcome
- * strip (V-1c bonus, mirrors Venu's discover/?welcome=claim pattern). Strip
- * only renders for that exact param; refreshing /vndr without it hides it.
- * Future "?welcome=claim" support can branch the copy when the Door A claim
- * flow lands its post-claim redirect at /vndr instead of /vndr/discover.
+ * Loaded in parallel via Promise.all to keep TTFB tight. Trust score is
+ * computed on-the-fly per V-2b brief §5 (materialization is a Phase-5
+ * optimization, not a launch requirement).
  */
 export default async function VndrHome({
   searchParams,
@@ -46,13 +53,45 @@ export default async function VndrHome({
   }
   const isFirstTimeSignup = welcome === "signup";
 
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth() + 1;
+
+  // Load all 6 data sources in parallel. Trust score is inside hero-metrics
+  // (computed alongside the 4 tile values).
+  const [
+    oldestUnresponded,
+    heroMetrics,
+    activePipeline,
+    calendarMonth,
+    blocks,
+    packages,
+  ] = await Promise.all([
+    getOldestUnrespondedInquiry(vendor.tenantId),
+    getVndrHeroMetrics(vendor),
+    getVndrActivePipeline(vendor.tenantId, 5),
+    getVndrCalendarMonth(vendor.tenantId, year, month),
+    getVndrAvailabilityBlocksForMonth(vendor.tenantId, year, month),
+    getVndrPackages(vendor.tenantId),
+  ]);
+
+  const cue = assembleVndrHomeCue({
+    metrics: heroMetrics,
+    oldestUnresponded,
+    vendorDisplayName: vendor.displayName,
+  });
+
   // Display meta — category for now. Real geo (city, state) lands when V-1b
-  // Stage 2's service-area fields populate vendors.service_areas. Chrome
-  // hides the meta line entirely if nothing's available.
+  // Stage 2's service-area fields populate vendors.service_areas.
   const metaParts: string[] = [];
   if (vendor.primarySubType) metaParts.push(humanizeSlug(vendor.primarySubType));
   else if (vendor.primaryCategory) metaParts.push(humanizeSlug(vendor.primaryCategory));
   const meta = metaParts.length ? metaParts.join(" · ") : undefined;
+
+  const responseTimeDisplay =
+    heroMetrics.avgResponseHours === null
+      ? "—"
+      : `${heroMetrics.avgResponseHours}h`;
 
   return (
     <>
@@ -62,16 +101,12 @@ export default async function VndrHome({
         right={
           <>
             <AskCueButton />
-            <NotifButton hasUnread />
+            <NotifButton hasUnread={oldestUnresponded !== null} />
             <ChromeSignOut />
           </>
         }
       />
 
-      {/* Welcome strip — only on funnel completion (?welcome=signup).
-       * Persistent (no dismiss), matches Venu's pattern. Copy hardcoded EN
-       * to match V-2a portal-interior convention; per-portal i18n pass
-       * lands in a future session per START_HERE Phase 5+ note. */}
       {isFirstTimeSignup && (
         <section className={s.welcomeStrip}>
           <div className={s.welcomeEyebrow}>You&apos;re in</div>
@@ -85,53 +120,64 @@ export default async function VndrHome({
         </section>
       )}
 
-      {/* 1 — Response Window Alert (illustrative urgent inquiry) */}
-      <ResponseWindowAlert
-        eventName="Carter Wedding"
-        respondBy="11:42 PM tonight"
-        deadlineMs={Date.now() + 1000 * 60 * 60 * 4 + 1000 * 60 * 12}
-      />
+      {/* 1 — Response Window Alert (suppressed when no unresponded inquiries) */}
+      {oldestUnresponded && <ResponseWindowAlert inquiry={oldestUnresponded} />}
 
       {/* 2 — Hero Metrics */}
       <div className={s.heroGrid}>
         <div className={s.heroCard}>
-          <div className={s.heroLbl}>This Month</div>
-          <div className={s.heroVal}>$8.4K</div>
+          <div className={s.heroLbl}>Bookings · This Month</div>
+          <div className={s.heroVal}>{heroMetrics.bookingsThisMonth}</div>
           <div className={s.heroSub}>
-            <span className={s.heroDeltaUp}>↑ 22%</span> vs last
+            {heroMetrics.bookingsThisMonth === 0 ? "—" : "confirmed"}
           </div>
           <div className={s.heroBar}>
-            <div className={s.heroBarFill} style={{ width: "68%" }} />
+            <div
+              className={s.heroBarFill}
+              style={{ width: `${Math.min(100, heroMetrics.bookingsThisMonth * 20)}%` }}
+            />
           </div>
         </div>
         <div className={s.heroCard}>
           <div className={s.heroLbl}>Conversion</div>
-          <div className={s.heroVal}>64%</div>
-          <div className={s.heroSub}>
-            <span className={s.heroDeltaUp}>↑ 8pts</span> vs last
-          </div>
+          <div className={s.heroVal}>{heroMetrics.conversionRatePct}%</div>
+          <div className={s.heroSub}>last 90 days</div>
           <div className={s.heroBar}>
-            <div className={s.heroBarFill} style={{ width: "64%" }} />
+            <div
+              className={s.heroBarFill}
+              style={{ width: `${heroMetrics.conversionRatePct}%` }}
+            />
           </div>
         </div>
         <div className={s.heroCard}>
           <div className={s.heroLbl}>Avg Response</div>
-          <div className={s.heroVal}>3.2h</div>
-          <div className={s.heroSub}>
-            <span className={s.heroDeltaUp}>↑ Faster</span>
-          </div>
+          <div className={s.heroVal}>{responseTimeDisplay}</div>
+          <div className={s.heroSub}>last 30 days</div>
           <div className={s.heroBar}>
-            <div className={s.heroBarFill} style={{ width: "82%" }} />
+            <div
+              className={s.heroBarFill}
+              style={{
+                width: `${
+                  heroMetrics.avgResponseHours === null
+                    ? 0
+                    : Math.max(
+                        0,
+                        100 - heroMetrics.avgResponseHours * 4,
+                      )
+                }%`,
+              }}
+            />
           </div>
         </div>
         <div className={s.heroCard}>
           <div className={s.heroLbl}>Trust Score</div>
-          <div className={s.heroVal}>84</div>
-          <div className={s.heroSub}>
-            <span className={s.heroDeltaUp}>↑ 3</span> this month
-          </div>
+          <div className={s.heroVal}>{heroMetrics.trustScore.total}</div>
+          <div className={s.heroSub}>{tierLabel(heroMetrics.trustScore.tier)}</div>
           <div className={s.heroBar}>
-            <div className={s.heroBarFill} style={{ width: "84%" }} />
+            <div
+              className={s.heroBarFill}
+              style={{ width: `${heroMetrics.trustScore.total}%` }}
+            />
           </div>
         </div>
       </div>
@@ -146,15 +192,14 @@ export default async function VndrHome({
         </div>
         <div className={s.cueBody}>
           <div className={s.cueLbl}>Cue says</div>
-          <div className={s.cueTxt}>
-            Your Plnr referral rate (15%) is below the Audio Visual median (22%). Three
-            organizers asked planners for AV last week — raising your rate could surface
-            you in those threads.
-          </div>
-          <div className={s.cueActs}>
-            <button type="button" className={s.cueBtnSm}>Tune referrals</button>
-            <button type="button" className={s.cueBtnSm}>Dismiss</button>
-          </div>
+          <div className={s.cueTxt}>{cue.text}</div>
+          {cue.action && (
+            <div className={s.cueActs}>
+              <a href={cue.action.href} className={s.cueBtnSm}>
+                {cue.action.label}
+              </a>
+            </div>
+          )}
         </div>
       </div>
 
@@ -165,55 +210,57 @@ export default async function VndrHome({
           <a href="/vndr/inquiries" className={s.sectionA}>See all</a>
         </div>
         <div className={s.bookingList}>
-          <article className={`${s.bk} ${s.bkUrgent}`}>
-            <div className={s.bkRow}>
-              <div>
-                <div className={s.bkEvent}>Carter Wedding</div>
-                <div className={s.bkDetail}>250 guests · Outdoor reception · 6h coverage</div>
-              </div>
-              <span className={`${s.bkBadge} ${s.bbUrg}`}>Urgent</span>
+          {activePipeline.length === 0 ? (
+            <div className={s.bkEmpty}>
+              No active inquiries or bookings. The pipeline fills as Cue
+              matches you to events.
             </div>
-            <div className={s.bkMeta}>
-              <span>Sat, Jun 13</span>
-              <span>Frisco, TX</span>
-              <span>$4,200 est.</span>
-            </div>
-            <div className={s.bkActs}>
-              <button type="button" className={s.btnAccept}>Accept</button>
-              <button type="button" className={s.btnDecline}>Decline</button>
-              <button type="button" className={s.btnView}>View</button>
-            </div>
-          </article>
-
-          <article className={s.bk}>
-            <div className={s.bkRow}>
-              <div>
-                <div className={s.bkEvent}>Henderson Corporate Gala</div>
-                <div className={s.bkDetail}>180 guests · Indoor · 4h coverage</div>
-              </div>
-              <span className={`${s.bkBadge} ${s.bbNew}`}>New</span>
-            </div>
-            <div className={s.bkMeta}>
-              <span>Fri, Jul 19</span>
-              <span>Dallas, TX</span>
-              <span>$2,850 est.</span>
-            </div>
-          </article>
-
-          <article className={s.bk}>
-            <div className={s.bkRow}>
-              <div>
-                <div className={s.bkEvent}>Patel Sangeet</div>
-                <div className={s.bkDetail}>320 guests · Ballroom · DJ + AV package</div>
-              </div>
-              <span className={`${s.bkBadge} ${s.bbConf}`}>Confirmed</span>
-            </div>
-            <div className={s.bkMeta}>
-              <span>Sat, Aug 2</span>
-              <span>Plano, TX</span>
-              <span>$5,400 booked</span>
-            </div>
-          </article>
+          ) : (
+            activePipeline.map((row) => (
+              <article
+                key={`${row.kind}-${row.id}`}
+                className={
+                  row.kind === "inquiry" && row.badge === "urgent"
+                    ? `${s.bk} ${s.bkUrgent}`
+                    : s.bk
+                }
+              >
+                <div className={s.bkRow}>
+                  <div>
+                    <div className={s.bkEvent}>{row.eventName}</div>
+                    <div className={s.bkDetail}>
+                      {row.kind === "inquiry"
+                        ? `${row.guestCount || "?"} guests${
+                            row.proposedPriceCents
+                              ? ` · est. $${(row.proposedPriceCents / 100).toLocaleString()}`
+                              : ""
+                          }`
+                        : `${row.guestCount || "?"} guests · $${(row.totalCents / 100).toLocaleString()} booked`}
+                    </div>
+                  </div>
+                  <span className={`${s.bkBadge} ${badgeClass(row)}`}>
+                    {badgeLabel(row)}
+                  </span>
+                </div>
+                <div className={s.bkMeta}>
+                  <span>{formatEventDate(row.eventDate)}</span>
+                  {row.kind === "inquiry" ? (
+                    <span>
+                      {row.hoursRemaining > 0
+                        ? `${row.hoursRemaining}h to respond`
+                        : "Past deadline"}
+                    </span>
+                  ) : (
+                    <span>
+                      {row.daysUntilEvent > 0
+                        ? `${row.daysUntilEvent} day${row.daysUntilEvent === 1 ? "" : "s"} out`
+                        : "Today"}
+                    </span>
+                  )}
+                </div>
+              </article>
+            ))
+          )}
         </div>
       </section>
 
@@ -223,55 +270,56 @@ export default async function VndrHome({
           <div className={s.sectionT}>Trust Score</div>
         </div>
         <div className={s.trustScoreRow}>
-          <div className={s.trustBig}>84</div>
-          <div className={s.trustBadge}>Strong</div>
+          <div className={s.trustBig}>{heroMetrics.trustScore.total}</div>
+          <div className={s.trustBadge}>{tierLabel(heroMetrics.trustScore.tier)}</div>
         </div>
-        <div className={s.trustSub}>Top 18% of Audio Visual vendors in DFW</div>
+        <div className={s.trustSub}>{trustSubCopy(heroMetrics.trustScore)}</div>
         <div className={s.trustBars}>
           <div className={s.tbRow}>
-            <div className={s.tbLbl}>Response time</div>
-            <div className={s.tbTrack}><div className={s.tbFill} style={{ width: "92%" }} /></div>
-            <div className={s.tbVal}>92</div>
+            <div className={s.tbLbl}>Reviews (40%)</div>
+            <div className={s.tbTrack}>
+              <div
+                className={s.tbFill}
+                style={{ width: `${heroMetrics.trustScore.subMetrics.reviewAverage}%` }}
+              />
+            </div>
+            <div className={s.tbVal}>{heroMetrics.trustScore.subMetrics.reviewAverage}</div>
           </div>
           <div className={s.tbRow}>
-            <div className={s.tbLbl}>Show-up rate</div>
-            <div className={s.tbTrack}><div className={s.tbFill} style={{ width: "100%" }} /></div>
-            <div className={s.tbVal}>100</div>
+            <div className={s.tbLbl}>Response rate (30%)</div>
+            <div className={s.tbTrack}>
+              <div
+                className={s.tbFill}
+                style={{ width: `${heroMetrics.trustScore.subMetrics.responseRate}%` }}
+              />
+            </div>
+            <div className={s.tbVal}>{heroMetrics.trustScore.subMetrics.responseRate}</div>
           </div>
           <div className={s.tbRow}>
-            <div className={s.tbLbl}>Reviews</div>
-            <div className={s.tbTrack}><div className={s.tbFill} style={{ width: "78%" }} /></div>
-            <div className={s.tbVal}>78</div>
+            <div className={s.tbLbl}>Completion rate (20%)</div>
+            <div className={s.tbTrack}>
+              <div
+                className={s.tbFill}
+                style={{ width: `${heroMetrics.trustScore.subMetrics.completionRate}%` }}
+              />
+            </div>
+            <div className={s.tbVal}>{heroMetrics.trustScore.subMetrics.completionRate}</div>
           </div>
           <div className={s.tbRow}>
-            <div className={s.tbLbl}>Repeat bookings</div>
-            <div className={s.tbTrack}><div className={s.tbFill} style={{ width: "66%" }} /></div>
-            <div className={s.tbVal}>66</div>
+            <div className={s.tbLbl}>Profile (10%)</div>
+            <div className={s.tbTrack}>
+              <div
+                className={s.tbFill}
+                style={{ width: `${heroMetrics.trustScore.subMetrics.profileCompleteness}%` }}
+              />
+            </div>
+            <div className={s.tbVal}>{heroMetrics.trustScore.subMetrics.profileCompleteness}</div>
           </div>
         </div>
       </div>
 
       {/* 6 — Mini Calendar */}
-      <div className={s.calCard}>
-        <div className={s.calHead}>
-          <div className={s.calMon}>June 2026</div>
-          <div className={s.calNav}>
-            <button type="button" className={s.calNb} aria-label="Previous month">‹</button>
-            <button type="button" className={s.calNb} aria-label="Next month">›</button>
-          </div>
-        </div>
-        <div className={s.calGrid}>
-          {["S","M","T","W","T","F","S"].map((d, i) => (
-            <div key={`dow-${i}`} className={s.calDow}>{d}</div>
-          ))}
-          {renderCalendarCells()}
-        </div>
-        <div className={s.calLegend}>
-          <div className={s.calLegItem}><span className={s.calLegDot} style={{ background: "var(--teal)" }} />Booked</div>
-          <div className={s.calLegItem}><span className={s.calLegDot} style={{ background: "var(--amber)" }} />Inquiry</div>
-          <div className={s.calLegItem}><span className={s.calLegDot} style={{ background: "var(--txt3)" }} />Blocked</div>
-        </div>
-      </div>
+      <MiniCalendar month={calendarMonth} blocks={blocks} />
 
       {/* 7 — Packages */}
       <section className={s.section}>
@@ -280,30 +328,14 @@ export default async function VndrHome({
           <a href="/vndr/profile" className={s.sectionA}>Manage</a>
         </div>
         <div className={s.pkgList}>
-          <PackageRow
-            name="Essential AV"
-            desc="2 speakers · 1 mic · 4h coverage"
-            price="$1,200"
-            unit="flat"
-            referralPct={15}
-            visibility="medium"
-          />
-          <PackageRow
-            name="Wedding Premium"
-            desc="Full DJ rig · uplighting · 6h coverage"
-            price="$2,800"
-            unit="flat"
-            referralPct={20}
-            visibility="high"
-          />
-          <PackageRow
-            name="Corporate Standard"
-            desc="Mic + projector · stage lighting · 4h"
-            price="$950"
-            unit="flat"
-            referralPct={10}
-            visibility="low"
-          />
+          {packages.length === 0 ? (
+            <div className={s.bkEmpty}>
+              No packages yet. Add one from the Profile tab so planners can
+              see what you offer.
+            </div>
+          ) : (
+            packages.map((pkg) => <PackageRow key={pkg.id} pkg={pkg} />)
+          )}
         </div>
       </section>
     </>
@@ -312,9 +344,6 @@ export default async function VndrHome({
 
 /* ── Helpers ────────────────────────────────────────────────────────────── */
 
-// Quick slug humanizer — V-1b stored sub_type slugs (e.g., "audio_visual")
-// but we want display copy. A real i18n labels module lands in V-2b
-// alongside the cert-types pattern from V-1b.
 function humanizeSlug(slug: string): string {
   return slug
     .split("_")
@@ -322,29 +351,58 @@ function humanizeSlug(slug: string): string {
     .join(" ");
 }
 
-/**
- * Illustrative June 2026 calendar. June 1, 2026 is a Monday → one leading
- * blank (Sunday). Booked/inquiry/blocked positions match the desktop
- * mockup's pattern; real data wires through V-2b's availability table.
- */
-function renderCalendarCells() {
-  const cells: React.ReactNode[] = [];
-  cells.push(<div key="blank-0" className={s.calD} aria-hidden="true" />);
-  for (let day = 1; day <= 30; day++) {
-    const className = `${s.calD} ${cellClass(day)}`.trim();
-    cells.push(
-      <div key={`d-${day}`} className={className}>
-        {day}
-      </div>,
-    );
+function tierLabel(tier: "building" | "developing" | "strong" | "excellent"): string {
+  switch (tier) {
+    case "excellent":
+      return "Excellent";
+    case "strong":
+      return "Strong";
+    case "developing":
+      return "Developing";
+    case "building":
+      return "Building";
   }
-  return cells;
 }
 
-function cellClass(day: number): string {
-  if (day === 23) return s.calToday;
-  if (day === 13 || day === 2 || day === 27) return s.calBooked;
-  if (day === 19) return s.calInquiry;
-  if (day === 9 || day === 16) return s.calBlocked;
-  return "";
+type ActiveRow = Awaited<ReturnType<typeof getVndrActivePipeline>>[number];
+
+function badgeClass(row: ActiveRow): string {
+  if (row.kind === "inquiry") {
+    if (row.badge === "urgent") return s.bbUrg;
+    return s.bbNew;
+  }
+  return s.bbConf;
+}
+
+function badgeLabel(row: ActiveRow): string {
+  if (row.kind === "inquiry") {
+    if (row.badge === "urgent") return "Urgent";
+    if (row.badge === "reviewing") return "Reviewing";
+    return "New";
+  }
+  if (row.badge === "upcoming") return "Upcoming";
+  return "Confirmed";
+}
+
+function formatEventDate(iso: string): string {
+  if (!iso) return "—";
+  const d = new Date(iso + "T00:00:00");
+  return d.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function trustSubCopy(score: {
+  tier: "building" | "developing" | "strong" | "excellent";
+  subMetrics: { responseRate: number; profileCompleteness: number };
+}): string {
+  if (score.tier === "excellent") return "Top-tier signal across response, completion, and reviews.";
+  if (score.tier === "strong") return "Solid signal — keep responding promptly to lock in excellent.";
+  if (score.tier === "developing") return "Building trust — every responded inquiry and completed booking moves the needle.";
+  if (score.subMetrics.profileCompleteness < 75) {
+    return "Profile completeness is the easiest first lift — fill it out to surface in more matches.";
+  }
+  return "New vendor — your score grows with each inquiry response and completed booking.";
 }

@@ -2313,6 +2313,208 @@ async function testEventVendorPresenceIsolation() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST: vendor_availability_blocks (migration 051) — vndr A's block hidden
+// from vndr B + cross-tenant insert denied.
+// -----------------------------------------------------------------------------
+// V-2b Vndr Home Mini Calendar primitive. RLS via
+// vendor_tenant_id IN current_user_tenants(), same shape as vendors_select.
+async function testCrossTenantVendorAvailabilityBlocksIsolation() {
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  // Seed an A block via admin (avoids the created_by gate).
+  const { data: aBlock, error: aErr } = await adminClient
+    .from("vendor_availability_blocks")
+    .insert({
+      vendor_tenant_id: vndrA.tenantId,
+      blocked_date: "2026-09-15",
+      start_time: null,
+      end_time: null,
+      reason: `T-VAB seed ${TEST_RUN_ID}`,
+      created_by: vndrA.userId,
+    })
+    .select("id")
+    .single();
+  if (aErr || !aBlock) throw new Error(`seed A block failed: ${aErr?.message}`);
+
+  // Negative: B cannot SELECT A's block.
+  const { data: bView, error: bErr } = await vndrB.authedClient
+    .from("vendor_availability_blocks")
+    .select("id")
+    .eq("id", aBlock.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr VAB SELECT: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: vndr B saw vndr A's availability block`);
+  }
+
+  // Negative: B cannot INSERT spoofing A's tenant.
+  const { data: spoof, error: spoofErr } = await vndrB.authedClient
+    .from("vendor_availability_blocks")
+    .insert({
+      vendor_tenant_id: vndrA.tenantId,
+      blocked_date: "2026-09-16",
+      start_time: null,
+      end_time: null,
+      created_by: vndrB.userId,
+    })
+    .select("id");
+  if (spoofErr && spoofErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr VAB INSERT: ${spoofErr.message}`);
+  }
+  if (!spoofErr && spoof && spoof.length > 0) {
+    throw new Error(`RLS LEAK: vndr B inserted block under vndr A's tenant`);
+  }
+
+  // Positive: A CAN read their own block.
+  const { data: aView, error: aReadErr } = await vndrA.authedClient
+    .from("vendor_availability_blocks")
+    .select("id")
+    .eq("id", aBlock.id);
+  if (aReadErr) throw new Error(`A positive control failed: ${aReadErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TEST: vendor_packages (migration 052) — vndr A's package hidden from vndr B
+// + cross-tenant insert denied. Distinct from the LEGACY vndr_packages table
+// from migration 007 (which has its own test pair above). The v-2b spec
+// chose `vendor_packages` as the new table name; both coexist for now.
+// -----------------------------------------------------------------------------
+async function testCrossTenantVendorPackagesIsolation() {
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  const { data: aPkg, error: aErr } = await adminClient
+    .from("vendor_packages")
+    .insert({
+      vendor_tenant_id: vndrA.tenantId,
+      name: `T-VPKG seed ${TEST_RUN_ID}`,
+      price_cents: 200000,
+      referral_pct: 15,
+      is_visible: true,
+      created_by: vndrA.userId,
+    })
+    .select("id")
+    .single();
+  if (aErr || !aPkg) throw new Error(`seed A package failed: ${aErr?.message}`);
+
+  // Negative: B cannot SELECT A's package (vp_select).
+  const { data: bView, error: bErr } = await vndrB.authedClient
+    .from("vendor_packages")
+    .select("id")
+    .eq("id", aPkg.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr VPKG SELECT: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: vndr B saw vndr A's vendor_packages row`);
+  }
+
+  // Negative: B cannot UPDATE A's package (vp_update USING).
+  const { data: bUpd, error: bUpdErr } = await vndrB.authedClient
+    .from("vendor_packages")
+    .update({ name: `T-VPKG HIJACK ${TEST_RUN_ID}` })
+    .eq("id", aPkg.id)
+    .select("id");
+  if (bUpdErr && bUpdErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr VPKG UPDATE: ${bUpdErr.message}`);
+  }
+  if (bUpd && bUpd.length > 0) {
+    throw new Error(`RLS LEAK: vndr B updated vndr A's vendor_packages row`);
+  }
+
+  // Positive: A CAN read their own package.
+  const { data: aView, error: aReadErr } = await vndrA.authedClient
+    .from("vendor_packages")
+    .select("id, name")
+    .eq("id", aPkg.id)
+    .single();
+  if (aReadErr) throw new Error(`A positive control failed: ${aReadErr.message}`);
+  if (!aView || aView.name.includes("HIJACK")) {
+    throw new Error(`RLS LEAK: A's package was mutated by B`);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TEST: vendor_package_addons (migration 053) — child table gated via
+// user_owns_vendor_package() helper from migration 052. Vndr B cannot read
+// or insert addons under vndr A's package.
+// -----------------------------------------------------------------------------
+async function testCrossTenantVendorPackageAddonsIsolation() {
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  const { data: aPkg, error: pkgErr } = await adminClient
+    .from("vendor_packages")
+    .insert({
+      vendor_tenant_id: vndrA.tenantId,
+      name: `T-VPA parent ${TEST_RUN_ID}`,
+      price_cents: 100000,
+      referral_pct: 10,
+      is_visible: true,
+      created_by: vndrA.userId,
+    })
+    .select("id")
+    .single();
+  if (pkgErr || !aPkg) throw new Error(`seed A package failed: ${pkgErr?.message}`);
+
+  const { data: aAddon, error: addonErr } = await adminClient
+    .from("vendor_package_addons")
+    .insert({
+      package_id: aPkg.id,
+      name: `T-VPA addon ${TEST_RUN_ID}`,
+      price_cents: 25000,
+      created_by: vndrA.userId,
+    })
+    .select("id")
+    .single();
+  if (addonErr || !aAddon) throw new Error(`seed A addon failed: ${addonErr?.message}`);
+
+  // Negative: B cannot SELECT A's addon (gated via user_owns_vendor_package).
+  const { data: bView, error: bErr } = await vndrB.authedClient
+    .from("vendor_package_addons")
+    .select("id")
+    .eq("id", aAddon.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr VPA SELECT: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: vndr B saw vndr A's package addon`);
+  }
+
+  // Negative: B cannot INSERT addon under A's package.
+  const { data: spoof, error: spoofErr } = await vndrB.authedClient
+    .from("vendor_package_addons")
+    .insert({
+      package_id: aPkg.id,
+      name: `T-VPA spoof ${TEST_RUN_ID}`,
+      price_cents: 1,
+      created_by: vndrB.userId,
+    })
+    .select("id");
+  if (spoofErr && spoofErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr VPA INSERT: ${spoofErr.message}`);
+  }
+  if (!spoofErr && spoof && spoof.length > 0) {
+    throw new Error(`RLS LEAK: vndr B inserted addon under vndr A's package`);
+  }
+
+  // Positive: A CAN read their own addon.
+  const { data: aView, error: aReadErr } = await vndrA.authedClient
+    .from("vendor_package_addons")
+    .select("id")
+    .eq("id", aAddon.id);
+  if (aReadErr) throw new Error(`A positive control failed: ${aReadErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
 const TESTS = [
@@ -2346,6 +2548,9 @@ const TESTS = [
   { name: "T-23 Admin-client ownership discipline — static-audit regression", fn: testAdminClientOwnershipDiscipline },
   { name: "T-25 Recursion sweep — (role × multi-tenant table) matrix, no 42P17", fn: testRecursionSweep },
   { name: "T-26 event_vendor_presence isolation (migration 049 — orgnz A vs B)", fn: testEventVendorPresenceIsolation },
+  { name: "T-27 vendor_availability_blocks isolation (migration 051 — vndr A vs B)", fn: testCrossTenantVendorAvailabilityBlocksIsolation },
+  { name: "T-28 vendor_packages isolation (migration 052 — vndr A vs B)", fn: testCrossTenantVendorPackagesIsolation },
+  { name: "T-29 vendor_package_addons isolation (migration 053 — vndr A vs B via user_owns_vendor_package)", fn: testCrossTenantVendorPackageAddonsIsolation },
 ];
 
 // -----------------------------------------------------------------------------
