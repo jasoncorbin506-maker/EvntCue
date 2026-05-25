@@ -1,15 +1,24 @@
 import { redirect } from "next/navigation";
 import { getCurrentVendor } from "@/lib/vndr/current-vendor";
+import { getVndrBookings } from "@/lib/vndr/bookings";
 import { Chrome, NotifButton, ChromeSignOut } from "../_components/Chrome";
-import s from "../vndr.module.css";
+import { BookingsList } from "../_components/BookingsList";
 
 /**
- * Vndr Bookings tab — V-2a stub. V-2b lists confirmed/tentative/completed
- * bookings with date-change notifications surfaced per Lock 24.
+ * Vndr Bookings tab — V-2b Session B (2026-05-25). Lists all bookings
+ * for the current vendor with filter chips (Upcoming / Past / Cancelled).
+ * Read-only view; cancellation + completion flows are V-2c (require
+ * disputes + refund handling per Lock 24).
+ *
+ * Reads via lib/vndr/bookings.ts which embeds the parent event for
+ * name/date/time/guest_count display. RLS scopes results to the vendor's
+ * own bookings.
  */
 export default async function VndrBookings() {
   const vendor = await getCurrentVendor();
   if (!vendor) redirect("/vndr-onboarding/1");
+
+  const bookings = await getVndrBookings(vendor.tenantId);
 
   return (
     <>
@@ -23,13 +32,7 @@ export default async function VndrBookings() {
           </>
         }
       />
-      <div className={s.placeholder}>
-        <div className={s.placeholderTitle}>Bookings</div>
-        <div className={s.placeholderBody}>
-          Confirmed and tentative bookings will live here. Date-change notifications
-          (per Lock 24) surface as inline cards once V-2b lands.
-        </div>
-      </div>
+      <BookingsList bookings={bookings} />
     </>
   );
 }

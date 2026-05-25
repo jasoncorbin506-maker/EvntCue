@@ -1079,3 +1079,566 @@
   color: var(--txt2);
   line-height: 1.5;
 }
+
+/* ── TAB BODY shell (Inquiries / Bookings / Profile lists) ──────────────── */
+.tabBody {
+  padding: 12px 16px 24px;
+}
+
+/* ── FILTER CHIPS ───────────────────────────────────────────────────────── */
+.filterRow {
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+  padding-bottom: 8px;
+  margin-bottom: 8px;
+  border-bottom: 0.5px solid var(--bdr);
+}
+
+.filterRow::-webkit-scrollbar { display: none; }
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 7px 12px;
+  border: 0.5px solid var(--bdr);
+  background: transparent;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--txt2);
+  cursor: pointer;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.filterChipOn {
+  background: var(--cl);
+  color: var(--ct);
+  border-color: var(--coral);
+}
+
+.filterCount {
+  font-size: 10px;
+  font-weight: 600;
+  background: rgba(255, 255, 255, 0.12);
+  color: inherit;
+  padding: 1px 6px;
+  border-radius: 999px;
+  line-height: 1.5;
+}
+
+.filterChipOn .filterCount {
+  background: rgba(255, 255, 255, 0.18);
+}
+
+/* ── EMPTY STATES (lists with no rows) ──────────────────────────────────── */
+.emptyState {
+  margin: 20px 8px;
+  padding: 22px 16px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 0.5px dashed var(--bdr);
+  border-radius: 12px;
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 12.5px;
+  color: var(--txt2);
+  line-height: 1.5;
+  text-align: center;
+}
+
+/* ── INQUIRIES LIST ─────────────────────────────────────────────────────── */
+.inqList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inqRow {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  padding: 12px 14px;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  appearance: none;
+  color: inherit;
+}
+
+.inqRow:hover { border-color: var(--coral); }
+
+.inqRowTop {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inqDate {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.2px;
+}
+
+.inqRowMid {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt2);
+}
+
+.inqRowMid b {
+  color: #fff;
+  font-weight: 600;
+}
+
+.inqMsg {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt3);
+  line-height: 1.45;
+  margin-top: 2px;
+}
+
+.inqRowFoot {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--txt3);
+  margin-top: 4px;
+}
+
+/* ── STATUS PILLS (inquiries + bookings) ────────────────────────────────── */
+.statusPill {
+  display: inline-block;
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.pillNew {
+  background: rgba(232, 98, 42, 0.15);
+  color: var(--coral);
+}
+
+.pillReviewing {
+  background: rgba(232, 98, 42, 0.08);
+  color: var(--ct);
+}
+
+.pillQuoted {
+  background: rgba(180, 200, 220, 0.1);
+  color: #B4C8DC;
+}
+
+.pillBooked {
+  background: rgba(120, 200, 140, 0.12);
+  color: #78C88C;
+}
+
+.pillLost {
+  background: rgba(180, 180, 180, 0.08);
+  color: var(--txt3);
+}
+
+.pillCancelled {
+  background: rgba(232, 98, 42, 0.08);
+  color: var(--txt3);
+  text-decoration: line-through;
+}
+
+/* ── BOOKINGS LIST (reuses inq* shells; bookings-specific accents) ─────── */
+.bkList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.bkRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 12px 14px;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  width: 100%;
+  appearance: none;
+  color: inherit;
+}
+
+.bkRow:hover { border-color: var(--coral); }
+
+.bkRowTop {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.bkEventName {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.2px;
+}
+
+.bkRowMid {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt2);
+}
+
+.bkRowMid b {
+  color: #fff;
+  font-weight: 600;
+}
+
+.bkRowFoot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--txt3);
+}
+
+.bkAmount {
+  font-family: var(--font-display);
+  font-size: 13px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.2px;
+  text-transform: none;
+}
+
+/* ── PROFILE FORM ───────────────────────────────────────────────────────── */
+.profileForm {
+  padding: 12px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.profileSection {
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.sectionHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 10px;
+}
+
+.sectionTitle {
+  font-family: var(--font-display);
+  font-size: 14px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.2px;
+}
+
+.sectionActions {
+  display: flex;
+  gap: 6px;
+}
+
+.sectionBtn {
+  padding: 6px 12px;
+  border-radius: 8px;
+  border: 0.5px solid var(--bdr);
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  color: var(--txt2);
+  cursor: pointer;
+}
+
+.sectionBtnPrimary {
+  background: var(--coral);
+  color: #fff;
+  border-color: var(--coral);
+}
+
+.sectionBtnPrimary:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.sectionBody {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+/* Form fields */
+.formField {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.formLabel {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--txt3);
+}
+
+.formReq {
+  color: var(--coral);
+  margin-left: 3px;
+}
+
+.formInput,
+.formTextarea {
+  width: 100%;
+  padding: 9px 10px;
+  background: var(--ink);
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  color: #fff;
+  font-family: var(--font-body);
+  font-size: 13px;
+  appearance: none;
+  outline: none;
+}
+
+.formInput:focus,
+.formTextarea:focus {
+  border-color: var(--coral);
+}
+
+.formTextarea {
+  resize: vertical;
+  min-height: 80px;
+  line-height: 1.4;
+}
+
+.formCount {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--txt3);
+  text-align: right;
+  margin-top: 2px;
+}
+
+.formHint {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--txt3);
+  line-height: 1.4;
+}
+
+.formErr {
+  color: var(--coral);
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  padding: 8px 10px;
+  background: rgba(232, 98, 42, 0.08);
+  border-radius: 8px;
+  margin-top: 8px;
+}
+
+.readValue {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: #fff;
+  padding: 2px 0;
+}
+
+.readValueMulti {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: #fff;
+  white-space: pre-wrap;
+  line-height: 1.5;
+  padding: 2px 0;
+}
+
+.linkInline {
+  color: var(--coral);
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+/* ── PHOTOS GRID ────────────────────────────────────────────────────────── */
+.photosGrid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 6px;
+}
+
+.photoCell {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 10px;
+  overflow: hidden;
+  background: var(--ink);
+}
+
+.photoImg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+}
+
+.photoDel {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  border: none;
+  background: rgba(0, 0, 0, 0.6);
+  color: #fff;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.photoConfirm {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.72);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 6px;
+}
+
+.photoConfirmBtn {
+  width: 100%;
+  padding: 6px 8px;
+  border: 0.5px solid var(--bdr);
+  background: transparent;
+  border-radius: 6px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  font-weight: 600;
+  color: #fff;
+  cursor: pointer;
+}
+
+.photoConfirmYes {
+  background: var(--coral);
+  border-color: var(--coral);
+}
+
+.photoUpload {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  aspect-ratio: 1;
+  border: 0.5px dashed var(--bdr);
+  border-radius: 10px;
+  background: transparent;
+  cursor: pointer;
+  color: var(--txt3);
+  font-family: var(--font-ui);
+  font-size: 10px;
+}
+
+.photoUpload:hover { border-color: var(--coral); color: var(--coral); }
+
+.photoUpload:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.photoUploadIcon {
+  font-size: 22px;
+  line-height: 1;
+  font-family: var(--font-display);
+  font-weight: 300;
+}
+
+.photoUploadLbl {
+  font-size: 10px;
+}
+
+.photosHint {
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  color: var(--txt3);
+  margin-top: 8px;
+}
+
+/* ── CERTIFICATIONS ─────────────────────────────────────────────────────── */
+.certList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.certRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+}
+
+.certName {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: #fff;
+}
+
+.certBadge {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+
+.certVerified {
+  background: rgba(120, 200, 140, 0.12);
+  color: #78C88C;
+}
+
+.certPending {
+  background: rgba(232, 98, 42, 0.12);
+  color: var(--coral);
+}

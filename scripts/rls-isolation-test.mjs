@@ -2176,6 +2176,8 @@ async function testRecursionSweep() {
     "render_jobs",
     // 041 — vendor intake
     "vendors",
+    // 056 — vendor portfolio photos
+    "vendor_photos",
   ];
 
   const failures = [];
@@ -2520,6 +2522,68 @@ async function testCrossTenantVndrPackageAddonsIsolation() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST T-30: vendor_photos isolation (migration 056) — vndr A's portfolio
+// photo metadata row hidden from vndr B + cross-tenant insert denied. The
+// storage bucket itself is public-read (so photos can appear in marketplace
+// later); this test covers the table-level RLS, not the bucket-level access.
+// -----------------------------------------------------------------------------
+async function testCrossTenantVendorPhotosIsolation() {
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  const { data: aPhoto, error: aErr } = await adminClient
+    .from("vendor_photos")
+    .insert({
+      tenant_id: vndrA.tenantId,
+      storage_path: `${vndrA.tenantId}/T-VPH-${TEST_RUN_ID}.jpg`,
+      display_order: 0,
+      created_by: vndrA.userId,
+    })
+    .select("id")
+    .single();
+  if (aErr || !aPhoto) throw new Error(`seed A photo failed: ${aErr?.message}`);
+
+  // Negative: B cannot SELECT A's photo (vph_select tenant-private).
+  const { data: bView, error: bErr } = await vndrB.authedClient
+    .from("vendor_photos")
+    .select("id")
+    .eq("id", aPhoto.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr vendor_photos SELECT: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: vndr B saw vndr A's vendor_photos row`);
+  }
+
+  // Negative: B cannot INSERT a photo under A's tenant (vph_insert WITH CHECK).
+  const { data: spoof, error: spoofErr } = await vndrB.authedClient
+    .from("vendor_photos")
+    .insert({
+      tenant_id: vndrA.tenantId,
+      storage_path: `${vndrA.tenantId}/T-VPH-spoof-${TEST_RUN_ID}.jpg`,
+      display_order: 99,
+      created_by: vndrB.userId,
+    })
+    .select("id");
+  if (spoofErr && spoofErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr vendor_photos INSERT: ${spoofErr.message}`);
+  }
+  if (!spoofErr && spoof && spoof.length > 0) {
+    throw new Error(`RLS LEAK: vndr B inserted vendor_photos row under vndr A's tenant`);
+  }
+
+  // Positive: A CAN read their own photo.
+  const { data: aView, error: aReadErr } = await vndrA.authedClient
+    .from("vendor_photos")
+    .select("id")
+    .eq("id", aPhoto.id);
+  if (aReadErr) throw new Error(`A positive control failed: ${aReadErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
 const TESTS = [
@@ -2556,6 +2620,7 @@ const TESTS = [
   { name: "T-27 vendor_availability_blocks isolation (migration 051 — vndr A vs B)", fn: testCrossTenantVendorAvailabilityBlocksIsolation },
   { name: "T-28 vndr_packages SELECT+UPDATE isolation (post-054 consolidation — vndr A vs B)", fn: testCrossTenantVndrPackagesIsolation },
   { name: "T-29 vndr_package_addons isolation (migration 054 — vndr A vs B via user_owns_vndr_package)", fn: testCrossTenantVndrPackageAddonsIsolation },
+  { name: "T-30 vendor_photos isolation (migration 056 — vndr A vs B)", fn: testCrossTenantVendorPhotosIsolation },
 ];
 
 // -----------------------------------------------------------------------------

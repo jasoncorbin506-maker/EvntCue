@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { CurrentVendor } from "@/lib/vndr/current-vendor";
 import { VNDR_RESPONSE_SLA_HOURS } from "@/lib/vndr/oldest-unresponded-inquiry";
+import { getVendorProfile, getVendorPhotos } from "@/lib/vndr/profile";
 
 /**
  * Vendor trust score — weighted average of 4 sub-metrics, computed on-the-fly
@@ -61,21 +62,47 @@ function tierFor(score: number): TrustScore["tier"] {
 }
 
 /**
- * % of profile fields filled. The vendor row from migration 041 carries:
- * display_name, primary_category, primary_sub_type, sub_types[], plus the
- * Stage 2/3/4 columns (service_areas, hourly_starting_price, packages array,
- * COI/business_license uploads — gated by category).
+ * % of profile fields filled. Session B (2026-05-25) expands beyond the
+ * coarse session-A 4-field check to use the full Profile-tab field set:
+ *   - displayName, primaryCategory, primarySubType (onboarding-set)
+ *   - foundingStory (bio), yearsInBusiness
+ *   - city, serviceZips (at least 1)
+ *   - contactEmail, contactPhone
+ *   - websiteUrl
+ *   - startingPriceCents
+ *   - At least 1 portfolio photo (migration 056)
  *
- * V-2b uses a coarse 6-field check; full per-stage completeness lands when
- * the Profile tab ships in Session B.
+ * 12 fields × equal weight. Vendor with everything filled scores 100;
+ * brand-new vendor with just displayName scores ~8.
  */
-function computeProfileCompleteness(vendor: CurrentVendor): number {
+async function computeProfileCompleteness(
+  vendor: CurrentVendor,
+): Promise<number> {
+  const [profile, photos] = await Promise.all([
+    getVendorProfile(vendor.tenantId),
+    getVendorPhotos(vendor.tenantId),
+  ]);
+
   let filled = 0;
-  const total = 4;
+  const total = 12;
+
   if (vendor.displayName && vendor.displayName.trim().length > 0) filled++;
   if (vendor.primaryCategory) filled++;
   if (vendor.primarySubType) filled++;
-  if (vendor.primarySubTypes.length > 0) filled++;
+
+  if (profile) {
+    if (profile.foundingStory && profile.foundingStory.trim().length >= 20) filled++;
+    if (profile.yearsInBusiness !== null && profile.yearsInBusiness > 0) filled++;
+    if (profile.city && profile.city.trim().length > 0) filled++;
+    if (profile.serviceZips.length > 0) filled++;
+    if (profile.contactEmail && profile.contactEmail.trim().length > 0) filled++;
+    if (profile.contactPhone && profile.contactPhone.trim().length > 0) filled++;
+    if (profile.websiteUrl && profile.websiteUrl.trim().length > 0) filled++;
+    if (profile.startingPriceCents !== null && profile.startingPriceCents > 0) filled++;
+  }
+
+  if (photos.length > 0) filled++;
+
   return Math.round((filled / total) * 100);
 }
 
@@ -153,12 +180,12 @@ function computeReviewAverage(): number {
 export async function getVendorTrustScore(
   vendor: CurrentVendor,
 ): Promise<TrustScore> {
-  const [responseRate, completionRate] = await Promise.all([
+  const [responseRate, completionRate, profileCompleteness] = await Promise.all([
     computeResponseRate(vendor.tenantId),
     computeCompletionRate(vendor.tenantId),
+    computeProfileCompleteness(vendor),
   ]);
   const reviewAverage = computeReviewAverage();
-  const profileCompleteness = computeProfileCompleteness(vendor);
 
   const total = Math.round(
     reviewAverage * TRUST_WEIGHTS.reviews +
