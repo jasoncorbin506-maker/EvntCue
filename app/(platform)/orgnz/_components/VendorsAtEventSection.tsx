@@ -3,7 +3,7 @@
 import {
   presenceDisplayName,
   type VendorPresence,
-} from "@/lib/events/vendor-presence";
+} from "@/lib/events/vendor-presence-shared";
 import { VendorRangePill } from "./VendorRangePill";
 import s from "./VendorsAtEventSection.module.css";
 

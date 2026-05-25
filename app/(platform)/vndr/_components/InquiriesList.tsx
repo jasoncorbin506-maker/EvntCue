@@ -132,9 +132,15 @@ export function InquiriesList({ inquiries }: Props) {
 
       {filtered.length === 0 ? (
         <div className={s.emptyState}>
-          {filter === "all"
-            ? "No inquiries yet. New leads will show up here as organizers reach out."
-            : `No ${FILTER_LABELS[filter].toLowerCase()} inquiries right now.`}
+          <div className={s.emptyStateIcon} aria-hidden="true">✦</div>
+          <div className={s.emptyStateTitle}>
+            {filter === "all" ? "No inquiries yet" : `No ${FILTER_LABELS[filter].toLowerCase()} inquiries`}
+          </div>
+          <div className={s.emptyStateBody}>
+            {filter === "all"
+              ? "When organizers reach out about your services, their inquiries land here. Make sure your Profile is complete so Cue can match you to the right events."
+              : `Nothing in ${FILTER_LABELS[filter]} right now. Try a different filter to see more.`}
+          </div>
         </div>
       ) : (
         <div className={s.inqList}>

@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import type { CalendarMonth, CalendarCell } from "@/lib/vndr/calendar-month";
 import type { VndrAvailabilityBlock } from "@/lib/vndr/availability";
 import s from "../vndr.module.css";
@@ -10,13 +11,17 @@ import type { ExistingBlock } from "./AvailabilityBlockSheet";
 /**
  * V-2b Mini Calendar (replaces V-2a's hardcoded June 2026 grid). Reads
  * server-prepared CalendarMonth, renders the 7-column day grid with
- * leading blanks for the first day-of-week offset, and opens
- * AvailabilityBlockSheet on tap of an open/blocked cell so the vendor can
- * add or edit availability blocks.
+ * leading blanks for the first day-of-week offset, and handles taps:
  *
- * Booked/inquiry cells render the existing visual treatment but don't open
- * the sheet — those are read-only on the calendar (the Inquiries/Bookings
- * tabs are the canonical edit surfaces for those).
+ *   - Open + blocked cells → open AvailabilityBlockSheet to add/edit/remove
+ *     blocks for that date.
+ *   - Booked cells → route to /vndr/bookings (the canonical edit surface
+ *     for confirmed bookings).
+ *   - Inquiry cells → route to /vndr/inquiries (where vendor can quote/decline).
+ *
+ * V-2b smoke-fix (session 23, 2026-05-25): previously booked/inquiry cells
+ * were `disabled={true}` and silently did nothing — felt like a broken
+ * click target. Now all cells are tappable with meaningful destinations.
  *
  * Month nav is local state for V-2b (each nav re-renders client-side from
  * the parent-supplied initial month + N delta loads on demand from a
@@ -46,6 +51,7 @@ const MONTH_LABELS = [
 ] as const;
 
 export function MiniCalendar({ month, blocks }: Props) {
+  const router = useRouter();
   const [sheetDate, setSheetDate] = useState<string | null>(null);
 
   const todayIso = new Date().toISOString().slice(0, 10);
@@ -67,10 +73,15 @@ export function MiniCalendar({ month, blocks }: Props) {
   }, [blocks]);
 
   function handleCellTap(cell: CalendarCell) {
-    // Booked and inquiry cells route to their respective tabs rather than
-    // open the block sheet. Open + blocked cells open the sheet for
-    // add/edit/delete.
-    if (cell.state === "booked" || cell.state === "inquiry") return;
+    if (cell.state === "booked") {
+      router.push("/vndr/bookings");
+      return;
+    }
+    if (cell.state === "inquiry") {
+      router.push("/vndr/inquiries");
+      return;
+    }
+    // Open + blocked cells: open the sheet for add/edit/delete.
     setSheetDate(cell.date);
   }
 
@@ -117,8 +128,10 @@ export function MiniCalendar({ month, blocks }: Props) {
             classes.push(s.calBlocked);
             if (cell.partial) classes.push(s.calBlockedPartial);
           }
-          const isTappable =
-            cell.state === "open" || cell.state === "blocked";
+          // All cells are tappable now — booked + inquiry route to their
+          // tabs; open + blocked open the AvailabilityBlockSheet (V-2b
+          // smoke-fix session 23). Previously booked/inquiry were disabled
+          // which read as a broken click target.
           return (
             <button
               key={cell.date}
@@ -126,7 +139,6 @@ export function MiniCalendar({ month, blocks }: Props) {
               className={classes.join(" ")}
               onClick={() => handleCellTap(cell)}
               aria-label={cellAriaLabel(cell)}
-              disabled={!isTappable}
             >
               {cell.day}
             </button>

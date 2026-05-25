@@ -13,7 +13,7 @@ import type { RoSPhase } from "@/data/run-of-show/types";
 import {
   presencesInPhase as filterPresencesInPhase,
   type VendorPresence,
-} from "@/lib/events/vendor-presence";
+} from "@/lib/events/vendor-presence-shared";
 import { AddVendorPopup } from "./AddVendorPopup";
 import { AddVendorSheet } from "./AddVendorSheet";
 import { VendorDetailSheet } from "./VendorDetailSheet";

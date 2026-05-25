@@ -3,7 +3,7 @@
 import {
   presenceInitial,
   type VendorPresence,
-} from "@/lib/events/vendor-presence";
+} from "@/lib/events/vendor-presence-shared";
 import s from "./VendorPresenceDots.module.css";
 
 type Props = {

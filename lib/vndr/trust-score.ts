@@ -52,6 +52,13 @@ export type TrustScore = {
   total: number;
   tier: "building" | "developing" | "strong" | "excellent";
   subMetrics: TrustSubMetrics;
+  /**
+   * Number of profile fields still empty (out of the 12-field completeness
+   * check). V-2b smoke-fix (session 23) — surfaces under the Profile bar
+   * on Home as "Add N more fields to your Profile tab" call-to-action.
+   * 0 means profile is fully filled.
+   */
+  profileMissingCount: number;
 };
 
 function tierFor(score: number): TrustScore["tier"] {
@@ -77,7 +84,7 @@ function tierFor(score: number): TrustScore["tier"] {
  */
 async function computeProfileCompleteness(
   vendor: CurrentVendor,
-): Promise<number> {
+): Promise<{ score: number; missingCount: number }> {
   const [profile, photos] = await Promise.all([
     getVendorProfile(vendor.tenantId),
     getVendorPhotos(vendor.tenantId),
@@ -103,7 +110,10 @@ async function computeProfileCompleteness(
 
   if (photos.length > 0) filled++;
 
-  return Math.round((filled / total) * 100);
+  return {
+    score: Math.round((filled / total) * 100),
+    missingCount: total - filled,
+  };
 }
 
 /**
@@ -180,7 +190,7 @@ function computeReviewAverage(): number {
 export async function getVendorTrustScore(
   vendor: CurrentVendor,
 ): Promise<TrustScore> {
-  const [responseRate, completionRate, profileCompleteness] = await Promise.all([
+  const [responseRate, completionRate, profileDetail] = await Promise.all([
     computeResponseRate(vendor.tenantId),
     computeCompletionRate(vendor.tenantId),
     computeProfileCompleteness(vendor),
@@ -191,7 +201,7 @@ export async function getVendorTrustScore(
     reviewAverage * TRUST_WEIGHTS.reviews +
       responseRate * TRUST_WEIGHTS.response +
       completionRate * TRUST_WEIGHTS.completion +
-      profileCompleteness * TRUST_WEIGHTS.profile,
+      profileDetail.score * TRUST_WEIGHTS.profile,
   );
 
   return {
@@ -201,7 +211,8 @@ export async function getVendorTrustScore(
       responseRate,
       completionRate,
       reviewAverage,
-      profileCompleteness,
+      profileCompleteness: profileDetail.score,
     },
+    profileMissingCount: profileDetail.missingCount,
   };
 }

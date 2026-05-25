@@ -169,6 +169,49 @@
   cursor: not-allowed;
 }
 
+.btnGhost {
+  background: transparent;
+  color: var(--coral);
+  border-color: var(--coral);
+}
+
+.btnGhost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btnDanger {
+  background: #c54234;
+  color: #fff;
+  border-color: #c54234;
+}
+
+.btnDanger:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.declineConfirm {
+  margin-top: 14px;
+  padding: 12px 14px;
+  background: rgba(197, 66, 52, 0.08);
+  border: 0.5px solid rgba(197, 66, 52, 0.3);
+  border-radius: 10px;
+}
+
+.declineConfirmTxt {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--txt2);
+  line-height: 1.5;
+  margin-bottom: 12px;
+}
+
+.declineConfirmTxt b {
+  color: #fff;
+  font-weight: 600;
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

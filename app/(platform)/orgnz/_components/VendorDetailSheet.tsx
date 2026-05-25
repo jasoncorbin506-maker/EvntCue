@@ -8,7 +8,7 @@ import {
 import {
   presenceDisplayName,
   type VendorPresence,
-} from "@/lib/events/vendor-presence";
+} from "@/lib/events/vendor-presence-shared";
 import { deleteVendorPresence } from "../_actions/delete-vendor-presence";
 import { addVendorPresence } from "../_actions/add-vendor-presence";
 import { showToast } from "../_lib/toast";

@@ -1,33 +1,32 @@
 /**
- * Vendor presence — Concept C primitive per Cowork's vendor-task-model
- * design brief (`inbox-cc/processed/2026-05-24-vendor-task-model-design.md`).
+ * Vendor presence — server-side admin read. Concept C primitive per
+ * Cowork's vendor-task-model design brief
+ * (`inbox-cc/processed/2026-05-24-vendor-task-model-design.md`).
  *
  * Vendor presence represents "vendor X is active during these RoS phases of
  * event Y" — a track that runs across phases, structurally distinct from a
  * milestone (which is a moment IN a phase). Schema in migration 049.
  *
- * Session A (commit `cca85d6`) shipped the schema. Session B (this code +
- * the Vendor* components) ships the visual + interactive surfaces per
- * Cowork's v2-vertical brief.
+ * Types + client-safe utilities (sortPresences / presencesInPhase /
+ * presenceInitial / presenceDisplayName) live in
+ * `lib/events/vendor-presence-shared.ts` so the 4 orgnz Vendor* client
+ * components can import them without dragging `server-only` into the
+ * client bundle (V-2b smoke-fix session 23 — Next.js 16 strict
+ * server-only check broke the Vercel build until the split).
+ * Re-exported below for back-compat with server-side callers.
  */
 
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
-import type { RoSPhase } from "@/data/run-of-show/types";
+import type { VendorPresence } from "@/lib/events/vendor-presence-shared";
 
-export type VendorPresence = {
-  id: string;
-  event_id: string;
-  vendor_tenant_id: string | null;
-  vendor_name: string;
-  /** Validated against the 12-phase CHECK constraint at write time. */
-  phases: RoSPhase[];
-  role_label: string | null;
-  notes: string | null;
-  created_by: string;
-  created_at: string;
-  updated_at: string;
-};
+export type { VendorPresence } from "@/lib/events/vendor-presence-shared";
+export {
+  sortPresences,
+  presencesInPhase,
+  presenceInitial,
+  presenceDisplayName,
+} from "@/lib/events/vendor-presence-shared";
 
 /**
  * Fetch all vendor presence rows for an event. Caller is expected to be a
@@ -57,78 +56,4 @@ export async function getEventVendorPresence(
     return [];
   }
   return (data ?? []) as VendorPresence[];
-}
-
-/**
- * Sort presences by earliest-phase-covered ascending, then by role_label
- * (alphabetical) → vendor_name (alphabetical) as tiebreakers. Used by the
- * top VendorsAtEventSection cast list AND each phase's VendorPresenceDots
- * row (so visual order is consistent across both surfaces).
- *
- * The "earliest phase" is the lowest index in PHASE_ORDER among the
- * presence's phases array — not the array's first element (which is
- * insertion order, not phase order).
- */
-export function sortPresences(
-  presences: VendorPresence[],
-  phaseOrder: readonly RoSPhase[],
-): VendorPresence[] {
-  const phaseIndex = new Map<RoSPhase, number>(
-    phaseOrder.map((p, i) => [p, i]),
-  );
-
-  return [...presences].sort((a, b) => {
-    const aMin = Math.min(
-      ...a.phases.map((p) => phaseIndex.get(p) ?? Number.POSITIVE_INFINITY),
-    );
-    const bMin = Math.min(
-      ...b.phases.map((p) => phaseIndex.get(p) ?? Number.POSITIVE_INFINITY),
-    );
-    if (aMin !== bMin) return aMin - bMin;
-
-    const aLabel = (a.role_label ?? "").toLowerCase();
-    const bLabel = (b.role_label ?? "").toLowerCase();
-    if (aLabel !== bLabel) return aLabel.localeCompare(bLabel);
-
-    return a.vendor_name.toLowerCase().localeCompare(b.vendor_name.toLowerCase());
-  });
-}
-
-/**
- * Filter presences down to those covering a specific phase. Used by each
- * phase group's VendorPresenceDots footer.
- */
-export function presencesInPhase(
-  presences: VendorPresence[],
-  phase: RoSPhase,
-): VendorPresence[] {
-  return presences.filter((p) => p.phases.includes(phase));
-}
-
-/**
- * Derive a vendor's display initial for the dot circle. Prefers the first
- * letter of role_label (when set — "P" for "photographer" is clearer than
- * "M" for "Marigold Photography"); falls back to vendor_name. Always
- * uppercase, single character.
- */
-export function presenceInitial(presence: VendorPresence): string {
-  const source = (presence.role_label ?? presence.vendor_name).trim();
-  return source.charAt(0).toUpperCase() || "·";
-}
-
-/**
- * Display name for the cast list + detail sheet headline. Role label
- * leads (primary line); vendor_name is the secondary line when both are
- * set. When only one is set, that one is the headline.
- */
-export function presenceDisplayName(presence: VendorPresence): {
-  primary: string;
-  secondary: string | null;
-} {
-  const role = presence.role_label?.trim() ?? "";
-  const name = presence.vendor_name.trim();
-  if (role && name && role.toLowerCase() !== name.toLowerCase()) {
-    return { primary: role, secondary: name };
-  }
-  return { primary: role || name, secondary: null };
 }

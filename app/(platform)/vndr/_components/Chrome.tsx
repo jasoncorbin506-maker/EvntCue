@@ -33,7 +33,9 @@ export function Chrome({ vendorName, meta, right, backHref }: ChromeProps) {
             ‹
           </Link>
         ) : (
-          <div className={s.chromeMark} aria-hidden="true" />
+          <div className={s.chromeMark} aria-hidden="true">
+            <span className={s.chromeMarkLetter}>E</span>
+          </div>
         )}
         <div className={s.chromeName} style={backHref ? { marginLeft: 8 } : undefined}>
           <div className={s.chromeVendor}>{vendorName}</div>

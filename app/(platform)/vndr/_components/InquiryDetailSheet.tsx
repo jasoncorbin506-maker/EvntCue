@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { respondToInquiry } from "../_actions/respond-to-inquiry";
+import { declineInquiry } from "../_actions/decline-inquiry";
 import type { VndrInquiry, VndrInquiryStatus } from "@/lib/vndr/inquiries";
 import s from "./InquiryDetailSheet.module.css";
 
@@ -26,6 +27,7 @@ type Props = {
 };
 
 const RESPONDABLE: VndrInquiryStatus[] = ["inquiry", "reviewing"];
+const DECLINABLE: VndrInquiryStatus[] = ["inquiry", "reviewing", "quoted"];
 
 const STATUS_LABEL: Record<VndrInquiryStatus, string> = {
   inquiry: "Open — needs quote",
@@ -65,8 +67,10 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
     formatPriceInput(inquiry.proposedPriceCents),
   );
   const [error, setError] = useState<string | null>(null);
+  const [confirmDecline, setConfirmDecline] = useState(false);
 
   const canRespond = RESPONDABLE.includes(inquiry.status);
+  const canDecline = DECLINABLE.includes(inquiry.status);
 
   function handleSubmit() {
     setError(null);
@@ -83,6 +87,19 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
       });
       if (!res.ok) {
         setError(res.error);
+        return;
+      }
+      onClose();
+    });
+  }
+
+  function handleDecline() {
+    setError(null);
+    startTransition(async () => {
+      const res = await declineInquiry(inquiry.id);
+      if (!res.ok) {
+        setError(res.error);
+        setConfirmDecline(false);
         return;
       }
       onClose();
@@ -155,21 +172,58 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
 
         {error && <div className={s.errMsg}>{error}</div>}
 
-        <div className={s.footer}>
-          <button type="button" className={s.btn} onClick={onClose}>
-            {canRespond ? "Cancel" : "Close"}
-          </button>
-          {canRespond && (
-            <button
-              type="button"
-              className={`${s.btn} ${s.btnPrimary}`}
-              onClick={handleSubmit}
-              disabled={pending}
-            >
-              {pending ? "Sending…" : "Send quote"}
+        {confirmDecline ? (
+          <div className={s.declineConfirm}>
+            <div className={s.declineConfirmTxt}>
+              Decline this inquiry? It will move to <b>Lost</b> and you won't
+              be able to respond to it later.
+            </div>
+            <div className={s.footer}>
+              <button
+                type="button"
+                className={s.btn}
+                onClick={() => setConfirmDecline(false)}
+                disabled={pending}
+              >
+                Keep
+              </button>
+              <button
+                type="button"
+                className={`${s.btn} ${s.btnDanger}`}
+                onClick={handleDecline}
+                disabled={pending}
+              >
+                {pending ? "Declining…" : "Yes, decline"}
+              </button>
+            </div>
+          </div>
+        ) : (
+          <div className={s.footer}>
+            <button type="button" className={s.btn} onClick={onClose}>
+              {canRespond || canDecline ? "Cancel" : "Close"}
             </button>
-          )}
-        </div>
+            {canDecline && (
+              <button
+                type="button"
+                className={`${s.btn} ${s.btnGhost}`}
+                onClick={() => setConfirmDecline(true)}
+                disabled={pending}
+              >
+                Decline
+              </button>
+            )}
+            {canRespond && (
+              <button
+                type="button"
+                className={`${s.btn} ${s.btnPrimary}`}
+                onClick={handleSubmit}
+                disabled={pending}
+              >
+                {pending ? "Sending…" : "Send quote"}
+              </button>
+            )}
+          </div>
+        )}
       </div>
     </>
   );

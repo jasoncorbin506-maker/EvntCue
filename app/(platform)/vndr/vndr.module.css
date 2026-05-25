@@ -79,6 +79,15 @@
   position: relative;
 }
 
+.chromeMarkLetter {
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.4px;
+  line-height: 1;
+}
+
 .chromeMark::after {
   content: '';
   position: absolute;
@@ -260,6 +269,24 @@
   text-transform: uppercase;
   color: var(--txt2);
   font-weight: 600;
+}
+
+/* Section-header "+ Add" button (V-2b smoke-fix session 23 — used by
+   PackagesSection to open EditPackageSheet in create mode). */
+.sectionAddBtn {
+  background: transparent;
+  border: 0.5px solid var(--coral);
+  color: var(--coral);
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.sectionAddBtn:hover {
+  background: rgba(232, 98, 42, 0.08);
 }
 
 .sectionA {
@@ -739,6 +766,26 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* Trust-score sub-metric "next step" copy (V-2b smoke-fix session 23 G7). */
+.tbNext {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--txt3);
+  padding-left: 8px;
+  margin: 2px 0 8px;
+  line-height: 1.4;
+  font-style: italic;
+}
+
+.tbNextLink {
+  color: var(--coral);
+  text-decoration: none;
+  font-style: normal;
+  font-weight: 500;
+}
+
+.tbNextLink:hover { text-decoration: underline; }
+
 /* ── MINI CALENDAR ──────────────────────────────────────────────────────── */
 .calCard {
   margin: 18px 16px 0;
@@ -938,6 +985,15 @@
   line-height: 1.4;
 }
 
+/* Right-aligned cluster for the price + sub-label + edit button (V-2b
+   smoke-fix session 23). */
+.pkgRight {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+}
+
 .pkgPrice {
   font-family: var(--font-display);
   font-size: 15px;
@@ -954,6 +1010,24 @@
   text-align: right;
   margin-top: 2px;
   letter-spacing: 0.04em;
+}
+
+.pkgEditBtn {
+  margin-top: 4px;
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  color: var(--txt2);
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.pkgEditBtn:hover {
+  border-color: var(--coral);
+  color: var(--coral);
 }
 
 .pkgFooter {
@@ -1136,19 +1210,49 @@
   background: rgba(255, 255, 255, 0.18);
 }
 
-/* ── EMPTY STATES (lists with no rows) ──────────────────────────────────── */
+/* ── EMPTY STATES (tab-page level — bigger, more inviting) ─────────────── */
 .emptyState {
-  margin: 20px 8px;
-  padding: 22px 16px;
-  background: rgba(255, 255, 255, 0.02);
-  border: 0.5px dashed var(--bdr);
-  border-radius: 12px;
-  font-family: var(--font-body);
+  margin: 32px 12px;
+  padding: 36px 24px 32px;
+  background: linear-gradient(180deg, rgba(232, 98, 42, 0.04), transparent 70%);
+  border: 0.5px solid var(--bdr);
+  border-radius: 16px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12px;
+}
+
+.emptyStateIcon {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(232, 98, 42, 0.1);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--coral);
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.emptyStateTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
   font-style: italic;
+  color: #fff;
+  letter-spacing: -0.2px;
+}
+
+.emptyStateBody {
+  font-family: var(--font-body);
   font-size: 12.5px;
   color: var(--txt2);
-  line-height: 1.5;
-  text-align: center;
+  line-height: 1.55;
+  max-width: 280px;
 }
 
 /* ── INQUIRIES LIST ─────────────────────────────────────────────────────── */

@@ -117,11 +117,21 @@ export function BookingsList({ bookings }: Props) {
 
       {visible.length === 0 ? (
         <div className={s.emptyState}>
-          {filter === "upcoming"
-            ? "No upcoming bookings. Quotes that get accepted will show up here."
-            : filter === "past"
-              ? "No past bookings yet."
-              : "No cancelled bookings."}
+          <div className={s.emptyStateIcon} aria-hidden="true">✦</div>
+          <div className={s.emptyStateTitle}>
+            {filter === "upcoming"
+              ? "No upcoming bookings"
+              : filter === "past"
+                ? "No past bookings yet"
+                : "No cancelled bookings"}
+          </div>
+          <div className={s.emptyStateBody}>
+            {filter === "upcoming"
+              ? "Inquiries you've accepted will show up here as confirmed bookings. Keep an eye on the Inquiries tab to convert leads."
+              : filter === "past"
+                ? "Completed bookings move here after the event date. Your trust score grows with each one you complete."
+                : "Cancelled bookings land here. Nothing to show right now — and that's good news."}
+          </div>
         </div>
       ) : (
         <div className={s.bkList}>

@@ -9,7 +9,7 @@ import { getVndrPackages } from "@/lib/vndr/packages";
 import { assembleVndrHomeCue } from "@/lib/cue/vndr-home-prompt";
 import { Chrome, AskCueButton, NotifButton, ChromeSignOut } from "./_components/Chrome";
 import { ResponseWindowAlert } from "./_components/ResponseWindowAlert";
-import { PackageRow } from "./_components/PackageRow";
+import { PackagesSection } from "./_components/PackagesSection";
 import { MiniCalendar } from "./_components/MiniCalendar";
 import s from "./vndr.module.css";
 
@@ -211,9 +211,14 @@ export default async function VndrHome({
         </div>
         <div className={s.bookingList}>
           {activePipeline.length === 0 ? (
-            <div className={s.bkEmpty}>
-              No active inquiries or bookings. The pipeline fills as Cue
-              matches you to events.
+            <div className={s.emptyState}>
+              <div className={s.emptyStateIcon} aria-hidden="true">✦</div>
+              <div className={s.emptyStateTitle}>Your pipeline is clear</div>
+              <div className={s.emptyStateBody}>
+                When new inquiries land or bookings approach their dates, the
+                most urgent items surface here. Until then — make sure your
+                profile is complete so Cue can match you confidently.
+              </div>
             </div>
           ) : (
             activePipeline.map((row) => (
@@ -285,6 +290,10 @@ export default async function VndrHome({
             </div>
             <div className={s.tbVal}>{heroMetrics.trustScore.subMetrics.reviewAverage}</div>
           </div>
+          <div className={s.tbNext}>
+            Reviews land with V-2c. Your score caps at 60 until then.
+          </div>
+
           <div className={s.tbRow}>
             <div className={s.tbLbl}>Response rate (30%)</div>
             <div className={s.tbTrack}>
@@ -295,6 +304,12 @@ export default async function VndrHome({
             </div>
             <div className={s.tbVal}>{heroMetrics.trustScore.subMetrics.responseRate}</div>
           </div>
+          {heroMetrics.trustScore.subMetrics.responseRate < 100 && (
+            <div className={s.tbNext}>
+              Respond to your next inquiry within 24h to lift this.
+            </div>
+          )}
+
           <div className={s.tbRow}>
             <div className={s.tbLbl}>Completion rate (20%)</div>
             <div className={s.tbTrack}>
@@ -305,6 +320,12 @@ export default async function VndrHome({
             </div>
             <div className={s.tbVal}>{heroMetrics.trustScore.subMetrics.completionRate}</div>
           </div>
+          {heroMetrics.trustScore.subMetrics.completionRate < 100 && (
+            <div className={s.tbNext}>
+              Complete your next booking to lift this.
+            </div>
+          )}
+
           <div className={s.tbRow}>
             <div className={s.tbLbl}>Profile (10%)</div>
             <div className={s.tbTrack}>
@@ -315,29 +336,23 @@ export default async function VndrHome({
             </div>
             <div className={s.tbVal}>{heroMetrics.trustScore.subMetrics.profileCompleteness}</div>
           </div>
+          {heroMetrics.trustScore.profileMissingCount > 0 && (
+            <div className={s.tbNext}>
+              <a href="/vndr/profile" className={s.tbNextLink}>
+                Fill {heroMetrics.trustScore.profileMissingCount} more profile
+                field{heroMetrics.trustScore.profileMissingCount === 1 ? "" : "s"} →
+              </a>
+            </div>
+          )}
         </div>
       </div>
 
       {/* 6 — Mini Calendar */}
       <MiniCalendar month={calendarMonth} blocks={blocks} />
 
-      {/* 7 — Packages */}
-      <section className={s.section}>
-        <div className={s.sectionH}>
-          <div className={s.sectionT}>Packages</div>
-          <a href="/vndr/profile" className={s.sectionA}>Manage</a>
-        </div>
-        <div className={s.pkgList}>
-          {packages.length === 0 ? (
-            <div className={s.bkEmpty}>
-              No packages yet. Add one from the Profile tab so planners can
-              see what you offer.
-            </div>
-          ) : (
-            packages.map((pkg) => <PackageRow key={pkg.id} pkg={pkg} />)
-          )}
-        </div>
-      </section>
+      {/* 7 — Packages (V-2b smoke-fix G4/G5/G6: PackagesSection owns the
+          EditPackageSheet open state for both add + edit flows). */}
+      <PackagesSection packages={packages} />
     </>
   );
 }

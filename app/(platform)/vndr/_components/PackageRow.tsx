@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { updatePackageFields } from "../_actions/upsert-package";
-import { visibilityTier, type VndrPackage } from "@/lib/vndr/packages";
+import { visibilityTier, type VndrPackage } from "@/lib/vndr/packages-shared";
 import s from "../vndr.module.css";
 
 /**
@@ -29,9 +29,16 @@ const DEBOUNCE_MS = 400;
 
 type Props = {
   pkg: VndrPackage;
+  /**
+   * Optional — when provided, the row renders an "Edit" affordance that
+   * opens the EditPackageSheet on the parent. V-2b smoke-fix session 23
+   * (brief G4) introduced this; the inline slider + visibility toggle
+   * still persist via updatePackageFields independently.
+   */
+  onEdit?: () => void;
 };
 
-export function PackageRow({ pkg }: Props) {
+export function PackageRow({ pkg, onEdit }: Props) {
   const [pct, setPct] = useState(pkg.referralPct);
   const [isVisible, setIsVisible] = useState(pkg.isVisible);
   const [, startTransition] = useTransition();
@@ -76,9 +83,19 @@ export function PackageRow({ pkg }: Props) {
               : "")}
           </div>
         </div>
-        <div>
+        <div className={s.pkgRight}>
           <div className={s.pkgPrice}>{priceFmt}</div>
           <div className={s.pkgSub}>flat</div>
+          {onEdit && (
+            <button
+              type="button"
+              className={s.pkgEditBtn}
+              onClick={onEdit}
+              aria-label={`Edit ${pkg.name}`}
+            >
+              Edit
+            </button>
+          )}
         </div>
       </div>
       <div className={s.pkgFooter}>

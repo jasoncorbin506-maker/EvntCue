@@ -1,10 +1,11 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import type { VndrPackage, VndrPackageAddon } from "@/lib/vndr/packages-shared";
 
 /**
- * Vendor packages + addons. Per Jason's 2026-05-24 lock: flat + sub-items
- * table. Each package is a top-level row; addons are optional sub-items
- * priced on top.
+ * Vendor packages + addons — server-side read. Per Jason's 2026-05-24 lock:
+ * flat + sub-items table. Each package is a top-level row; addons are
+ * optional sub-items priced on top.
  *
  * Source tables (post-2026-05-25 consolidation, migration 054):
  *   - public.vndr_packages       — legacy survivor (migration 007), absorbed
@@ -14,33 +15,15 @@ import { createClient } from "@/lib/supabase/server";
  *   - public.vndr_package_addons — new child table (migration 054), gated via
  *                                  user_owns_vndr_package() helper.
  *
- * V-2b ships read + simple field-update server actions (price, referral_pct,
- * is_visible). Full edit-in-place + addon CRUD UI lands in Session B's
- * Profile tab build-out.
+ * Types + the client-safe `visibilityTier` helper live in
+ * `lib/vndr/packages-shared.ts` so Client Components can import them
+ * without dragging `server-only` into the client bundle (V-2b smoke-fix
+ * session 23 — Next.js 16 strict server-only check broke the Vercel
+ * build until the split). Re-exported below for back-compat.
  */
 
-export type VndrPackage = {
-  id: string;
-  vendorTenantId: string;
-  name: string;
-  description: string | null;
-  priceCents: number;
-  referralPct: number;
-  isVisible: boolean;
-  displayOrder: number;
-  createdAt: string;
-  updatedAt: string;
-  addons: VndrPackageAddon[];
-};
-
-export type VndrPackageAddon = {
-  id: string;
-  packageId: string;
-  name: string;
-  description: string | null;
-  priceCents: number;
-  displayOrder: number;
-};
+export type { VndrPackage, VndrPackageAddon } from "@/lib/vndr/packages-shared";
+export { visibilityTier } from "@/lib/vndr/packages-shared";
 
 const PKG_COLS =
   "id, tenant_id, name, description, price_cents, referral_pct, is_visible, display_order, created_at, updated_at";
@@ -116,20 +99,4 @@ export async function getVndrPackages(vendorTenantId: string): Promise<VndrPacka
       addonsByPackage.get((p as Record<string, unknown>).id as string) ?? [],
     ),
   );
-}
-
-/**
- * Derive a 'low'/'medium'/'high' visibility tier from referral % + visibility
- * flag. V-2a hardcoded this; V-2b derives it so the slider updates the bar.
- * Tiers: invisible OR <10% = low; 10–19% = medium; 20%+ = high.
- *
- * The real visibility formula (per V-2a doc comment) is "price × referral %
- * × trust score × category demand" — Phase 4 territory. For V-2b we use
- * referral % as the dominant signal so the slider feels responsive.
- */
-export function visibilityTier(pkg: VndrPackage): "low" | "medium" | "high" {
-  if (!pkg.isVisible) return "low";
-  if (pkg.referralPct >= 20) return "high";
-  if (pkg.referralPct >= 10) return "medium";
-  return "low";
 }
