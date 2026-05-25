@@ -513,6 +513,27 @@
 
 .cueBody { flex: 1; min-width: 0; }
 
+/* Dismiss × on the Cue panel (session 24, profile-completeness-one-time-cue
+   brief). Top-right; subtle until hover. Hides the current branch for the
+   session via sessionStorage (V-2c Session 3 swaps for permanent dismiss
+   via vendor_cue_dismissals). */
+.cueDismiss {
+  align-self: flex-start;
+  background: transparent;
+  border: none;
+  color: var(--ct);
+  opacity: 0.55;
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 0 4px;
+  flex-shrink: 0;
+}
+
+.cueDismiss:hover {
+  opacity: 1;
+}
+
 .cueLbl {
   font-family: var(--font-ui);
   font-size: 9px;

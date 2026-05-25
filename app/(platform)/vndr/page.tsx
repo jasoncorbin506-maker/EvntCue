@@ -12,6 +12,7 @@ import { Chrome, AskCueButton, NotifButton, ChromeSignOut } from "./_components/
 import { ResponseWindowAlert } from "./_components/ResponseWindowAlert";
 import { PackagesSection } from "./_components/PackagesSection";
 import { MiniCalendar } from "./_components/MiniCalendar";
+import { CuePanel } from "./_components/CuePanel";
 import s from "./vndr.module.css";
 
 /**
@@ -82,10 +83,10 @@ export default async function VndrHome({
 
   const defaultCommissionPct = vendorProfile?.referralRatePct ?? null;
 
-  const cue = assembleVndrHomeCue({
+  const cueBranches = assembleVndrHomeCue({
     metrics: heroMetrics,
     oldestUnresponded,
-    vendorDisplayName: vendor.displayName,
+    vendor,
   });
 
   // Display meta — category for now. Real geo (city, state) lands when V-1b
@@ -189,26 +190,9 @@ export default async function VndrHome({
         </div>
       </div>
 
-      {/* 3 — Cue Panel */}
-      <div className={s.cuePanel}>
-        <div className={s.cueIco}>
-          <svg viewBox="0 0 24 24">
-            <circle cx="12" cy="12" r="9" />
-            <path d="M9.5 9.5a2.5 2.5 0 0 1 5 0c0 1.5-2.5 2-2.5 3.5M12 17h.01" />
-          </svg>
-        </div>
-        <div className={s.cueBody}>
-          <div className={s.cueLbl}>Cue says</div>
-          <div className={s.cueTxt}>{cue.text}</div>
-          {cue.action && (
-            <div className={s.cueActs}>
-              <a href={cue.action.href} className={s.cueBtnSm}>
-                {cue.action.label}
-              </a>
-            </div>
-          )}
-        </div>
-      </div>
+      {/* 3 — Cue Panel (V-2c profile-completeness-one-time-cue session 24:
+          extracted to client component for sessionStorage-backed dismiss). */}
+      <CuePanel branches={cueBranches} />
 
       {/* 4 — Active Inquiries / Bookings */}
       <section className={s.section}>
