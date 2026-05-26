@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { respondToInquiry } from "../_actions/respond-to-inquiry";
 import { declineInquiry } from "../_actions/decline-inquiry";
 import type { VndrInquiry, VndrInquiryStatus } from "@/lib/vndr/inquiries";
+import { InquiryThread } from "./InquiryThread";
 import s from "./InquiryDetailSheet.module.css";
 
 /**
@@ -173,6 +174,8 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
         )}
 
         {error && <div className={s.errMsg}>{error}</div>}
+
+        <InquiryThread inquiryId={inquiry.id} buyerRole={inquiry.buyerRole} />
 
         {confirmDecline ? (
           <div className={s.declineConfirm}>
