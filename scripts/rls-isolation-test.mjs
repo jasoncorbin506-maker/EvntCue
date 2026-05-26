@@ -878,7 +878,8 @@ async function testCrossTenantBookingInquiriesVndrIsolation() {
     .from("booking_inquiries")
     .insert({
       event_id: event.id,
-      orgnz_tenant_id: orgnz.tenantId,
+      buyer_tenant_id: orgnz.tenantId,
+      buyer_role: "orgnz",
       vndr_tenant_id: vndrA.tenantId,
       event_date: "2027-06-12",
       guest_count: 90,
@@ -1176,7 +1177,8 @@ async function testCrossTenantBookingInquiriesCatrIsolation() {
     .from("booking_inquiries")
     .insert({
       event_id: event.id,
-      orgnz_tenant_id: orgnz.tenantId,
+      buyer_tenant_id: orgnz.tenantId,
+      buyer_role: "orgnz",
       vndr_tenant_id: catrA.tenantId,
       event_date: "2027-12-04",
       guest_count: 130,
@@ -2651,6 +2653,169 @@ async function testCrossTenantVendorPhotosIsolation() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST T-32: inquiry_messages RLS for venue-as-buyer (migration 059+061 / Option B).
+// Covers the cross-cutting wrinkle that motivated the whole inquiry-primitive
+// redesign: a venue can author an inquiry to a vendor (buyer_role='venue',
+// event_id NULL), and the resulting inquiry_messages thread is bilateral
+// (venue + vendor) and isolated from unrelated venue tenants.
+//
+// Assertions:
+//   (1) Venue A CAN insert a booking_inquiry with buyer_role='venue' and
+//       no event_id (the venue->vndr path mig 059 unblocks).
+//   (2) Venue A CAN insert an inquiry_message with sender_role='venue' on
+//       that inquiry; mig 061 widened sender_role to allow 'venue'.
+//   (3) Vendor CAN read the venue's message (vndr-side branch of im_select).
+//   (4) Venue B (unrelated venue tenant) CANNOT read venue A's message —
+//       im_select uses bi.buyer_tenant_id directly, not events.
+// -----------------------------------------------------------------------------
+async function testInquiryMessagesVenueBuyerRLS() {
+  const venueA = await seedTestUser("venue");
+  const venueB = await seedTestUser("venue");
+  const vndr = await seedTestUser("vndr");
+
+  // Venue A authors a venue->vndr inquiry directly (no event).
+  const { data: inquiry, error: bipErr } = await venueA.authedClient
+    .from("booking_inquiries")
+    .insert({
+      buyer_tenant_id: venueA.tenantId,
+      buyer_role: "venue",
+      vndr_tenant_id: vndr.tenantId,
+      event_date: "2027-09-18",
+      guest_count: 60,
+      message: `T-32 venue->vndr inquiry ${TEST_RUN_ID}`,
+      status: "inquiry",
+    })
+    .select("id")
+    .single();
+  if (bipErr) throw new Error(`venue-buyer inquiry insert failed (mig 059 RLS): ${bipErr.message}`);
+  if (!inquiry) throw new Error(`venue-buyer inquiry insert returned no row`);
+
+  // Venue A sends a message on that inquiry (buyer-side branch of im_insert).
+  const { data: msgA, error: maErr } = await venueA.authedClient
+    .from("inquiry_messages")
+    .insert({
+      inquiry_table: "booking_inquiries",
+      inquiry_id: inquiry.id,
+      sender_user_id: venueA.userId,
+      sender_tenant_id: venueA.tenantId,
+      sender_role: "venue",
+      body: `T-32 venue-side message ${TEST_RUN_ID}`,
+    })
+    .select("id")
+    .single();
+  if (maErr) throw new Error(`venue-side inquiry_messages insert failed (mig 061 RLS): ${maErr.message}`);
+
+  // Vendor CAN read the venue's message (vndr-side branch of im_select).
+  const { data: vView, error: vErr } = await vndr.authedClient
+    .from("inquiry_messages")
+    .select("id")
+    .eq("id", msgA.id);
+  if (vErr) throw new Error(`vendor positive-read failed: ${vErr.message}`);
+  if (!vView || vView.length !== 1) {
+    throw new Error(`vendor positive control: expected 1 row, got ${vView?.length ?? 0}`);
+  }
+
+  // Venue B (unrelated) CANNOT read venue A's message.
+  const { data: bView, error: bErr } = await venueB.authedClient
+    .from("inquiry_messages")
+    .select("id")
+    .eq("id", msgA.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-venue inquiry_messages query: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: venue B saw venue A's inquiry_message`);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TEST T-33: buyer_role enforcement on booking_inquiries INSERT (migration 059).
+// The bi_insert WITH CHECK requires user_roles.role to match the row's
+// buyer_role — prevents an orgnz tenant from posing as a venue (or vice
+// versa) by setting whichever discriminator they want.
+//
+// Assertions:
+//   (1) orgnz user inserting with buyer_role='venue' + their orgnz tenant
+//       MUST FAIL (role/discriminator mismatch).
+//   (2) venue user inserting with buyer_role='orgnz' + their venue tenant
+//       MUST FAIL (mirror case).
+//   (3) orgnz user inserting with buyer_role='orgnz' + their orgnz tenant
+//       MUST SUCCEED (positive control).
+// -----------------------------------------------------------------------------
+async function testBookingInquiriesBuyerRoleEnforcement() {
+  const orgnz = await seedTestUser("orgnz");
+  const venue = await seedTestUser("venue");
+  const vndr = await seedTestUser("vndr");
+
+  // (1) orgnz tenant posing as venue — RLS WITH CHECK must reject.
+  const { data: spoofVen, error: spoofVenErr } = await orgnz.authedClient
+    .from("booking_inquiries")
+    .insert({
+      buyer_tenant_id: orgnz.tenantId,
+      buyer_role: "venue",
+      vndr_tenant_id: vndr.tenantId,
+      event_date: "2027-10-01",
+      guest_count: 50,
+      message: `T-33 spoof-venue ${TEST_RUN_ID}`,
+      status: "inquiry",
+    })
+    .select("id");
+  if (!spoofVenErr && spoofVen && spoofVen.length > 0) {
+    throw new Error(`RLS LEAK: orgnz tenant inserted booking_inquiry with buyer_role='venue'`);
+  }
+
+  // (2) venue tenant posing as orgnz — RLS WITH CHECK must reject.
+  const { data: spoofOrg, error: spoofOrgErr } = await venue.authedClient
+    .from("booking_inquiries")
+    .insert({
+      buyer_tenant_id: venue.tenantId,
+      buyer_role: "orgnz",
+      vndr_tenant_id: vndr.tenantId,
+      event_date: "2027-10-02",
+      guest_count: 50,
+      message: `T-33 spoof-orgnz ${TEST_RUN_ID}`,
+      status: "inquiry",
+    })
+    .select("id");
+  if (!spoofOrgErr && spoofOrg && spoofOrg.length > 0) {
+    throw new Error(`RLS LEAK: venue tenant inserted booking_inquiry with buyer_role='orgnz'`);
+  }
+
+  // (3) orgnz tenant with matching role — must succeed.
+  const { data: okEvent } = await adminClient
+    .from("events")
+    .insert({
+      name: `T-33 ok event ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-10-03",
+      guest_count: 50,
+      budget_cents: 500_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+  const { data: okInq, error: okErr } = await orgnz.authedClient
+    .from("booking_inquiries")
+    .insert({
+      event_id: okEvent.id,
+      buyer_tenant_id: orgnz.tenantId,
+      buyer_role: "orgnz",
+      vndr_tenant_id: vndr.tenantId,
+      event_date: "2027-10-03",
+      guest_count: 50,
+      message: `T-33 positive control ${TEST_RUN_ID}`,
+      status: "inquiry",
+    })
+    .select("id");
+  if (okErr) throw new Error(`positive control failed (matching role insert): ${okErr.message}`);
+  if (!okInq || okInq.length !== 1) {
+    throw new Error(`positive control: expected 1 row, got ${okInq?.length ?? 0}`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
 const TESTS = [
@@ -2689,6 +2854,8 @@ const TESTS = [
   { name: "T-29 vndr_package_addons isolation (migration 054 — vndr A vs B via user_owns_vndr_package)", fn: testCrossTenantVndrPackageAddonsIsolation },
   { name: "T-30 vendor_photos isolation (migration 056 — vndr A vs B)", fn: testCrossTenantVendorPhotosIsolation },
   { name: "T-31 vendor_date_commission_overrides isolation (migration 057 — vndr A vs B)", fn: testCrossTenantVendorDateCommissionsIsolation },
+  { name: "T-32 inquiry_messages RLS for venue-as-buyer (migrations 059+061)", fn: testInquiryMessagesVenueBuyerRLS },
+  { name: "T-33 buyer_role enforcement on booking_inquiries (migration 059)", fn: testBookingInquiriesBuyerRoleEnforcement },
 ];
 
 // -----------------------------------------------------------------------------

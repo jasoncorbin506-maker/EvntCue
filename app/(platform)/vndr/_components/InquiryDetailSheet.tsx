@@ -10,7 +10,7 @@ import s from "./InquiryDetailSheet.module.css";
  * Bottom-sheet detail view for a single inquiry. Opened from an InquiryRow
  * tap in InquiriesList. Surfaces:
  *
- *   - Event date + guest count + message from organizer
+ *   - Event date + guest count + message from buyer (organizer or venue)
  *   - Existing status + responded info (if already quoted)
  *   - First-response action (price input + submit) when status is
  *     'inquiry' or 'reviewing' — sets quoted_price + responded_at + status
@@ -133,7 +133,9 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
 
         {inquiry.message && (
           <>
-            <div className={s.sectionLbl}>Message from organizer</div>
+            <div className={s.sectionLbl}>
+              Message from {inquiry.buyerRole === "venue" ? "venue" : "organizer"}
+            </div>
             <div className={s.message}>{inquiry.message}</div>
           </>
         )}
@@ -165,7 +167,7 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
               />
             </div>
             <div className={s.hint}>
-              Sent now — the organizer sees your price and can accept.
+              Sent now — the {inquiry.buyerRole === "venue" ? "venue" : "organizer"} sees your price and can accept.
             </div>
           </>
         )}
