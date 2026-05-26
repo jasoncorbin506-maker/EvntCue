@@ -2816,6 +2816,251 @@ async function testBookingInquiriesBuyerRoleEnforcement() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST T-34: event_reviews RLS (migration 062). Bidirectional review primitive
+// — both reviewer + reviewee see the row; unrelated tenants can't; reviewer's
+// claimed role must match user_roles (orgnz can't author a 'vndr' review).
+//
+// Assertions:
+//   (1) Vendor A authors a review of orgnz for an event they were on →
+//       both vndr A and orgnz CAN SELECT it.
+//   (2) Vendor B (unrelated) CANNOT SELECT vndr A's review row.
+//   (3) Vendor B CANNOT INSERT a review with reviewer_tenant_id =
+//       vndr A's tenant (RLS rejects the cross-tenant spoof).
+//   (4) Orgnz tenant CANNOT INSERT a review claiming reviewer_role='vndr'
+//       (user_roles role-match check rejects).
+// -----------------------------------------------------------------------------
+async function testEventReviewsRLS() {
+  const orgnz = await seedTestUser("orgnz");
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  const { data: event } = await adminClient
+    .from("events")
+    .insert({
+      name: `T-34 event ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2026-04-01",
+      guest_count: 75,
+      budget_cents: 800_000,
+      status: "completed",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+
+  const { data: review, error: reviewErr } = await vndrA.authedClient
+    .from("event_reviews")
+    .insert({
+      event_id: event.id,
+      reviewer_tenant_id: vndrA.tenantId,
+      reviewer_role: "vndr",
+      reviewee_tenant_id: orgnz.tenantId,
+      reviewee_role: "orgnz",
+      rating: 5,
+      body: `T-34 review ${TEST_RUN_ID}`,
+    })
+    .select("id")
+    .single();
+  if (reviewErr) throw new Error(`vndr A review insert failed: ${reviewErr.message}`);
+
+  // (1) vndr A and orgnz both CAN read.
+  const { data: aView, error: aErr } = await vndrA.authedClient
+    .from("event_reviews")
+    .select("id")
+    .eq("id", review.id);
+  if (aErr) throw new Error(`reviewer read failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`reviewer positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+  const { data: oView, error: oErr } = await orgnz.authedClient
+    .from("event_reviews")
+    .select("id")
+    .eq("id", review.id);
+  if (oErr) throw new Error(`reviewee read failed: ${oErr.message}`);
+  if (!oView || oView.length !== 1) {
+    throw new Error(`reviewee positive control: expected 1 row, got ${oView?.length ?? 0}`);
+  }
+
+  // (2) vndr B (unrelated) CANNOT read.
+  const { data: bView, error: bErr } = await vndrB.authedClient
+    .from("event_reviews")
+    .select("id")
+    .eq("id", review.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr event_reviews query: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: vndr B saw vndr A's review`);
+  }
+
+  // (3) vndr B CANNOT INSERT under vndr A's tenant.
+  const { data: spoof1, error: spoof1Err } = await vndrB.authedClient
+    .from("event_reviews")
+    .insert({
+      event_id: event.id,
+      reviewer_tenant_id: vndrA.tenantId,
+      reviewer_role: "vndr",
+      reviewee_tenant_id: orgnz.tenantId,
+      reviewee_role: "orgnz",
+      rating: 1,
+      body: `T-34 spoof ${TEST_RUN_ID}`,
+    })
+    .select("id");
+  if (!spoof1Err && spoof1 && spoof1.length > 0) {
+    throw new Error(`RLS LEAK: vndr B inserted a review under vndr A's tenant`);
+  }
+
+  // (4) Orgnz CANNOT INSERT a review with reviewer_role='vndr'.
+  const { data: spoof2, error: spoof2Err } = await orgnz.authedClient
+    .from("event_reviews")
+    .insert({
+      event_id: event.id,
+      reviewer_tenant_id: orgnz.tenantId,
+      reviewer_role: "vndr",
+      reviewee_tenant_id: vndrA.tenantId,
+      reviewee_role: "vndr",
+      rating: 1,
+      body: `T-34 role-spoof ${TEST_RUN_ID}`,
+    })
+    .select("id");
+  if (!spoof2Err && spoof2 && spoof2.length > 0) {
+    throw new Error(`RLS LEAK: orgnz inserted a review with reviewer_role='vndr'`);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TEST T-35: booking_cancellation_requests RLS (migration 063).
+//
+// Assertions:
+//   (1) Vendor A files a cancellation request on their own booking → row
+//       created; vndr A AND orgnz (counter-party) CAN see it.
+//   (2) Vendor B (unrelated) CANNOT see the request.
+//   (3) Vendor B CANNOT INSERT a request against vndr A's booking
+//       (bcr_insert booking-side join blocks).
+//   (4) Vendor B CANNOT UPDATE vndr A's request (bcr_update USING
+//       blocks; only requester or counter-party can update).
+// -----------------------------------------------------------------------------
+async function testBookingCancellationRequestsRLS() {
+  const orgnz = await seedTestUser("orgnz");
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  const { data: event } = await adminClient
+    .from("events")
+    .insert({
+      name: `T-35 event ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-08-15",
+      guest_count: 100,
+      budget_cents: 1_000_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+
+  const { data: booking, error: bookingErr } = await adminClient
+    .from("bookings")
+    .insert({
+      event_id: event.id,
+      vndr_tenant_id: vndrA.tenantId,
+      subtotal_cents: 100_000,
+      total_cents: 100_000,
+      balance_due_cents: 100_000,
+      tax_amount_cents: 0,
+      platform_fee_cents: 0,
+      vndr_referral_amount_cents: 0,
+      deposit_amount_cents: 0,
+      commission_amount_cents: 0,
+      vendor_payout_cents: 100_000,
+      deposit_pct: 0,
+      currency: "USD",
+      status: "confirmed",
+      remaining_amount_cents: 100_000,
+      platform_fee_deposit_cents: 0,
+      platform_fee_remaining_cents: 0,
+      stripe_fee_deposit_cents: 0,
+      stripe_fee_remaining_cents: 0,
+      plnr_referral_amount_cents: 0,
+      alcohol_revenue_cents: 0,
+      fee_split_mode: "self_managed",
+    })
+    .select("id")
+    .single();
+  if (bookingErr) throw new Error(`booking seed failed: ${bookingErr.message}`);
+
+  const { data: request, error: requestErr } = await vndrA.authedClient
+    .from("booking_cancellation_requests")
+    .insert({
+      booking_id: booking.id,
+      requested_by_tenant_id: vndrA.tenantId,
+      requested_by_role: "vndr",
+      reason_category: "scheduling_conflict",
+      reason_text: `T-35 request ${TEST_RUN_ID}`,
+    })
+    .select("id")
+    .single();
+  if (requestErr) throw new Error(`vndr A request insert failed: ${requestErr.message}`);
+
+  // (1) Both vndr A (requester) and orgnz (counter-party) CAN SELECT.
+  const { data: aView, error: aErr } = await vndrA.authedClient
+    .from("booking_cancellation_requests")
+    .select("id")
+    .eq("id", request.id);
+  if (aErr) throw new Error(`requester read failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`requester positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+  const { data: oView, error: oErr } = await orgnz.authedClient
+    .from("booking_cancellation_requests")
+    .select("id")
+    .eq("id", request.id);
+  if (oErr) throw new Error(`counter-party read failed: ${oErr.message}`);
+  if (!oView || oView.length !== 1) {
+    throw new Error(`counter-party positive control: expected 1 row, got ${oView?.length ?? 0}`);
+  }
+
+  // (2) vndr B (unrelated) CANNOT SELECT.
+  const { data: bView, error: bErr } = await vndrB.authedClient
+    .from("booking_cancellation_requests")
+    .select("id")
+    .eq("id", request.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr bcr query: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: vndr B saw vndr A's cancellation request`);
+  }
+
+  // (3) vndr B CANNOT INSERT a request against vndr A's booking.
+  const { data: spoofIns, error: spoofInsErr } = await vndrB.authedClient
+    .from("booking_cancellation_requests")
+    .insert({
+      booking_id: booking.id,
+      requested_by_tenant_id: vndrB.tenantId,
+      requested_by_role: "vndr",
+      reason_category: "other",
+      reason_text: `T-35 cross-tenant spoof ${TEST_RUN_ID}`,
+    })
+    .select("id");
+  if (!spoofInsErr && spoofIns && spoofIns.length > 0) {
+    throw new Error(`RLS LEAK: vndr B inserted a cancellation request on vndr A's booking`);
+  }
+
+  // (4) vndr B CANNOT UPDATE vndr A's request.
+  const { data: spoofUpd, error: spoofUpdErr } = await vndrB.authedClient
+    .from("booking_cancellation_requests")
+    .update({ status: "approved" })
+    .eq("id", request.id)
+    .select("id");
+  if (!spoofUpdErr && spoofUpd && spoofUpd.length > 0) {
+    throw new Error(`RLS LEAK: vndr B flipped vndr A's cancellation request status`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
 const TESTS = [
@@ -2856,6 +3101,8 @@ const TESTS = [
   { name: "T-31 vendor_date_commission_overrides isolation (migration 057 — vndr A vs B)", fn: testCrossTenantVendorDateCommissionsIsolation },
   { name: "T-32 inquiry_messages RLS for venue-as-buyer (migrations 059+061)", fn: testInquiryMessagesVenueBuyerRLS },
   { name: "T-33 buyer_role enforcement on booking_inquiries (migration 059)", fn: testBookingInquiriesBuyerRoleEnforcement },
+  { name: "T-34 event_reviews RLS (migration 062)", fn: testEventReviewsRLS },
+  { name: "T-35 booking_cancellation_requests RLS (migration 063)", fn: testBookingCancellationRequestsRLS },
 ];
 
 // -----------------------------------------------------------------------------

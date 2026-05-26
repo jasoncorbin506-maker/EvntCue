@@ -8,11 +8,13 @@ import { getVndrAvailabilityBlocksForMonth } from "@/lib/vndr/availability";
 import { getVndrPackages } from "@/lib/vndr/packages";
 import { getVendorProfile } from "@/lib/vndr/profile";
 import { assembleVndrHomeCue } from "@/lib/cue/vndr-home-prompt";
+import { getPendingReviewPromptsForVendor } from "@/lib/reviews/event-reviews";
 import { Chrome, AskCueButton, NotifButton, ChromeSignOut } from "./_components/Chrome";
 import { ResponseWindowAlert } from "./_components/ResponseWindowAlert";
 import { PackagesSection } from "./_components/PackagesSection";
 import { MiniCalendar } from "./_components/MiniCalendar";
 import { CuePanel } from "./_components/CuePanel";
+import { ReviewPromptsCard } from "./_components/ReviewPromptsCard";
 import s from "./vndr.module.css";
 
 /**
@@ -71,6 +73,7 @@ export default async function VndrHome({
     blocks,
     packages,
     vendorProfile,
+    reviewPrompts,
   ] = await Promise.all([
     getOldestUnrespondedInquiry(vendor.tenantId),
     getVndrHeroMetrics(vendor),
@@ -79,6 +82,7 @@ export default async function VndrHome({
     getVndrAvailabilityBlocksForMonth(vendor.tenantId, year, month),
     getVndrPackages(vendor.tenantId),
     getVendorProfile(vendor.tenantId),
+    getPendingReviewPromptsForVendor(vendor.tenantId),
   ]);
 
   const defaultCommissionPct = vendorProfile?.referralRatePct ?? null;
@@ -193,6 +197,11 @@ export default async function VndrHome({
       {/* 3 — Cue Panel (V-2c profile-completeness-one-time-cue session 24:
           extracted to client component for sessionStorage-backed dismiss). */}
       <CuePanel branches={cueBranches} />
+
+      {/* 3.5 — Pending review prompts (V-2c Session 2 Stream A, mig 062).
+          Only renders when the vendor has events past T+24h they haven't
+          reviewed yet. */}
+      {reviewPrompts.length > 0 && <ReviewPromptsCard prompts={reviewPrompts} />}
 
       {/* 4 — Active Inquiries / Bookings */}
       <section className={s.section}>
