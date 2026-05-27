@@ -2785,6 +2785,189 @@ async function testCrossTenantVenueCalendarAttestationsIsolation() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST T-34: venue_calendar_feeds + ical_feed-source block isolation (mig 067,
+// venue-calendar arc Session B). Cross-tenant feed visibility leak would let
+// one venue see another's source URLs — those URLs may contain secret feed
+// tokens (Google's "private address in iCal format" includes a per-calendar
+// secret token by design). Mirror T-32 shape, plus assert the ical_feed
+// source blocks are scoped via the same RLS chain.
+// -----------------------------------------------------------------------------
+async function testCrossTenantVenueCalendarFeedsIsolation() {
+  const venueA = await seedTestUser("venue");
+  const venueB = await seedTestUser("venue");
+
+  // Seed an A feed + an ical_feed-source block via admin.
+  const { data: aFeed, error: aFeedErr } = await adminClient
+    .from("venue_calendar_feeds")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      venue_space_id: null,
+      feed_url: `https://example.test/A-${TEST_RUN_ID}.ics`,
+      feed_label: `T-VCF seed ${TEST_RUN_ID}`,
+      source_system: "other",
+      created_by: venueA.userId,
+    })
+    .select("id")
+    .single();
+  if (aFeedErr || !aFeed) throw new Error(`seed A feed failed: ${aFeedErr?.message}`);
+
+  const { data: aBlock, error: aBlockErr } = await adminClient
+    .from("venue_availability_blocks")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      venue_space_id: null,
+      blocked_date: "2026-11-20",
+      start_time: null,
+      end_time: null,
+      reason: `T-VCF seed block ${TEST_RUN_ID}`,
+      source: "ical_feed",
+      source_ref: `T-VCF-uid-${TEST_RUN_ID}`,
+      source_feed_id: aFeed.id,
+      created_by: venueA.userId,
+    })
+    .select("id")
+    .single();
+  if (aBlockErr || !aBlock) throw new Error(`seed A ical block failed: ${aBlockErr?.message}`);
+
+  // Negative: B cannot SELECT A's feed (vcf_select tenant-private).
+  const { data: bFeedView, error: bFeedErr } = await venueB.authedClient
+    .from("venue_calendar_feeds")
+    .select("id, feed_url")
+    .eq("id", aFeed.id);
+  if (bFeedErr && bFeedErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-venue VCF SELECT: ${bFeedErr.message}`);
+  }
+  if (bFeedView && bFeedView.length > 0) {
+    throw new Error(`RLS LEAK: venue B saw venue A's calendar feed (URL would leak)`);
+  }
+
+  // Negative: B cannot SELECT A's ical_feed-source block via the venue_vab_select
+  // chain — even though the row exists, RLS scopes via venue_tenant_id.
+  const { data: bBlockView } = await venueB.authedClient
+    .from("venue_availability_blocks")
+    .select("id")
+    .eq("id", aBlock.id);
+  if (bBlockView && bBlockView.length > 0) {
+    throw new Error(`RLS LEAK: venue B saw venue A's ical_feed-source block`);
+  }
+
+  // Negative: B cannot INSERT a feed under A's tenant.
+  const { data: spoofFeed, error: spoofErr } = await venueB.authedClient
+    .from("venue_calendar_feeds")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      feed_url: `https://example.test/spoof-${TEST_RUN_ID}.ics`,
+      feed_label: `spoof ${TEST_RUN_ID}`,
+      created_by: venueB.userId,
+    })
+    .select("id");
+  if (spoofErr && spoofErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-venue VCF INSERT: ${spoofErr.message}`);
+  }
+  if (!spoofErr && spoofFeed && spoofFeed.length > 0) {
+    throw new Error(`RLS LEAK: venue B inserted feed under venue A's tenant`);
+  }
+
+  // Positive: A CAN read their own feed + block.
+  const { data: aFeedView, error: aReadErr } = await venueA.authedClient
+    .from("venue_calendar_feeds")
+    .select("id")
+    .eq("id", aFeed.id);
+  if (aReadErr) throw new Error(`A feed positive control failed: ${aReadErr.message}`);
+  if (!aFeedView || aFeedView.length !== 1) {
+    throw new Error(`A feed positive control: expected 1 row, got ${aFeedView?.length ?? 0}`);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TEST T-35: manual + ical_feed dedup-index coexistence guarantee (mig 066).
+// Manual-wins worker logic depends on the dedup unique index allowing a
+// manual block AND an ical_feed block to coexist for the same
+// (tenant, space, date) — they have different `source` values so the
+// idx_vab_dedup tuple differs. If a future migration tightens the index to
+// (tenant, space, date) only (without source), this test catches it: the
+// second insert would fail, breaking the worker's separation guarantee.
+//
+// NB: this is a schema-invariant test, not a worker-behavior test. The
+// worker's manual-wins SKIP logic (lib/venu/sync-feed.ts → filter on
+// manualDates set) is unit-tested via direct invocation in a future
+// worker-logic-test harness. T-35 here protects the load-bearing schema
+// invariant the worker layer depends on.
+// -----------------------------------------------------------------------------
+async function testManualAndIcalFeedDedupCoexistence() {
+  const venueA = await seedTestUser("venue");
+
+  // Insert a manual block for date D.
+  const { data: manualBlock, error: mErr } = await adminClient
+    .from("venue_availability_blocks")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      venue_space_id: null,
+      blocked_date: "2026-12-10",
+      start_time: null,
+      end_time: null,
+      reason: `T-MWC manual ${TEST_RUN_ID}`,
+      source: "manual",
+      created_by: venueA.userId,
+    })
+    .select("id")
+    .single();
+  if (mErr || !manualBlock) throw new Error(`seed manual block failed: ${mErr?.message}`);
+
+  // Insert an ical_feed block for the SAME (tenant, space, date) — different
+  // source. Schema MUST allow this (the dedup index keys on source too).
+  // The worker layer is responsible for NOT writing the ical block when
+  // a manual block exists; the SCHEMA layer must not block the rare
+  // already-coexisting case (e.g., a manual block added between feed sync
+  // and the next worker pass).
+  const { data: icalBlock, error: iErr } = await adminClient
+    .from("venue_availability_blocks")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      venue_space_id: null,
+      blocked_date: "2026-12-10",
+      start_time: null,
+      end_time: null,
+      reason: `T-MWC ical ${TEST_RUN_ID}`,
+      source: "ical_feed",
+      source_ref: `T-MWC-uid-${TEST_RUN_ID}`,
+      source_feed_id: null,
+      created_by: venueA.userId,
+    })
+    .select("id")
+    .single();
+  if (iErr || !icalBlock) {
+    throw new Error(
+      `SCHEMA REGRESSION: manual + ical_feed coexistence rejected by dedup index. ` +
+        `Worker-layer manual-wins depends on this being allowed. Error: ${iErr?.message}`,
+    );
+  }
+
+  // Negative-control: a SECOND ical_feed block with the SAME source_ref must
+  // be rejected (the dedup index DOES enforce ical-feed de-dup within a feed).
+  const { data: dupBlock, error: dupErr } = await adminClient
+    .from("venue_availability_blocks")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      venue_space_id: null,
+      blocked_date: "2026-12-10",
+      start_time: null,
+      end_time: null,
+      source: "ical_feed",
+      source_ref: `T-MWC-uid-${TEST_RUN_ID}`,
+      source_feed_id: null,
+      created_by: venueA.userId,
+    })
+    .select("id");
+  if (!dupErr && dupBlock && dupBlock.length > 0) {
+    throw new Error(
+      `SCHEMA REGRESSION: dedup index allowed duplicate ical_feed insert with same source_ref. ` +
+        `Re-sync would double-write events.`,
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
 const TESTS = [
@@ -2825,6 +3008,8 @@ const TESTS = [
   { name: "T-31 vendor_date_commission_overrides isolation (migration 057 — vndr A vs B)", fn: testCrossTenantVendorDateCommissionsIsolation },
   { name: "T-32 venue_availability_blocks isolation (migration 066 — venue A vs B)", fn: testCrossTenantVenueAvailabilityBlocksIsolation },
   { name: "T-33 venue_calendar_attestations isolation (migration 066 — venue A vs B)", fn: testCrossTenantVenueCalendarAttestationsIsolation },
+  { name: "T-34 venue_calendar_feeds + ical_feed block isolation (migration 067 — venue A vs B)", fn: testCrossTenantVenueCalendarFeedsIsolation },
+  { name: "T-35 manual + ical_feed coexistence in dedup index (migration 066 — schema invariant for manual-wins)", fn: testManualAndIcalFeedDedupCoexistence },
 ];
 
 // -----------------------------------------------------------------------------

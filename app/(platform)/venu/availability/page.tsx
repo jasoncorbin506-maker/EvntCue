@@ -7,9 +7,11 @@ import {
   hasVenueAttachedCalendar,
 } from "@/lib/venu/availability";
 import { getVenueSpaces } from "@/lib/venu/venue-spaces";
+import { getCalendarFeeds } from "@/lib/venu/calendar-feeds";
 import { AddBlockButton } from "./_components/AddBlockButton";
 import { BlockRow } from "./_components/BlockRow";
 import { AttestButton } from "./_components/AttestButton";
+import { ConnectedCalendarsSection } from "./_components/ConnectedCalendarsSection";
 import s from "./availability.module.css";
 
 /**
@@ -65,11 +67,12 @@ export default async function VenuAvailability() {
   const venue = await getCurrentVenue();
   if (!venue) redirect("/venues");
 
-  const [blocks, spaces, attestation, attached] = await Promise.all([
+  const [blocks, spaces, attestation, attached, feeds] = await Promise.all([
     getVenueAvailabilityBlocks(venue.tenantId),
     getVenueSpaces(venue.tenantId),
     getCalendarAttestation(venue.tenantId),
     hasVenueAttachedCalendar(venue.tenantId),
+    getCalendarFeeds(venue.tenantId),
   ]);
 
   const manualBlocks = blocks.filter((b) => b.source === "manual");
@@ -102,6 +105,8 @@ export default async function VenuAvailability() {
           </div>
         </section>
       )}
+
+      <ConnectedCalendarsSection feeds={feeds} spaces={spaces} />
 
       <section className={s.section}>
         <div className={s.sectionHead}>
