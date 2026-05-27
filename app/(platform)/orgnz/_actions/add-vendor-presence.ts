@@ -42,9 +42,9 @@ export async function addVendorPresence(
 ): Promise<AddVendorPresenceResult> {
   if (!input.eventId) return { ok: false, error: "Missing event." };
   const vendorName = input.vendorName.trim();
-  if (!vendorName) return { ok: false, error: "Vendor name is required." };
+  if (!vendorName) return { ok: false, error: "Vndr name is required." };
   if (vendorName.length > 200) {
-    return { ok: false, error: "Vendor name too long." };
+    return { ok: false, error: "Vndr name too long." };
   }
   if (!Array.isArray(input.phases) || input.phases.length === 0) {
     return { ok: false, error: "Select at least one phase." };
@@ -96,7 +96,7 @@ export async function addVendorPresence(
     .single();
 
   if (error || !data) {
-    return { ok: false, error: error?.message ?? "Could not add vendor." };
+    return { ok: false, error: error?.message ?? "Could not add Vndr." };
   }
 
   revalidatePath("/orgnz");

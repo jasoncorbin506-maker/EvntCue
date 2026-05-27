@@ -133,7 +133,7 @@ export function OrgnzInquiriesList({ inquiries }: Props) {
           </div>
           <div className={s.emptyStateBody}>
             {filter === "all"
-              ? "When you reach out to vendors about an event, those inquiries land here. Start from a vendor's profile or from the planner side of your event."
+              ? "When you reach out to Vndrs about an event, those inquiries land here. Start from a Vndr's profile or from the Plnr side of your event."
               : `Nothing in ${FILTER_LABELS[filter]} right now. Try a different filter to see more.`}
           </div>
         </div>
@@ -157,7 +157,7 @@ export function OrgnzInquiriesList({ inquiries }: Props) {
                   </span>
                 </div>
                 <div className={s.inqRowMid}>
-                  <b>{inq.vendorDisplayName ?? "Vendor"}</b>
+                  <b>{inq.vendorDisplayName ?? "Vndr"}</b>
                   {" · "}
                   {inq.guestCount > 0
                     ? `${inq.guestCount} guests`

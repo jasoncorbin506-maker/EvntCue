@@ -174,12 +174,12 @@ export function AddVendorSheet({ open, eventId, onClose, onAdded }: Props) {
               className={s.input}
               value={roleLabel}
               onChange={(e) => setRoleLabel(e.target.value)}
-              placeholder="e.g., photographer, officiant, venue coordinator"
+              placeholder="e.g., photographer, officiant, Venu coordinator"
               maxLength={100}
               autoComplete="off"
             />
             <span className={s.hint}>
-              Shown as the primary label in the cast list. Vendor name appears beneath.
+              Shown as the primary label in the cast list. Vndr name appears beneath.
             </span>
           </label>
 
@@ -217,7 +217,7 @@ export function AddVendorSheet({ open, eventId, onClose, onAdded }: Props) {
                 className={s.notesToggle}
                 onClick={() => setNotesOpen(true)}
               >
-                + Add a note about this vendor
+                + Add a note about this Vndr
               </button>
             ) : (
               <>
@@ -226,7 +226,7 @@ export function AddVendorSheet({ open, eventId, onClose, onAdded }: Props) {
                   className={s.textarea}
                   value={notes}
                   onChange={(e) => setNotes(e.target.value)}
-                  placeholder="Anything you want to remember about this vendor"
+                  placeholder="Anything you want to remember about this Vndr"
                   maxLength={1000}
                   rows={3}
                 />
@@ -252,7 +252,7 @@ export function AddVendorSheet({ open, eventId, onClose, onAdded }: Props) {
               title={
                 !canSubmit
                   ? vendorName.trim().length === 0
-                    ? "Enter a vendor name"
+                    ? "Enter a Vndr name"
                     : "Select at least one phase"
                   : undefined
               }

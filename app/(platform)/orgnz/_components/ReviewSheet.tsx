@@ -67,7 +67,7 @@ export function ReviewSheet({ prompt, onClose }: Props) {
         <div className={s.sheetHeader}>
           <div>
             <div className={s.sheetTitle}>
-              Review {prompt.counterpartyDisplayName ?? "vendor"}
+              Review {prompt.counterpartyDisplayName ?? "Vndr"}
             </div>
             <div className={s.sheetSubtitle}>
               {prompt.eventName} · {formatEventDate(prompt.eventDate)}
@@ -111,7 +111,7 @@ export function ReviewSheet({ prompt, onClose }: Props) {
         <div className={s.sectionLbl}>Notes (optional)</div>
         <textarea
           className={s.composerInput}
-          placeholder="What stood out? Anything the vendor should know for next time?"
+          placeholder="What stood out? Anything the Vndr should know for next time?"
           value={body}
           onChange={(e) => setBody(e.target.value)}
           rows={4}

@@ -43,8 +43,8 @@ export function ReviewPromptsCard({ prompts }: Props) {
         <div className={s.sheetTitle}>Reviews to write</div>
         <div className={s.sheetSubtitle}>
           {prompts.length === 1
-            ? "1 vendor is waiting"
-            : `${prompts.length} vendors waiting`}
+            ? "1 Vndr is waiting"
+            : `${prompts.length} Vndrs waiting`}
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -58,7 +58,7 @@ export function ReviewPromptsCard({ prompts }: Props) {
           >
             <div style={{ minWidth: 0 }}>
               <div style={{ fontFamily: "var(--font-ui)", fontSize: 13, fontWeight: 600, color: "#fff" }}>
-                {p.counterpartyDisplayName ?? "Vendor"}
+                {p.counterpartyDisplayName ?? "Vndr"}
               </div>
               <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--txt3)", marginTop: 2 }}>
                 {p.eventName} · {formatEventDate(p.eventDate)}

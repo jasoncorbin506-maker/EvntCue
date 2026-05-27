@@ -37,10 +37,10 @@ function formatTimestamp(iso: string): string {
 
 function whoLabel(role: InquirySenderRole, isMine: boolean): string {
   if (isMine) return "You";
-  if (role === "vndr") return "Vendor";
-  if (role === "venue") return "Venue";
-  if (role === "plnr") return "Planner";
-  return "Organizer";
+  if (role === "vndr") return "Vndr";
+  if (role === "venue") return "Venu";
+  if (role === "plnr") return "Plnr";
+  return "Orgnz";
 }
 
 export function OrgnzInquiryThread({ inquiryId }: Props) {
@@ -182,7 +182,7 @@ export function OrgnzInquiryThread({ inquiryId }: Props) {
       <div className={s.composer}>
         <textarea
           className={s.composerInput}
-          placeholder="Message the vendor…"
+          placeholder="Message the Vndr…"
           value={composer}
           onChange={(e) => setComposer(e.target.value)}
           rows={2}
