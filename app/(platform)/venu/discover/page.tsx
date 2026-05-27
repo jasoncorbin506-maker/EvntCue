@@ -4,6 +4,7 @@ import { Chrome, LivePill } from "../_components/Chrome";
 import { CalendarAttestationCard } from "../_components/CalendarAttestationCard";
 import { getCurrentVenue } from "@/lib/venu/current-venue";
 import { hasVenueAttachedCalendar } from "@/lib/venu/availability";
+import { getVenueNewInquiryCount } from "@/lib/venu/inquiries";
 import s from "../venu.module.css";
 
 /**
@@ -34,7 +35,10 @@ export default async function VenuDiscover({
   const venueName = venue.displayName;
   const isLive = false;
   const isFirstTimeClaim = welcome === "claim";
-  const calendarAttached = await hasVenueAttachedCalendar(venue.tenantId);
+  const [calendarAttached, newInquiryCount] = await Promise.all([
+    hasVenueAttachedCalendar(venue.tenantId),
+    getVenueNewInquiryCount(venue.tenantId),
+  ]);
 
   return (
     <>
@@ -58,12 +62,24 @@ export default async function VenuDiscover({
               tools are ready when you are.
             </p>
           </>
+        ) : newInquiryCount > 0 ? (
+          <>
+            <div className={s.welcomeEyebrow}>Welcome back</div>
+            <div className={s.welcomeHeadline}>
+              {newInquiryCount === 1
+                ? "One new inquiry waiting."
+                : `${newInquiryCount} new inquiries waiting.`}
+            </div>
+            <p className={s.welcomeBody}>
+              Reply within 24h to keep the SLA dot green.
+            </p>
+          </>
         ) : (
           <>
             <div className={s.welcomeEyebrow}>Welcome back</div>
-            <div className={s.welcomeHeadline}>You&apos;re ready for the week.</div>
+            <div className={s.welcomeHeadline}>All quiet for now.</div>
             <p className={s.welcomeBody}>
-              Two new inquiries are waiting. Saturday&apos;s booking goes live in 4 days.
+              No new inquiries this week. Your space is set up and ready.
             </p>
           </>
         )}
@@ -90,8 +106,18 @@ export default async function VenuDiscover({
               <path d="M4 7l8 6 8-6" />
             </svg>
           </div>
-          <div className={s.tileLabel}>2 new inquiries</div>
-          <div className={s.tileSub}>Reply within 24h to keep SLA green.</div>
+          <div className={s.tileLabel}>
+            {newInquiryCount === 0
+              ? "No new inquiries"
+              : newInquiryCount === 1
+                ? "1 new inquiry"
+                : `${newInquiryCount} new inquiries`}
+          </div>
+          <div className={s.tileSub}>
+            {newInquiryCount === 0
+              ? "Waiting on the first one. We'll surface them here."
+              : "Reply within 24h to keep SLA green."}
+          </div>
         </Link>
 
         <Link href="/venu/bookings" className={s.tile}>
