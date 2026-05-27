@@ -5,6 +5,7 @@ import {
   getVendorPhotos,
   getVendorCertifications,
 } from "@/lib/vndr/profile";
+import { getVndrPackages } from "@/lib/vndr/packages";
 import { Chrome, NotifButton, ChromeSignOut } from "../_components/Chrome";
 import { ProfileForm } from "../_components/ProfileForm";
 
@@ -22,10 +23,11 @@ export default async function VndrProfile() {
   const vendor = await getCurrentVendor();
   if (!vendor) redirect("/vndr-onboarding/1");
 
-  const [profile, photos, certs] = await Promise.all([
+  const [profile, photos, certs, packages] = await Promise.all([
     getVendorProfile(vendor.tenantId),
     getVendorPhotos(vendor.tenantId),
     getVendorCertifications(vendor.tenantId),
+    getVndrPackages(vendor.tenantId),
   ]);
 
   if (!profile) redirect("/vndr-onboarding/1");
@@ -46,6 +48,7 @@ export default async function VndrProfile() {
         profile={profile}
         photos={photos}
         certifications={certs}
+        packages={packages}
       />
     </>
   );

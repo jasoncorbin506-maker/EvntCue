@@ -3,7 +3,9 @@
 import { useState, useTransition } from "react";
 import { updateVendorProfile, type UpdateVendorProfileInput } from "../_actions/update-vendor-profile";
 import type { VendorProfile, VendorPhoto, VendorCertification } from "@/lib/vndr/profile";
+import type { VndrPackage } from "@/lib/vndr/packages-shared";
 import { PhotosGrid } from "./PhotosGrid";
+import { PackagesSection } from "./PackagesSection";
 import s from "../vndr.module.css";
 
 /**
@@ -19,7 +21,7 @@ import s from "../vndr.module.css";
  *   - Pricing: starting price ($), referral rate (%)
  *   - Photos (separate handler — see PhotosGrid)
  *   - Certifications (read-only list)
- *   - Packages (link to Home tab — package editing lives there)
+ *   - Packages (full create/edit — mirrors the Home tab affordance)
  *
  * Validation runs server-side; surface errors inline under each section.
  */
@@ -28,6 +30,7 @@ type Props = {
   profile: VendorProfile;
   photos: VendorPhoto[];
   certifications: VendorCertification[];
+  packages: VndrPackage[];
 };
 
 type DraftState = {
@@ -71,7 +74,7 @@ const CERT_LABEL: Record<string, string> = {
   health_permit: "Health permit",
 };
 
-export function ProfileForm({ profile, photos, certifications }: Props) {
+export function ProfileForm({ profile, photos, certifications, packages }: Props) {
   const [draft, setDraft] = useState<DraftState>(profileToDraft(profile));
   const [editing, setEditing] = useState<Section | null>(null);
   const [pending, startTransition] = useTransition();
@@ -375,7 +378,7 @@ export function ProfileForm({ profile, photos, certifications }: Props) {
             </Field>
             <div className={s.formHint}>
               This is your profile-level referral rate. Per-package referrals
-              live on the Packages section of the Home tab.
+              live in the Packages section below.
             </div>
           </>
         ) : (
@@ -431,19 +434,12 @@ export function ProfileForm({ profile, photos, certifications }: Props) {
         )}
       </div>
 
-      {/* ── PACKAGES (link to Home tab) ───────────────────── */}
-      <div className={s.profileSection}>
-        <div className={s.sectionHead}>
-          <span className={s.sectionTitle}>Packages</span>
-        </div>
-        <div className={s.formHint}>
-          Edit packages + referral % + visibility on the{" "}
-          <a className={s.linkInline} href="/vndr">
-            Home tab
-          </a>
-          .
-        </div>
-      </div>
+      {/* ── PACKAGES (full create/edit affordance — was Home-only pre-fix) ───
+         Mounts the same PackagesSection used on /vndr Home. PackagesSection
+         owns the EditPackageSheet open/close state, so the Profile tab now
+         has full package management parity with Home. Removed the prior
+         "edit on Home tab" pointer because the user can do everything here. */}
+      <PackagesSection packages={packages} />
 
       {error && <div className={s.formErr}>{error}</div>}
     </div>
