@@ -87,14 +87,22 @@ export async function respondToCancellationRequest(
     bookingUpdate.cancellation_reason =
       CATEGORY_LABELS[category as keyof typeof CATEGORY_LABELS] ?? category;
   }
-  const { error: bookingErr } = await supabase
+  // count: 'exact' so RLS-denied UPDATEs surface as errors (the request
+  // already updated successfully; we'd be in a half-done state otherwise).
+  const { error: bookingErr, count: bookingCount } = await supabase
     .from("bookings")
-    .update(bookingUpdate)
+    .update(bookingUpdate, { count: "exact" })
     .eq("id", input.bookingId);
   if (bookingErr) {
     return {
       ok: false,
       error: `Request updated but booking status didn't flip: ${bookingErr.message}`,
+    };
+  }
+  if ((bookingCount ?? 0) === 0) {
+    return {
+      ok: false,
+      error: "Request updated but booking status didn't flip — RLS may have denied the UPDATE. Contact support.",
     };
   }
 

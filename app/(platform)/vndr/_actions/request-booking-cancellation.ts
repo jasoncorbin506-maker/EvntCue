@@ -68,17 +68,24 @@ export async function requestBookingCancellation(
   }
 
   // Flip the booking status so the organizer sees something in flux.
-  // Best-effort: if this UPDATE fails for any reason, the request row is
-  // already in place — organizer will still see it via their pending
-  // requests query. Don't roll back; flag the partial state.
-  const { error: statusErr } = await supabase
+  // Use count: 'exact' so RLS-denied (0-rows-affected) failures surface
+  // as errors instead of silent no-ops. Per V-2c session 26 bug: bookings
+  // had no UPDATE policy at all until mig 065; the action returned
+  // ok: true even though the status flip never happened.
+  const { error: statusErr, count: statusCount } = await supabase
     .from("bookings")
-    .update({ status: "cancellation_requested" })
+    .update({ status: "cancellation_requested" }, { count: "exact" })
     .eq("id", input.bookingId);
   if (statusErr) {
     return {
       ok: false,
       error: `Request filed but booking status didn't update: ${statusErr.message}`,
+    };
+  }
+  if ((statusCount ?? 0) === 0) {
+    return {
+      ok: false,
+      error: "Request filed but booking status didn't flip — RLS may have denied the UPDATE. Contact support.",
     };
   }
 
