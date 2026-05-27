@@ -1,7 +1,6 @@
 {
   "crons": [
     {
-      "_comment": "Once-daily at 06:00 UTC (~01:00 ET). Vercel Hobby tier caps crons at daily granularity; brief originally specced hourly but daily is acceptable pre-launch given the 'Sync now' button covers on-demand refresh. Bump to hourly ('0 * * * *') after upgrading to Pro.",
       "path": "/api/cron/sync-calendar-feeds",
       "schedule": "0 6 * * *"
     }
