@@ -102,8 +102,20 @@ export function EventNotificationCard({ notification }: Props) {
       <b>{vndr}</b> declined the date change.
     </>
   );
+  // UX critique #2.4 (Lock 24 Chunk E) — surface email delivery failures
+  // on the expired card so the orgnz user knows the Vndr may not have
+  // actually received the notification. The Resend bounce webhook sets
+  // payload.email_delivery_failed = true on bounce; we read it here.
+  const payloadRecord = (notification.payload ?? {}) as unknown as Record<
+    string,
+    unknown
+  >;
+  const emailDeliveryFailed = payloadRecord.email_delivery_failed === true;
+
   const subtitle = isExpired
-    ? `Their calendar lock on ${oldDateShort} has released. Choose how to proceed.`
+    ? emailDeliveryFailed
+      ? `We couldn't reach ${vndr} by email (delivery failed). You may want to contact them directly — their calendar lock on ${oldDateShort} has released.`
+      : `Their calendar lock on ${oldDateShort} has released. Choose how to proceed.`
     : `${vndr} can't accommodate the new date. Your booking record remains, but you'll need to either re-engage them for a different solution or find a replacement.`;
 
   return (
