@@ -6,6 +6,7 @@ import type { VendorProfile, VendorPhoto, VendorCertification } from "@/lib/vndr
 import type { VndrPackage } from "@/lib/vndr/packages-shared";
 import { PhotosGrid } from "./PhotosGrid";
 import { PackagesSection } from "./PackagesSection";
+import { CertificationsSection } from "./CertificationsSection";
 import s from "../vndr.module.css";
 
 /**
@@ -20,7 +21,7 @@ import s from "../vndr.module.css";
  *   - Location: city, service ZIPs (chip multi-input)
  *   - Pricing: starting price ($), referral rate (%)
  *   - Photos (separate handler — see PhotosGrid)
- *   - Certifications (read-only list)
+ *   - Certifications (list + add/re-upload via CertificationSheet)
  *   - Packages (full create/edit — mirrors the Home tab affordance)
  *
  * Validation runs server-side; surface errors inline under each section.
@@ -65,14 +66,6 @@ function profileToDraft(p: VendorProfile): DraftState {
 }
 
 type Section = "basic" | "contact" | "location" | "pricing";
-
-const CERT_LABEL: Record<string, string> = {
-  business_license: "Business license",
-  liability_insurance: "Liability insurance",
-  food_handler: "Food handler",
-  alcohol_service: "Alcohol service",
-  health_permit: "Health permit",
-};
 
 export function ProfileForm({ profile, photos, certifications, packages }: Props) {
   const [draft, setDraft] = useState<DraftState>(profileToDraft(profile));
@@ -407,32 +400,14 @@ export function ProfileForm({ profile, photos, certifications, packages }: Props
         <PhotosGrid initial={photos} />
       </div>
 
-      {/* ── CERTIFICATIONS (read-only) ────────────────────── */}
-      <div className={s.profileSection}>
-        <div className={s.sectionHead}>
-          <span className={s.sectionTitle}>Certifications</span>
-        </div>
-        {certifications.length === 0 ? (
-          <div className={s.formHint}>
-            No certifications on file. Upload via the onboarding flow.
-          </div>
-        ) : (
-          <ul className={s.certList}>
-            {certifications.map((c) => (
-              <li key={c.id} className={s.certRow}>
-                <span className={s.certName}>
-                  {CERT_LABEL[c.certType] ?? c.certType}
-                </span>
-                <span
-                  className={`${s.certBadge} ${c.verified ? s.certVerified : s.certPending}`.trim()}
-                >
-                  {c.verified ? "Verified" : "Pending"}
-                </span>
-              </li>
-            ))}
-          </ul>
-        )}
-      </div>
+      {/* ── CERTIFICATIONS (list + add/re-upload sheet) ─────────
+         Previously read-only with "Upload via the onboarding flow"
+         pointer; vendors who skipped Stage 4 cert upload had no recovery
+         path. CertificationsSection adds an Add button + CertificationSheet
+         (mirrors EditPackageSheet pattern) that reuses uploadCertAction
+         from the onboarding _actions/ — same server logic, new entry
+         point. */}
+      <CertificationsSection certifications={certifications} />
 
       {/* ── PACKAGES (full create/edit affordance — was Home-only pre-fix) ───
          Mounts the same PackagesSection used on /vndr Home. PackagesSection
