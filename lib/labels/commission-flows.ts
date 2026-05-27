@@ -56,7 +56,7 @@ export const commissionFlowDescription: Record<CommissionFlowType, string> = {
   co_plnr_split:
     "Revenue share between two planners collaborating on the same event.",
   platform_fee:
-    "EvntCue's 2.5% platform fee on the booking.",
+    "EvntCue's platform commission on the booking. Rate varies by tier and portal; see data/commission-rates.ts for the canonical v2a matrix. Includes payment processing — vendors see one consolidated number, not a Stripe vs platform breakdown.",
   platform_marketplace_fee:
     "Marketplace fee applied to discovery-driven bookings.",
   virtual_attendance_fee:

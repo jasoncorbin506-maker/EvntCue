@@ -12,10 +12,11 @@ import { Calculator } from "./Calculator";
  * funnel pattern). Mobile-first edge-to-edge at <640px; phone-frame preview
  * on desktop.
  *
- * Per master spec §75: vendor profile is free forever; the only charges are
- * commission + 2.5% platform fee on actual bookings. The one-glance rule
- * is the load-bearing constraint — every pricing surface must lead with the
- * take-home, never with a rate-tier matrix.
+ * Per master spec §75 + Lock 25 v2a: vendor profile is free forever; the
+ * only charge is a consolidated commission per booking (Vndr Free 7.5%
+ * all-in / Pro 6% all-in — Stripe processing baked into the rate). The
+ * one-glance rule is the load-bearing constraint — every pricing surface
+ * must lead with the take-home, never with a rate-tier matrix.
  *
  * Coral accent (#E8622A) per CLAUDE.md 2026-05-05 portal table.
  */
