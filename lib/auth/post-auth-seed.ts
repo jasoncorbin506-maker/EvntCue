@@ -92,14 +92,41 @@ export async function postAuthSeed(args: {
     if (insertUserErr) throw new Error("Could not create profile.");
   }
 
-  // 2. Ensure tenant + user_roles for the requested role.
-  // Branch on args.role — Orgnz is the default funnel; Vndr branches in here
-  // when Door B sign-up routes through /login?role=vndr&intent=claim_listing
-  // (set by app/(public)/vndr-onboarding/_actions/save-vndr-session.ts after
-  // Stage 0 calculator submit). tenants.type accepts both 'orgnz' and 'vndr'
-  // per the tenant_type enum (migration 001).
-  const desiredRole: "orgnz" | "vndr" =
-    args.role === "vndr" ? "vndr" : "orgnz";
+  // 2. Resolve desired role + ensure tenant.
+  //
+  // Three-priority chain (revised 2026-05-27 — Lock 26 soft-closure compliance):
+  //
+  //   1. Explicit `args.role` hint from the auth flow. Vndr Door B sets
+  //      role=vndr after Stage 0 calculator. Future portals can pass their
+  //      own role hints the same way.
+  //   2. If the user already has any role rows, respect their primary one.
+  //      DO NOT auto-seed an orgnz tenant for a venue / plnr / catr / admin
+  //      user — that would silently violate Lock 26 ("no new multi-role
+  //      accounts post-launch"). Surfaced 2026-05-27 when the CvenuTest
+  //      account signed in and got an unwanted orgnz tenant created.
+  //   3. First-time funnel signup with no existing roles → default orgnz.
+  //
+  // tenants.type accepts every value in the role list per the tenant_type
+  // enum (migration 001 + later additions).
+  const VALID_ROLES = ["orgnz", "vndr", "venue", "plnr", "catr", "admin"] as const;
+  type DesiredRole = (typeof VALID_ROLES)[number];
+  const isValidRole = (r: string | null): r is DesiredRole =>
+    !!r && (VALID_ROLES as readonly string[]).includes(r);
+
+  let desiredRole: DesiredRole;
+  if (isValidRole(args.role)) {
+    desiredRole = args.role;
+  } else {
+    const { data: existingRoles } = await admin
+      .from("user_roles")
+      .select("role, is_primary, created_at")
+      .eq("user_id", args.userId)
+      .order("is_primary", { ascending: false })
+      .order("created_at", { ascending: true });
+
+    const primary = existingRoles?.[0]?.role as string | undefined;
+    desiredRole = isValidRole(primary ?? null) ? (primary as DesiredRole) : "orgnz";
+  }
 
   const { data: existingRole } = await admin
     .from("user_roles")
@@ -166,8 +193,8 @@ export async function postAuthSeed(args: {
     );
     if (sessionToken) c.delete("evntcue_capture_session");
     if (stage0Raw) c.delete("evntcue_vndr_stage0");
-  } else {
-    // Orgnz path (default). Two sources:
+  } else if (desiredRole === "orgnz") {
+    // Orgnz path. Two sources:
     //    (a) Cookies on this device (same-device email-confirm or direct signin).
     //    (b) PARKING_LOT #12 fallback: cross-device email-confirm — cookies are
     //        on the signup device, not the confirming one. signUpAction wrote
@@ -238,6 +265,10 @@ export async function postAuthSeed(args: {
 
   if (desiredRole === "vndr") return "/vndr-onboarding/1";
   if (args.intent === "mood_board") return "/mood-board";
+  if (desiredRole === "venue") return "/venu";
+  if (desiredRole === "plnr") return "/plnr";
+  if (desiredRole === "catr") return "/catr";
+  if (desiredRole === "admin") return "/admin";
   return "/orgnz";
 }
 

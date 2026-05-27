@@ -41,6 +41,22 @@ export async function getVenueInquiries(tenantId: string): Promise<VenuInquiry[]
   return (data ?? []).map((row) => shape(row, now));
 }
 
+/**
+ * Count of inquiries that fall under the "New" segment per
+ * Venu_Locked_2026-05-13.md row 2: status ∈ {inquiry, reviewing}. Used by
+ * the BottomNav badge + the Discover tile so neither shows a phantom number
+ * when the venue has no real inquiries yet.
+ */
+export async function getVenueNewInquiryCount(tenantId: string): Promise<number> {
+  const supabase = await createClient();
+  const { count } = await supabase
+    .from("venue_inquiries")
+    .select("id", { count: "exact", head: true })
+    .eq("venue_tenant_id", tenantId)
+    .in("status", ["inquiry", "reviewing"]);
+  return count ?? 0;
+}
+
 export async function getVenueInquiry(id: string): Promise<VenuInquiry | null> {
   const supabase = await createClient();
   const { data } = await supabase

@@ -1,5 +1,7 @@
 import type { CSSProperties, ReactNode } from "react";
 import { BottomNav } from "./_components/BottomNav";
+import { getCurrentVenue } from "@/lib/venu/current-venue";
+import { getVenueNewInquiryCount } from "@/lib/venu/inquiries";
 import s from "./venu.module.css";
 
 /**
@@ -16,6 +18,10 @@ import s from "./venu.module.css";
  *
  * Auth/role check happens upstream in proxy.ts — this layout assumes the
  * request has already been gated to a user with role='venue' or 'admin'.
+ *
+ * Fetches the New-inquiry count (status ∈ {inquiry, reviewing}) for the
+ * BottomNav badge. The query is a HEAD count — cheap; runs on every venue
+ * route render.
  */
 const venuTheme: CSSProperties = {
   ["--prime" as string]: "var(--blue)",
@@ -25,11 +31,14 @@ const venuTheme: CSSProperties = {
   ["--prime-pale" as string]: "var(--blutt)",
 };
 
-export default function VenuLayout({ children }: { children: ReactNode }) {
+export default async function VenuLayout({ children }: { children: ReactNode }) {
+  const venue = await getCurrentVenue();
+  const inquiryCount = venue ? await getVenueNewInquiryCount(venue.tenantId) : 0;
+
   return (
     <div id="venu-app" style={venuTheme} className={s.phone}>
       <div className={s.scroll}>{children}</div>
-      <BottomNav />
+      <BottomNav inquiryCount={inquiryCount} />
     </div>
   );
 }

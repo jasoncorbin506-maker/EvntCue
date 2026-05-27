@@ -1,0 +1,113 @@
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+  background: var(--bg2);
+}
+
+.head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.headL {
+  min-width: 0;
+  flex: 1;
+}
+
+.label {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--txt);
+  letter-spacing: 0.02em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.meta {
+  display: flex;
+  gap: 4px;
+  font-size: 12px;
+  color: var(--txt2);
+  margin-top: 1px;
+}
+
+.dot {
+  opacity: 0.6;
+}
+
+.pausedPill {
+  flex-shrink: 0;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  background: rgba(0, 0, 0, 0.05);
+  color: var(--txt2);
+  border: 0.5px solid var(--bdr);
+}
+
+.statusRow {
+  font-size: 12px;
+}
+
+.statusLine {
+  color: var(--txt2);
+}
+
+.errorLine {
+  color: #B33;
+  background: rgba(179, 51, 51, 0.06);
+  border: 0.5px solid rgba(179, 51, 51, 0.2);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.actionBtn {
+  flex: 1;
+  min-width: 0;
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  border-radius: 999px;
+  padding: 6px 10px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--txt2);
+  cursor: pointer;
+}
+
+.actionBtn:hover:not(:disabled) {
+  color: var(--txt);
+  border-color: var(--txt2);
+}
+
+.actionBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.danger {
+  color: #B33;
+}
+
+.danger:hover:not(:disabled) {
+  border-color: #B33;
+  color: #B33;
+}

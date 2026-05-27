@@ -13,9 +13,9 @@ import s from "../venu.module.css";
  * lines ~529–551 (Screen 1 nav). Five tabs per Venu_Locked_2026-05-13.md
  * §"Nav structure (five tabs)".
  *
- * Inquiries badge is hardcoded for chunk A (the lock doc shows "2" in the
- * mockup as illustrative). Chunk B wires the real count from `inquiries`
- * rows where status='inquiry' AND venue_id=current_venue.
+ * Inquiries badge wired via prop from the portal layout — real count of
+ * status ∈ {inquiry, reviewing} per Venu_Locked_2026-05-13.md row 2.
+ * 0 hides the badge entirely.
  */
 const TABS = [
   {
@@ -37,7 +37,6 @@ const TABS = [
         <path d="M4 7l8 6 8-6" />
       </svg>
     ),
-    badgeStub: 2,
   },
   {
     href: "/venu/bookings",
@@ -69,12 +68,17 @@ const TABS = [
   },
 ] as const;
 
-export function BottomNav() {
+type Props = {
+  inquiryCount: number;
+};
+
+export function BottomNav({ inquiryCount }: Props) {
   const pathname = usePathname();
   return (
     <nav className={s.nav} aria-label="Venu portal tabs">
       {TABS.map((tab) => {
         const active = pathname === tab.href || pathname.startsWith(`${tab.href}/`);
+        const badge = tab.href === "/venu/inquiries" ? inquiryCount : 0;
         return (
           <Link
             key={tab.href}
@@ -84,8 +88,8 @@ export function BottomNav() {
           >
             <div className={s.navIco}>{tab.icon}</div>
             <div className={s.navLbl}>{tab.label}</div>
-            {"badgeStub" in tab && tab.badgeStub > 0 && (
-              <div className={s.navBadge}>{tab.badgeStub}</div>
+            {badge > 0 && (
+              <div className={s.navBadge}>{badge}</div>
             )}
           </Link>
         );

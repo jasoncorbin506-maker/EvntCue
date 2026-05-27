@@ -1,0 +1,21 @@
+.button {
+  background: var(--blue, #2a6bdb);
+  color: white;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  cursor: pointer;
+  text-transform: uppercase;
+}
+
+.button:hover {
+  filter: brightness(1.08);
+}
+
+.button:active {
+  filter: brightness(0.95);
+}

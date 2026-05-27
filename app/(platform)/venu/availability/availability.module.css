@@ -1,0 +1,99 @@
+/* Venu Availability page — Session A. Reuses venu.module.css base tokens
+   (--bdr, --txt, --txt2, --blue, etc.). Local rules only for the per-page
+   layout. */
+
+.section {
+  padding: 18px;
+  border-bottom: 0.5px solid var(--bdr);
+}
+
+.sectionHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 4px;
+}
+
+.sectionTitle {
+  font-family: Cormorant, serif;
+  font-style: italic;
+  font-size: 22px;
+  color: var(--txt);
+  margin: 0;
+}
+
+.sectionHint {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 13px;
+  color: var(--txt2);
+  margin: 0 0 14px;
+  line-height: 1.45;
+}
+
+.monthBlock {
+  margin-top: 14px;
+}
+
+.monthLabel {
+  font-family: "Barlow Condensed", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: var(--txt2);
+  margin-bottom: 6px;
+}
+
+.blockList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.emptyState {
+  font-size: 14px;
+  color: var(--txt2);
+  background: var(--bg2);
+  border: 0.5px dashed var(--bdr);
+  border-radius: 10px;
+  padding: 14px 16px;
+  text-align: center;
+}
+
+.attestSection {
+  padding: 20px 18px;
+  border-bottom: 0.5px solid var(--bdr);
+  background: linear-gradient(180deg, rgba(42, 107, 219, 0.07), transparent);
+}
+
+.attestEyebrow {
+  font-family: "Barlow Condensed", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 11px;
+  color: var(--blue, #2a6bdb);
+  margin-bottom: 6px;
+}
+
+.attestTitle {
+  font-family: Cormorant, serif;
+  font-style: italic;
+  font-size: 24px;
+  color: var(--txt);
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+
+.attestBody {
+  font-size: 14px;
+  color: var(--txt2);
+  line-height: 1.5;
+  margin: 0 0 14px;
+}
+
+.attestFootnote {
+  font-size: 12px;
+  color: var(--txt2);
+  margin-top: 10px;
+  opacity: 0.75;
+}
