@@ -73,6 +73,15 @@ export default async function LoginPage(props: {
     if (role === "vndr" && roleSet.has("vndr")) {
       redirect(next ?? "/vndr-onboarding/1");
     }
+    if (role === "venue" && roleSet.has("venue")) {
+      redirect(next ?? "/venu");
+    }
+    if (role === "plnr" && roleSet.has("plnr")) {
+      redirect(next ?? "/plnr");
+    }
+    if (role === "catr" && roleSet.has("catr")) {
+      redirect(next ?? "/catr");
+    }
     if (roleSet.has("orgnz") || roleSet.has("admin")) {
       redirect(next ?? (intent === "mood_board" ? "/mood-board" : "/orgnz"));
     }
@@ -85,6 +94,17 @@ export default async function LoginPage(props: {
     // form below with a sign-out escape.
     if (roleSet.has("vndr") && (role === "vndr" || role === null)) {
       redirect(next ?? "/vndr-onboarding/1");
+    }
+    // Same guard for venue/plnr/catr single-role users — route to their
+    // portal when no other-portal role was specifically requested.
+    if (roleSet.has("venue") && (role === "venue" || role === null)) {
+      redirect(next ?? "/venu");
+    }
+    if (roleSet.has("plnr") && (role === "plnr" || role === null)) {
+      redirect(next ?? "/plnr");
+    }
+    if (roleSet.has("catr") && (role === "catr" || role === null)) {
+      redirect(next ?? "/catr");
     }
     // No matching role for the requested portal — fall through to render
     // the form, AND expose a sign-out link in the footer so the user can
