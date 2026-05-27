@@ -29,7 +29,7 @@ export type TravelStat = {
 export const TRAVEL_STATS: TravelStat[] = [
   { label: "Out of town", value: "38", detail: "guests" },
   { label: "Flying in", value: "21", detail: "to DFW" },
-  { label: "Need rides", value: "9", detail: "from venue" },
+  { label: "Need rides", value: "9", detail: "from Venu" },
 ];
 
 export type TravelRow = {

@@ -23,11 +23,11 @@ type Props = {
 };
 
 const STATUS_LABEL: Record<OrgnzInquiryStatus, string> = {
-  inquiry: "Sent — awaiting vendor",
-  reviewing: "Vendor reviewing",
-  quoted: "Vendor quoted",
+  inquiry: "Sent — awaiting Vndr",
+  reviewing: "Vndr reviewing",
+  quoted: "Vndr quoted",
   penciled: "Penciled in",
-  inked: "Signed",
+  inked: "Inked", // Jason 2026-05-17 decision: "Inked" (industry slang) kept over "Signed"
   booked: "Booked",
   closed: "Closed",
 };

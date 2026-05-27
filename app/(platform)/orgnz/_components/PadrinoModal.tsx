@@ -16,7 +16,7 @@ type Earmark =
 
 const EARMARKS: { value: Earmark; label: string }[] = [
   { value: "event", label: "Whole event" },
-  { value: "venue", label: "Venue" },
+  { value: "venue", label: "Venu" },
   { value: "florals", label: "Florals" },
   { value: "dress", label: "Dress" },
   { value: "catering", label: "Catering" },
