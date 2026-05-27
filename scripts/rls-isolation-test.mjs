@@ -3433,6 +3433,154 @@ async function testVendorCueDismissalsRLS() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST T-41: event_notifications RLS (migration 068, Lock 24 Chunk A).
+//
+// Assertions:
+//   (1) Orgnz owner CAN INSERT a notification on their own event.
+//   (2) Vendor A CAN SELECT a notification scoped to their own tenant
+//       (vendor_tenant_id path of the SELECT policy).
+//   (3) Orgnz CAN SELECT notifications on their own event
+//       (user_owns_event path of the SELECT policy — natural complement
+//       per the Chunk B brief's "third optional case" suggestion).
+//   (4) Vendor B CANNOT SELECT vendor A's notification (cross-tenant denial,
+//       RLS-silent zero rows).
+//   (5) Vendor B CANNOT INSERT a notification against an event they don't
+//       own (INSERT policy via user_owns_event).
+//   (6) Vendor A CAN UPDATE their own pending row (vendor_response
+//       transition path of the UPDATE policy).
+//   (7) Vendor B CANNOT UPDATE vendor A's row (cross-tenant denial).
+// -----------------------------------------------------------------------------
+async function testEventNotificationsRLS() {
+  const orgnz = await seedTestUser("orgnz");
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  const { data: event, error: eventErr } = await adminClient
+    .from("events")
+    .insert({
+      name: `T-41 event ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-09-12",
+      guest_count: 100,
+      budget_cents: 1_000_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+  if (eventErr) throw new Error(`event seed failed: ${eventErr.message}`);
+
+  // (1) Orgnz owner INSERTs notification for vendor A on their own event.
+  const samplePayload = {
+    oldStartDate: "2027-09-12",
+    oldStartTime: null,
+    oldEndDate: null,
+    oldEndTime: null,
+    newStartDate: "2027-09-19",
+    newStartTime: null,
+    newEndDate: null,
+    newEndTime: null,
+    reason: `T-41 reason ${TEST_RUN_ID}`,
+  };
+  const { data: notif, error: insertErr } = await orgnz.authedClient
+    .from("event_notifications")
+    .insert({
+      event_id: event.id,
+      vendor_tenant_id: vndrA.tenantId,
+      type: "date_change",
+      payload: samplePayload,
+    })
+    .select("id")
+    .single();
+  if (insertErr) {
+    throw new Error(`orgnz owner INSERT positive control failed: ${insertErr.message}`);
+  }
+  if (!notif) {
+    throw new Error(`orgnz owner INSERT positive control: no row returned`);
+  }
+
+  // (2) Vendor A reads own (positive control — vendor_tenant_id SELECT path).
+  const { data: aView, error: aErr } = await vndrA.authedClient
+    .from("event_notifications")
+    .select("id")
+    .eq("id", notif.id);
+  if (aErr) {
+    throw new Error(`vendor A read positive control failed: ${aErr.message}`);
+  }
+  if (!aView || aView.length !== 1) {
+    throw new Error(
+      `vendor A read positive control: expected 1 row, got ${aView?.length ?? 0}`,
+    );
+  }
+
+  // (3) Orgnz reads own (positive control — user_owns_event SELECT path).
+  const { data: oView, error: oErr } = await orgnz.authedClient
+    .from("event_notifications")
+    .select("id")
+    .eq("id", notif.id);
+  if (oErr) {
+    throw new Error(`orgnz read positive control failed: ${oErr.message}`);
+  }
+  if (!oView || oView.length !== 1) {
+    throw new Error(
+      `orgnz read positive control: expected 1 row, got ${oView?.length ?? 0}`,
+    );
+  }
+
+  // (4) Vendor B cannot SELECT (cross-tenant denial — RLS-silent zero rows).
+  const { data: bView, error: bErr } = await vndrB.authedClient
+    .from("event_notifications")
+    .select("id")
+    .eq("id", notif.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr event_notifications query: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: vendor B saw vendor A's notification`);
+  }
+
+  // (5) Vendor B cannot INSERT a notification against an event they don't own.
+  const { data: spoofIns, error: spoofInsErr } = await vndrB.authedClient
+    .from("event_notifications")
+    .insert({
+      event_id: event.id,
+      vendor_tenant_id: vndrB.tenantId,
+      type: "date_change",
+      payload: { ...samplePayload, reason: `T-41 spoof ${TEST_RUN_ID}` },
+    })
+    .select("id");
+  if (!spoofInsErr && spoofIns && spoofIns.length > 0) {
+    throw new Error(`RLS LEAK: vendor B inserted notification on event they don't own`);
+  }
+
+  // (6) Vendor A CAN UPDATE own pending row (response transition).
+  const { data: aUpd, error: aUpdErr } = await vndrA.authedClient
+    .from("event_notifications")
+    .update({ vendor_response: "accepted", resolved_at: new Date().toISOString() })
+    .eq("id", notif.id)
+    .select("id");
+  if (aUpdErr) {
+    throw new Error(`vendor A response UPDATE positive control failed: ${aUpdErr.message}`);
+  }
+  if (!aUpd || aUpd.length !== 1) {
+    throw new Error(
+      `vendor A response UPDATE positive control: expected 1 row, got ${aUpd?.length ?? 0}`,
+    );
+  }
+
+  // (7) Vendor B cannot UPDATE vendor A's row (cross-tenant denial).
+  const { data: spoofUpd, error: spoofUpdErr } = await vndrB.authedClient
+    .from("event_notifications")
+    .update({ vendor_response: "declined" })
+    .eq("id", notif.id)
+    .select("id");
+  if (!spoofUpdErr && spoofUpd && spoofUpd.length > 0) {
+    throw new Error(`RLS LEAK: vendor B flipped vendor A's notification response`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
 const TESTS = [
@@ -3480,6 +3628,7 @@ const TESTS = [
   { name: "T-38 venue_calendar_attestations isolation (migration 066 — venue A vs B)", fn: testCrossTenantVenueCalendarAttestationsIsolation },
   { name: "T-39 venue_calendar_feeds + ical_feed block isolation (migration 067 — venue A vs B)", fn: testCrossTenantVenueCalendarFeedsIsolation },
   { name: "T-40 manual + ical_feed coexistence in dedup index (migration 066 — schema invariant for manual-wins)", fn: testManualAndIcalFeedDedupCoexistence },
+  { name: "T-41 event_notifications RLS (migration 068, Lock 24)", fn: testEventNotificationsRLS },
 ];
 
 // -----------------------------------------------------------------------------
