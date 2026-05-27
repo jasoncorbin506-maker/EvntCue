@@ -3,6 +3,7 @@ import { createClient } from "@/lib/supabase/server";
 import type { CurrentVendor } from "@/lib/vndr/current-vendor";
 import { VNDR_RESPONSE_SLA_HOURS } from "@/lib/vndr/oldest-unresponded-inquiry";
 import { getVendorProfile, getVendorPhotos } from "@/lib/vndr/profile";
+import { getReviewAggregateForTenant } from "@/lib/reviews/event-reviews";
 
 /**
  * Vendor trust score — weighted average of 4 sub-metrics, computed on-the-fly
@@ -179,23 +180,28 @@ async function computeCompletionRate(vendorTenantId: string): Promise<number> {
 }
 
 /**
- * Review average placeholder. No reviews schema in V-2b — returns 0 until
- * V-2c ships review collection. Documented so the trust score is honest
- * about why a brand-new vendor's score is low.
+ * Review average sub-metric (V-2c Session 2 Stream A, mig 062). Reads
+ * event_reviews where reviewee_tenant_id matches the vendor; converts
+ * the 1-5 average to a 0-100 sub-metric (×20). Returns 0 if the vendor
+ * has no reviews yet — same honest "no track record" handling as the
+ * other sub-metrics' empty state.
  */
-function computeReviewAverage(): number {
-  return 0;
+async function computeReviewAverage(vendorTenantId: string): Promise<number> {
+  const agg = await getReviewAggregateForTenant(vendorTenantId);
+  if (agg.count === 0) return 0;
+  return Math.round(agg.average * 20);
 }
 
 export async function getVendorTrustScore(
   vendor: CurrentVendor,
 ): Promise<TrustScore> {
-  const [responseRate, completionRate, profileDetail] = await Promise.all([
-    computeResponseRate(vendor.tenantId),
-    computeCompletionRate(vendor.tenantId),
-    computeProfileCompleteness(vendor),
-  ]);
-  const reviewAverage = computeReviewAverage();
+  const [responseRate, completionRate, profileDetail, reviewAverage] =
+    await Promise.all([
+      computeResponseRate(vendor.tenantId),
+      computeCompletionRate(vendor.tenantId),
+      computeProfileCompleteness(vendor),
+      computeReviewAverage(vendor.tenantId),
+    ]);
 
   const total = Math.round(
     reviewAverage * TRUST_WEIGHTS.reviews +

@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import type { VndrBooking, VndrBookingStatus } from "@/lib/vndr/bookings";
+import { CancellationRequestSheet } from "./CancellationRequestSheet";
 import s from "./InquiryDetailSheet.module.css";
 
 /**
- * Bottom-sheet detail view for a single booking. Read-only for V-2b —
- * cancellation + completion flows are V-2c (require disputes / refund
- * handling per Lock 24). Shows event info + amount breakdown + status
- * timeline metadata.
+ * Bottom-sheet detail view for a single booking. V-2c Session 2 adds the
+ * vendor-side cancellation request path: when status is 'confirmed', a
+ * "Request cancellation" button opens CancellationRequestSheet. Booking
+ * status flips to 'cancellation_requested' on submit (mig 063 enum +
+ * request-booking-cancellation action). Refund flow stays Phase 4 — V-2c
+ * only captures the ask + organizer's approve/deny.
  *
  * Reuses InquiryDetailSheet.module.css for the drawer shell; bookings-
  * specific layout fits the same panels (header / sectionLbl / footer).
@@ -22,6 +26,7 @@ const STATUS_LABEL: Record<VndrBookingStatus, string> = {
   pending: "Pending",
   pending_venue_lock: "Pending venue lock",
   confirmed: "Confirmed",
+  cancellation_requested: "Cancellation requested",
   cancelled: "Cancelled",
   completed: "Completed",
   disputed: "Disputed",
@@ -57,6 +62,9 @@ function formatMoney(cents: number): string {
 
 export function BookingDetailSheet({ booking, onClose }: Props) {
   const time = formatStartTime(booking.startTime);
+  const [cancelSheetOpen, setCancelSheetOpen] = useState(false);
+  const canRequestCancellation = booking.status === "confirmed";
+  const cancellationPending = booking.status === "cancellation_requested";
 
   return (
     <>
@@ -101,12 +109,35 @@ export function BookingDetailSheet({ booking, onClose }: Props) {
           your booking policy.
         </div>
 
+        {cancellationPending && (
+          <div className={s.hint} style={{ marginTop: 12, color: "var(--coral)" }}>
+            Cancellation request pending. The organizer can approve or deny.
+          </div>
+        )}
+
         <div className={s.footer}>
+          {canRequestCancellation && (
+            <button
+              type="button"
+              className={`${s.btn} ${s.btnGhost}`}
+              onClick={() => setCancelSheetOpen(true)}
+            >
+              Request cancellation
+            </button>
+          )}
           <button type="button" className={s.btn} onClick={onClose}>
             Close
           </button>
         </div>
       </div>
+
+      {cancelSheetOpen && (
+        <CancellationRequestSheet
+          bookingId={booking.id}
+          bookingHeadline={`${booking.eventName} · ${formatEventDate(booking.eventDate)}`}
+          onClose={() => setCancelSheetOpen(false)}
+        />
+      )}
     </>
   );
 }

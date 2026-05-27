@@ -4605,3 +4605,47 @@
   margin: 0 6px;
   color: var(--txt3);
 }
+
+/* Chrome inquiries shortcut — V-2c Session 1 entry point for /orgnz/inquiries.
+ * Sits between eventChip and menuBtn; rendered with the same 36×36 round-icon
+ * shell used by cueBtn / menuBtn so the row stays visually balanced. */
+.inqBtn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  border: 0.5px solid var(--bdr);
+  background: rgba(255, 255, 255, 0.04);
+  color: var(--txt2);
+  position: relative;
+  transition: background 150ms ease;
+}
+.inqBtn svg {
+  width: 16px;
+  height: 16px;
+  stroke: var(--txt2);
+  stroke-width: 1.2;
+  fill: none;
+}
+.inqBtn:active { background: rgba(255, 255, 255, 0.08); }
+
+.inqBtnBadge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  min-width: 16px;
+  height: 16px;
+  padding: 0 4px;
+  border-radius: 8px;
+  background: var(--coral);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 16px;
+  text-align: center;
+  border: 1.5px solid var(--ink);
+}

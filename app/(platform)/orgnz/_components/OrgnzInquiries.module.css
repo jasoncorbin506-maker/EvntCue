@@ -1,0 +1,461 @@
+/* OrgnzInquiries — list + filter chips + detail sheet + message thread
+ * for the /orgnz/inquiries surface. Visual vocabulary mirrors the vendor-
+ * side InquiryDetailSheet but tones the chrome to the orgnz layout (which
+ * runs on a lighter background with the orgnz accent). */
+
+.tabBody {
+  padding: 0;
+}
+
+.pageTitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  color: #fff;
+  margin: 6px 0 14px;
+}
+
+.filterRow {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  margin-bottom: 14px;
+}
+
+.filterChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 0.5px solid var(--bdr);
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--txt2);
+  cursor: pointer;
+}
+
+.filterChipOn {
+  background: var(--prime, var(--coral));
+  border-color: var(--prime, var(--coral));
+  color: #fff;
+}
+
+.filterCount {
+  font-size: 11px;
+  opacity: 0.85;
+}
+
+.emptyState {
+  text-align: center;
+  padding: 36px 14px;
+  border: 0.5px dashed var(--bdr);
+  border-radius: 12px;
+}
+
+.emptyStateIcon {
+  font-size: 22px;
+  color: var(--txt3);
+}
+
+.emptyStateTitle {
+  margin-top: 8px;
+  font-family: var(--font-display);
+  font-size: 15px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.emptyStateBody {
+  margin-top: 6px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--txt3);
+}
+
+.inqList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.inqRow {
+  text-align: left;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  font: inherit;
+  color: var(--txt2);
+}
+
+.inqRow:hover {
+  border-color: var(--prime, var(--coral));
+}
+
+.inqRowTop {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.inqDate {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+}
+
+.statusPill {
+  padding: 3px 8px;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.pillNew { background: rgba(255, 122, 89, 0.14); color: var(--coral); }
+.pillReviewing { background: rgba(245, 184, 96, 0.18); color: #f5b860; }
+.pillQuoted { background: rgba(106, 145, 226, 0.18); color: #8aa9e6; }
+.pillBooked { background: rgba(64, 160, 116, 0.18); color: #6ec79a; }
+.pillLost { background: rgba(180, 180, 195, 0.18); color: rgba(255,255,255,0.55); }
+
+.inqRowMid {
+  margin-top: 4px;
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--txt2);
+}
+
+.inqMsg {
+  margin-top: 6px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt3);
+  line-height: 1.4;
+}
+
+.inqRowFoot {
+  margin-top: 6px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--txt3);
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+/* ── Detail sheet (mirrors vndr InquiryDetailSheet.module.css shell) ─── */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  z-index: 60;
+  animation: fadeIn 160ms ease-out;
+}
+
+.drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 61;
+  background: var(--ink2);
+  border-top: 0.5px solid var(--bdr);
+  border-radius: 18px 18px 0 0;
+  padding: 18px 20px 28px;
+  max-height: 88vh;
+  overflow-y: auto;
+  animation: slideUp 200ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+
+.sheetHeader {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 14px;
+  gap: 10px;
+}
+
+.sheetTitle {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.2px;
+}
+
+.sheetSubtitle {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  color: var(--txt3);
+  margin-top: 2px;
+}
+
+.close {
+  background: transparent;
+  border: none;
+  font-size: 22px;
+  color: var(--txt2);
+  cursor: pointer;
+  padding: 0;
+  line-height: 1;
+}
+
+.sectionLbl {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  margin: 14px 0 6px;
+}
+
+.message {
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--txt2);
+  white-space: pre-wrap;
+  line-height: 1.4;
+}
+
+.priceReadonly {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.4px;
+}
+
+.footer {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+  margin-top: 18px;
+}
+
+.btn {
+  padding: 10px 16px;
+  border-radius: 8px;
+  border: 0.5px solid var(--bdr);
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--txt2);
+  cursor: pointer;
+}
+
+/* ── Thread (mirrors vndr InquiryThread.module.css shell) ───────────── */
+
+.threadWrap {
+  margin-top: 18px;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--bdr);
+}
+
+.threadEmpty {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt3);
+  padding: 12px 0;
+}
+
+.threadList {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  max-height: 42vh;
+  overflow-y: auto;
+  padding-right: 4px;
+  margin-bottom: 10px;
+}
+
+.msg {
+  padding: 8px 10px;
+  border-radius: 10px;
+  border: 0.5px solid var(--bdr);
+  position: relative;
+}
+
+.msgMine {
+  background: rgba(255, 122, 89, 0.10);
+  border-color: rgba(255, 122, 89, 0.35);
+}
+
+.msgTheirs {
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.msgMeta {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  margin-bottom: 4px;
+  gap: 8px;
+}
+
+.msgWho {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--txt2);
+}
+
+.msgWhen {
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--txt3);
+}
+
+.msgBody {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: #fff;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.msgDelete {
+  margin-top: 6px;
+  background: transparent;
+  border: none;
+  padding: 2px 0;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--txt3);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+.msgDelete:hover:not(:disabled) {
+  color: var(--coral);
+}
+
+.deleteConfirm {
+  margin-top: 8px;
+  padding: 8px 10px;
+  background: rgba(197, 66, 52, 0.08);
+  border: 0.5px solid rgba(197, 66, 52, 0.3);
+  border-radius: 8px;
+}
+
+.deleteConfirmTxt {
+  font-family: var(--font-body);
+  font-size: 11.5px;
+  color: var(--txt2);
+  line-height: 1.4;
+  display: block;
+  margin-bottom: 8px;
+}
+
+.deleteConfirmActions {
+  display: flex;
+  gap: 6px;
+  justify-content: flex-end;
+}
+
+.deleteBtnGhost {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 0.5px solid var(--bdr);
+  background: transparent;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt2);
+  cursor: pointer;
+}
+
+.deleteBtnDanger {
+  padding: 6px 12px;
+  border-radius: 6px;
+  border: 0.5px solid #c54234;
+  background: #c54234;
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.deleteBtnDanger:disabled,
+.deleteBtnGhost:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.composer {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+  margin-top: 8px;
+}
+
+.composerInput {
+  flex: 1;
+  background: var(--ink);
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: #fff;
+  resize: none;
+  outline: none;
+  line-height: 1.4;
+}
+
+.composerInput:focus {
+  border-color: var(--prime, var(--coral));
+}
+
+.composerSend {
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 0.5px solid var(--prime, var(--coral));
+  background: var(--prime, var(--coral));
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.composerSend:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.errMsg {
+  color: var(--coral);
+  font-family: var(--font-body);
+  font-size: 11px;
+  margin-top: 8px;
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}

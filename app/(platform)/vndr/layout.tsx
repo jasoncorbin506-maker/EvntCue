@@ -1,4 +1,5 @@
 import type { CSSProperties, ReactNode } from "react";
+import { Suspense } from "react";
 import { BottomNav } from "./_components/BottomNav";
 import s from "./vndr.module.css";
 
@@ -33,7 +34,9 @@ export default function VndrLayout({ children }: { children: ReactNode }) {
   return (
     <div id="vndr-app" style={vndrTheme} className={s.phone}>
       <div className={s.scroll}>{children}</div>
-      <BottomNav />
+      <Suspense fallback={null}>
+        <BottomNav />
+      </Suspense>
     </div>
   );
 }

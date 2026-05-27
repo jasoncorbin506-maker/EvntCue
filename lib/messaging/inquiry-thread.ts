@@ -7,13 +7,18 @@ import type {
 } from "@/lib/messaging/inquiry-thread-shared";
 
 /**
- * Server-side reads for inquiry_messages (migration 058, V-2c Session 1).
+ * Server-side reads for inquiry_messages (mig 058 shipped the table; mig 061
+ * widened it to a polymorphic `(inquiry_table, inquiry_id)` key per the
+ * Option B inquiry-primitive direction). Every query here filters
+ * `inquiry_table = 'booking_inquiries'` — the plnr_engagements branch is
+ * scaffolded in the schema CHECK but not yet wired through the messaging UX.
  *
- * RLS gates both vendor + organizer access via per-verb tenant pattern from
- * the migration — vendor reads via inquiry.vndr_tenant_id ownership;
- * organizer reads via user_owns_event(inquiry.event_id). Both helpers below
- * just trust RLS — no app-layer ownership re-check beyond what the migration
- * encodes.
+ * RLS gates both vendor + buyer access via per-verb tenant pattern from
+ * mig 061 — vendor reads via inquiry.vndr_tenant_id; buyer reads via
+ * inquiry.buyer_tenant_id (works for both 'orgnz' and 'venue' buyers, and
+ * doesn't depend on event_id, which is nullable for venue-buyer inquiries).
+ * Helpers below trust RLS — no app-layer ownership re-check beyond what the
+ * migration encodes.
  *
  * Type definitions live in inquiry-thread-shared.ts so Client Components can
  * import them without dragging "server-only" into the browser bundle.
@@ -59,6 +64,7 @@ export async function getInquiryThread(
   const { data } = await supabase
     .from("inquiry_messages")
     .select(MSG_COLS)
+    .eq("inquiry_table", "booking_inquiries")
     .eq("inquiry_id", inquiryId)
     .order("created_at", { ascending: true });
 
@@ -76,8 +82,8 @@ export async function getInquiryThread(
 
 /**
  * Total unread message count for a vendor across all their inquiries.
- * Drives the bottom-nav badge on /vndr/inquiries. Counts only messages
- * sent by the OTHER party (sender_role = 'orgnz') with read_at IS NULL.
+ * Drives the bottom-nav badge on /vndr/inquiries. Counts buyer-side
+ * messages — sender_role IN ('orgnz', 'venue') — with read_at IS NULL.
  *
  * RLS gates the read — the vendor only sees messages on inquiries where
  * inquiry.vndr_tenant_id matches their tenant.
@@ -89,7 +95,8 @@ export async function getUnreadCountForVendor(
   const { count } = await supabase
     .from("inquiry_messages")
     .select("id", { count: "exact", head: true })
-    .eq("sender_role", "orgnz")
+    .eq("inquiry_table", "booking_inquiries")
+    .in("sender_role", ["orgnz", "venue"])
     .is("read_at", null)
     .in(
       "inquiry_id",
@@ -102,23 +109,25 @@ export async function getUnreadCountForVendor(
 }
 
 /**
- * Total unread message count for an organizer across all their inquiries.
- * Drives the bottom-nav badge on /orgnz/inquiries. Counts only messages
- * sent by the OTHER party (sender_role = 'vndr') with read_at IS NULL.
+ * Total unread message count for a buyer (orgnz or venue) across all their
+ * inquiries. Drives the bottom-nav badge on /orgnz/inquiries and the future
+ * /venu/inquiries badge. Counts vendor-side messages (sender_role = 'vndr')
+ * with read_at IS NULL.
  *
- * Inquiries are resolved through event ownership rather than direct tenant
- * filter — organizers own events, events have inquiries.
+ * Inquiries are resolved by direct buyer_tenant_id match — mig 059 means
+ * both org and venue buyers route through the same column.
  */
-export async function getUnreadCountForOrganizer(
-  organizerTenantId: string,
+export async function getUnreadCountForBuyer(
+  buyerTenantId: string,
 ): Promise<number> {
   const supabase = await createClient();
   const { count } = await supabase
     .from("inquiry_messages")
     .select("id", { count: "exact", head: true })
+    .eq("inquiry_table", "booking_inquiries")
     .eq("sender_role", "vndr")
     .is("read_at", null)
-    .in("inquiry_id", await getOrganizerInquiryIds(organizerTenantId));
+    .in("inquiry_id", await getBuyerInquiryIds(buyerTenantId));
   return count ?? 0;
 }
 
@@ -133,13 +142,13 @@ async function getVendorInquiryIds(vendorTenantId: string): Promise<string[]> {
   return (data ?? []).map((r) => (r as Record<string, unknown>).id as string);
 }
 
-async function getOrganizerInquiryIds(
-  organizerTenantId: string,
+async function getBuyerInquiryIds(
+  buyerTenantId: string,
 ): Promise<string[]> {
   const supabase = await createClient();
   const { data } = await supabase
     .from("booking_inquiries")
     .select("id")
-    .eq("orgnz_tenant_id", organizerTenantId);
+    .eq("buyer_tenant_id", buyerTenantId);
   return (data ?? []).map((r) => (r as Record<string, unknown>).id as string);
 }
