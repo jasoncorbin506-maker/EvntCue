@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { submitReview } from "../_actions/submit-review";
-import type { PendingReviewPrompt } from "@/lib/reviews/event-reviews";
+import type { PendingReviewPrompt } from "@/lib/reviews/event-reviews-shared";
 import s from "./OrgnzInquiries.module.css";
 
 /**

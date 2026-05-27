@@ -6,7 +6,7 @@ import {
   CANCELLATION_CATEGORIES,
   CATEGORY_LABELS,
   type CancellationCategory,
-} from "@/lib/bookings/cancellation-requests";
+} from "@/lib/bookings/cancellation-requests-shared";
 import s from "./ReviewSheet.module.css";
 
 /**

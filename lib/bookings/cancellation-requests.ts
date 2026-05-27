@@ -1,56 +1,35 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import type {
+  BookingCancellationRequest,
+  BookingCancellationRequestStatus,
+  PendingCancellationForOrganizer,
+  RequestedByRole,
+} from "./cancellation-requests-shared";
 
 /**
  * Server-side reads for booking_cancellation_requests (mig 063, V-2c
  * Session 2 Stream B). The request/approval surface is no-money-touch
  * V-2c work; refund flow joins Phase 4.
  *
- * Categories are defined here (not as a DB enum) so they can evolve
- * without a migration. Add new keys to CATEGORY_LABELS to surface them
- * in the picker UI; the schema accepts any text but the app layer
- * should constrain to this set.
+ * Types + category constants live in cancellation-requests-shared.ts
+ * so Client Components can import them without dragging `server-only`
+ * into the browser bundle (same split-shared pattern as
+ * lib/messaging/inquiry-thread-shared.ts).
  */
 
-export const CANCELLATION_CATEGORIES = [
-  "illness",
-  "scheduling_conflict",
-  "outside_cancellation_window",
-  "force_majeure",
-  "other",
-] as const;
+export type {
+  BookingCancellationRequest,
+  BookingCancellationRequestStatus,
+  CancellationCategory,
+  PendingCancellationForOrganizer,
+  RequestedByRole,
+} from "./cancellation-requests-shared";
 
-export type CancellationCategory = (typeof CANCELLATION_CATEGORIES)[number];
-
-export const CATEGORY_LABELS: Record<CancellationCategory, string> = {
-  illness: "Illness / emergency",
-  scheduling_conflict: "Scheduling conflict",
-  outside_cancellation_window: "Outside cancellation window",
-  force_majeure: "Force majeure (weather / venue issue)",
-  other: "Other",
-};
-
-export type BookingCancellationRequestStatus = "pending" | "approved" | "denied";
-export type RequestedByRole = "vndr" | "orgnz";
-
-export type BookingCancellationRequest = {
-  id: string;
-  bookingId: string;
-  requestedByTenantId: string;
-  requestedByRole: RequestedByRole;
-  reasonCategory: CancellationCategory | string;
-  reasonText: string | null;
-  status: BookingCancellationRequestStatus;
-  respondedAt: string | null;
-  respondedByUserId: string | null;
-  createdAt: string;
-};
-
-export type PendingCancellationForOrganizer = BookingCancellationRequest & {
-  eventId: string;
-  eventName: string;
-  vendorDisplayName: string | null;
-};
+export {
+  CANCELLATION_CATEGORIES,
+  CATEGORY_LABELS,
+} from "./cancellation-requests-shared";
 
 const COLS =
   "id, booking_id, requested_by_tenant_id, requested_by_role, reason_category, reason_text, status, responded_at, responded_by_user_id, created_at";

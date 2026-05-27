@@ -1,5 +1,9 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import type {
+  PendingReviewPrompt,
+  ReviewAggregate,
+} from "./event-reviews-shared";
 
 /**
  * Server-side reads for event_reviews (mig 062, V-2c Session 2 Stream A).
@@ -12,36 +16,18 @@ import { createClient } from "@/lib/supabase/server";
  * Trigger: 24h-after-event derived-state check on dashboard load. No
  * scheduled-job infra; getPendingReviewPrompts() returns events that
  * are past T+24h AND don't yet have a review from the caller.
+ *
+ * Types live in event-reviews-shared.ts so Client Components can
+ * import them without dragging `server-only` into the browser bundle
+ * (same split-shared pattern as lib/messaging/inquiry-thread-shared.ts).
  */
 
-export type EventReviewerRole = "orgnz" | "vndr";
-
-export type EventReview = {
-  id: string;
-  eventId: string;
-  reviewerTenantId: string;
-  reviewerRole: EventReviewerRole;
-  revieweeTenantId: string;
-  revieweeRole: EventReviewerRole;
-  rating: number;
-  body: string | null;
-  createdAt: string;
-};
-
-export type ReviewAggregate = {
-  count: number;
-  average: number; // 0–5, 1 decimal
-};
-
-export type PendingReviewPrompt = {
-  bookingId: string;
-  eventId: string;
-  eventName: string;
-  eventDate: string;
-  counterpartyTenantId: string;
-  counterpartyDisplayName: string | null;
-  counterpartyRole: EventReviewerRole;
-};
+export type {
+  EventReview,
+  EventReviewerRole,
+  PendingReviewPrompt,
+  ReviewAggregate,
+} from "./event-reviews-shared";
 
 const REVIEW_PROMPT_MIN_HOURS_AFTER_EVENT = 24;
 

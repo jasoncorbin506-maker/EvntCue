@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { PendingCancellationForOrganizer } from "@/lib/bookings/cancellation-requests";
+import type { PendingCancellationForOrganizer } from "@/lib/bookings/cancellation-requests-shared";
 import { IncomingCancellationRequestSheet } from "./IncomingCancellationRequestSheet";
 import s from "./OrgnzInquiries.module.css";
 

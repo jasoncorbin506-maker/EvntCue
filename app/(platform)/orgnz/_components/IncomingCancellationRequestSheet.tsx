@@ -5,7 +5,7 @@ import { respondToCancellationRequest } from "../_actions/respond-to-cancellatio
 import {
   CATEGORY_LABELS,
   type PendingCancellationForOrganizer,
-} from "@/lib/bookings/cancellation-requests";
+} from "@/lib/bookings/cancellation-requests-shared";
 import s from "./OrgnzInquiries.module.css";
 
 /**

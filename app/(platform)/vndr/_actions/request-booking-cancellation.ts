@@ -6,7 +6,7 @@ import { getCurrentVendor } from "@/lib/vndr/current-vendor";
 import {
   CANCELLATION_CATEGORIES,
   type CancellationCategory,
-} from "@/lib/bookings/cancellation-requests";
+} from "@/lib/bookings/cancellation-requests-shared";
 
 /**
  * Vendor requests cancellation of one of their confirmed bookings (V-2c

@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import type { PendingReviewPrompt } from "@/lib/reviews/event-reviews";
+import type { PendingReviewPrompt } from "@/lib/reviews/event-reviews-shared";
 import { ReviewSheet } from "./ReviewSheet";
 import s from "./OrgnzInquiries.module.css";
 

@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrganizer } from "@/lib/orgnz/current-organizer";
-import { CATEGORY_LABELS } from "@/lib/bookings/cancellation-requests";
+import { CATEGORY_LABELS } from "@/lib/bookings/cancellation-requests-shared";
 
 /**
  * Organizer approves or denies a vendor's pending cancellation request
