@@ -214,7 +214,7 @@ export function BudgetSheet({ open, onClose, data }: Props) {
             </div>
             <div className={styles.liBody}>
               <div className={styles.liT}>Cue · EvntCue platform</div>
-              <div className={styles.liMeta}>2.5% platform fee + $19.99/mo (placeholder)</div>
+              <div className={styles.liMeta}>$39/mo Orgnz Pro (optional · 0% transaction fee always)</div>
             </div>
             <div className={styles.liAmt}>
               <em>—</em>

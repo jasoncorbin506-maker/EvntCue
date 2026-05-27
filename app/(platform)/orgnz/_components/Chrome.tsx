@@ -14,9 +14,10 @@ type Props = {
   eventName: string | null;
   startDateShort: string | null;
   daysOut: number | null;
+  unreadInquiriesCount: number;
 };
 
-export function Chrome({ eventName, startDateShort, daysOut }: Props) {
+export function Chrome({ eventName, startDateShort, daysOut, unreadInquiriesCount }: Props) {
   const t = useTranslations("dashboard");
   const tLang = useTranslations("lang");
   const locale = useLocale() as Locale;
@@ -80,6 +81,19 @@ export function Chrome({ eventName, startDateShort, daysOut }: Props) {
           </span>
         )}
       </div>
+      <Link
+        href="/orgnz/inquiries"
+        className={styles.inqBtn}
+        aria-label={`Inquiries${unreadInquiriesCount > 0 ? ` (${unreadInquiriesCount} unread)` : ""}`}
+      >
+        <svg viewBox="0 0 24 24">
+          <path d="M4 7h16v12H4z" />
+          <path d="M4 7l8 6 8-6" />
+        </svg>
+        {unreadInquiriesCount > 0 && (
+          <span className={styles.inqBtnBadge}>{unreadInquiriesCount}</span>
+        )}
+      </Link>
       <div ref={menuRef} className={styles.menuWrap}>
         <button
           type="button"

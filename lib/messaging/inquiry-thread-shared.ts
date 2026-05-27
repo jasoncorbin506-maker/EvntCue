@@ -7,7 +7,9 @@
  * the browser bundle.
  */
 
-export type InquirySenderRole = "vndr" | "orgnz";
+export type InquirySenderRole = "vndr" | "orgnz" | "venue" | "plnr";
+
+export type InquiryBuyerRole = "orgnz" | "venue";
 
 export type InquiryMessage = {
   id: string;

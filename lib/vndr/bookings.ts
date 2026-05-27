@@ -16,6 +16,7 @@ export type VndrBookingStatus =
   | "pending"
   | "pending_venue_lock"
   | "confirmed"
+  | "cancellation_requested"
   | "cancelled"
   | "completed"
   | "disputed";

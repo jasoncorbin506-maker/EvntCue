@@ -872,7 +872,11 @@
   justify-content: center;
   font-family: var(--font-body);
   font-size: 11px;
-  color: var(--txt2);
+  /* Unassigned (open) cells: darker fill so the cell reads as a tile,
+   * brighter numeral so the date is legible. Booked / inquiry / blocked
+   * cells override this background via their own state classes. */
+  background: rgba(0, 0, 0, 0.30);
+  color: rgba(255, 255, 255, 0.82);
   position: relative;
 }
 

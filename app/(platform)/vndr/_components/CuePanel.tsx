@@ -1,82 +1,55 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState, useTransition } from "react";
 import type { CueLadderBranch } from "@/lib/cue/vndr-home-prompt";
+import { dismissVendorCue } from "../_actions/dismiss-vendor-cue";
 import s from "../vndr.module.css";
 
 /**
  * Client-side Cue panel. Server returns the ladder branches in priority
- * order via assembleVndrHomeCue; this component picks the first branch
- * the user hasn't dismissed and renders it with a dismiss × button.
+ * order via assembleVndrHomeCue, plus the set of keys the vendor has
+ * already dismissed (loaded from vendor_cue_dismissals, mig 064). This
+ * component picks the first non-dismissed branch and renders it with a
+ * dismiss × button.
  *
- * Dismiss persistence (session 24, profile-completeness-one-time-cue brief):
- *   - sessionStorage for now — dismiss survives navigation within the
- *     session but reset on browser close. Matches Cowork's brief
- *     recommendation: "if vendor_cue_dismissals doesn't exist yet (V-2c
- *     Session 3), use sessionStorage."
- *   - Upgrade path: V-2c-Phase-4-free Session 3 ships
- *     `vendor_cue_dismissals` table. When that lands, swap the
- *     sessionStorage hook for a server-action call + load
- *     dismissedKeys from page.tsx.
+ * V-2c Session 3 (mig 064): dismiss is now permanent + cross-device via
+ * dismissVendorCue server action. Replaces session 24's sessionStorage
+ * path.
  *
- * Hydration: initial state = branches[0] (so server SSR + first client
- * paint agree). useEffect re-evaluates against sessionStorage and may
- * switch to a later branch or hide the panel. The post-mount swap is a
- * regular React re-render, not a hydration mismatch.
+ * Hydration: server-side filtering means the initial render already
+ * skips dismissed branches — no useEffect adjustment needed. Local
+ * dismiss-in-flight state is layered on top so the next branch surfaces
+ * immediately while the action posts.
  */
-
-const STORAGE_KEY = "evntcue_cue_dismissed";
 
 type Props = {
   branches: CueLadderBranch[];
+  dismissedKeys: string[];
 };
 
-export function CuePanel({ branches }: Props) {
-  // Initial: first branch in ladder. Server + client agree on this.
-  const [active, setActive] = useState<CueLadderBranch | null>(
-    () => branches[0] ?? null,
+export function CuePanel({ branches, dismissedKeys }: Props) {
+  const [localDismissed, setLocalDismissed] = useState<Set<string>>(
+    () => new Set(dismissedKeys),
   );
+  const [, startTransition] = useTransition();
 
-  useEffect(() => {
-    // Post-mount: read dismissed keys from sessionStorage + adjust.
-    const raw =
-      typeof window !== "undefined" ? sessionStorage.getItem(STORAGE_KEY) : null;
-    if (!raw) {
-      setActive(branches[0] ?? null);
-      return;
-    }
-    let dismissed: string[] = [];
-    try {
-      dismissed = JSON.parse(raw);
-      if (!Array.isArray(dismissed)) dismissed = [];
-    } catch {
-      dismissed = [];
-    }
-    const dismissedSet = new Set(dismissed);
-    const next = branches.find((b) => !dismissedSet.has(b.key)) ?? null;
-    setActive(next);
-  }, [branches]);
+  const active = useMemo<CueLadderBranch | null>(
+    () => branches.find((b) => !localDismissed.has(b.key)) ?? null,
+    [branches, localDismissed],
+  );
 
   function handleDismiss() {
     if (!active) return;
-    const raw =
-      typeof window !== "undefined" ? sessionStorage.getItem(STORAGE_KEY) : null;
-    let dismissed: string[] = [];
-    if (raw) {
-      try {
-        dismissed = JSON.parse(raw);
-        if (!Array.isArray(dismissed)) dismissed = [];
-      } catch {
-        dismissed = [];
-      }
-    }
-    if (!dismissed.includes(active.key)) {
-      dismissed.push(active.key);
-      sessionStorage.setItem(STORAGE_KEY, JSON.stringify(dismissed));
-    }
-    const dismissedSet = new Set(dismissed);
-    const next = branches.find((b) => !dismissedSet.has(b.key)) ?? null;
-    setActive(next);
+    const key = active.key;
+    // Optimistic: advance the panel immediately, then persist.
+    setLocalDismissed((prev) => {
+      const next = new Set(prev);
+      next.add(key);
+      return next;
+    });
+    startTransition(async () => {
+      await dismissVendorCue(key);
+    });
   }
 
   if (!active) return null;

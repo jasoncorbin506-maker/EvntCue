@@ -47,11 +47,13 @@ export default function VenuesPublicLanding() {
         </Link>
       </section>
 
-      {/* Proof strip */}
+      {/* Proof strip — Lock 25 v2a proof points. Lead with zero buyer
+          friction (the v2a structural differentiator) over historical
+          fee-floor framing. */}
       <section className={s.proofStrip}>
         <div className={s.proofItem}>
-          <div className={s.proofNum}>2.5%</div>
-          <div className={s.proofLbl}>Platform fee · floor</div>
+          <div className={s.proofNum}>0%</div>
+          <div className={s.proofLbl}>Organizer fee · every tier</div>
         </div>
         <div className={s.proofItem}>
           <div className={s.proofNum}>3 spaces</div>
