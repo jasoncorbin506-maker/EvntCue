@@ -5,8 +5,8 @@ import type { CalendarFeed, FeedSyncSummary } from "./calendar-feeds-shared";
 
 /**
  * Sync one iCal feed against venue_availability_blocks. Used by both the
- * Vercel cron worker (every active feed, hourly) AND the "Sync now"
- * server action (one feed on demand).
+ * Vercel cron worker (every active feed, daily on Hobby tier) AND the
+ * "Sync now" server action (one feed on demand).
  *
  * Caller passes a Supabase client. Cron passes the admin client so writes
  * cross all tenants; "Sync now" passes the authed client so RLS enforces

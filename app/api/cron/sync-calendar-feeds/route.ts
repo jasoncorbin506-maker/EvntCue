@@ -5,9 +5,12 @@ import { syncFeed } from "@/lib/venu/sync-feed";
 import type { FeedSyncSummary } from "@/lib/venu/calendar-feeds-shared";
 
 /**
- * Hourly Vercel cron worker — syncs every active venue_calendar_feeds row
+ * Daily Vercel cron worker — syncs every active venue_calendar_feeds row
  * against its external iCal source. Schedule defined in vercel.json:
- * `0 * * * *` (top of every hour).
+ * `0 6 * * *` (06:00 UTC ≈ 01:00 ET). Vercel Hobby tier caps cron
+ * granularity at daily; bump to hourly (`0 * * * *`) after upgrading to
+ * Pro. Operator-on-demand "Sync now" button bypasses the cron schedule
+ * entirely.
  *
  * Auth: Vercel cron requests carry `Authorization: Bearer <CRON_SECRET>`.
  * Without that header we 401. The CRON_SECRET env var must be set in
