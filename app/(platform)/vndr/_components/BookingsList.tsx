@@ -31,7 +31,7 @@ const CANCELLED_STATUSES: VndrBookingStatus[] = ["cancelled", "disputed"];
 
 const STATUS_PILL: Record<VndrBookingStatus, { label: string; cls: string }> = {
   pending: { label: "Pending", cls: s.pillReviewing ?? "" },
-  pending_venue_lock: { label: "Venue pending", cls: s.pillReviewing ?? "" },
+  pending_venue_lock: { label: "Venu pending", cls: s.pillReviewing ?? "" },
   confirmed: { label: "Confirmed", cls: s.pillBooked ?? "" },
   cancellation_requested: { label: "Cancel pending", cls: s.pillReviewing ?? "" },
   completed: { label: "Completed", cls: s.pillBooked ?? "" },

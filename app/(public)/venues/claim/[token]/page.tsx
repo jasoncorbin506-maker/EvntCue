@@ -47,7 +47,7 @@ async function evaluate(token: string): Promise<Outcome> {
   }
   return {
     kind: "valid",
-    displayName: (venue.display_name as string) ?? "your venue",
+    displayName: (venue.display_name as string) ?? "your Venu",
     city: (venue.city as string | null) ?? null,
   };
 }
@@ -88,7 +88,7 @@ export default async function VenuClaim({
       body: "Invite links are good for 14 days. We can send a fresh one — reply to whoever reached out, or email our team and we'll get you a new link within a business day.",
     },
     consumed: {
-      headline: "This venue has already been claimed",
+      headline: "This Venu has already been claimed",
       body: "If that wasn't you, someone on your team may have completed the claim already. Email us and we'll sort out access.",
     },
   };
@@ -136,7 +136,7 @@ export default async function VenuClaim({
           className={s.failBack}
           style={{ display: "block", textAlign: "center", textDecoration: "none" }}
         >
-          Learn about EvntCue for venues
+          Learn about EvntCue for Venus
         </Link>
       </div>
     </main>

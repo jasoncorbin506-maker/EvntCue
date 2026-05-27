@@ -72,7 +72,7 @@ export default async function VenuTools() {
           <ToolRow
             href="/venu/tools/live"
             name="Venu Live"
-            sub="Day-of cockpit · vendor check-in · timeline"
+            sub="Day-of cockpit · Vndr check-in · timeline"
             badge={{ label: "Saturday", tone: "live" }}
             icon={
               <svg viewBox="0 0 24 24">
@@ -85,7 +85,7 @@ export default async function VenuTools() {
           <ToolRow
             href="/venu/tools/preferred"
             name="Preferred list"
-            sub="Vendors, caterers, planners you trust"
+            sub="Vndrs, Catrs, Plnrs you trust"
             icon={
               <svg viewBox="0 0 24 24">
                 <circle cx="9" cy="9" r="6" />

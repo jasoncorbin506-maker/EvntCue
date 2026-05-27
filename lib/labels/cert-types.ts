@@ -100,9 +100,9 @@ export const CERT_TYPES: readonly CertTypeEntry[] = [
     labelEn: "TABC certification",
     labelEs: "Certificación TABC",
     descEn:
-      "Required for any vendor serving, pouring, or handling alcohol in Texas. Texas Alcoholic Beverage Commission certification.",
+      "Required for any Vndr serving, pouring, or handling alcohol in Texas. Texas Alcoholic Beverage Commission certification.",
     descEs:
-      "Requerido para cualquier vendedor que sirva, vierta o maneje alcohol en Texas. Certificación de la Texas Alcoholic Beverage Commission.",
+      "Requerido para cualquier Vndr que sirva, vierta o maneje alcohol en Texas. Certificación de la Texas Alcoholic Beverage Commission.",
     tagEn: "Conditional",
     tagEs: "Condicional",
     gateType: "conditional",
@@ -114,9 +114,9 @@ export const CERT_TYPES: readonly CertTypeEntry[] = [
     labelEn: "Food handler certification",
     labelEs: "Certificación de manejo de alimentos",
     descEn:
-      "Texas health code applies to any vendor preparing or serving food. State-approved food handler certificate.",
+      "Texas health code applies to any Vndr preparing or serving food. State-approved food handler certificate.",
     descEs:
-      "El código de salud de Texas aplica a cualquier vendedor que prepare o sirva alimentos. Certificado estatal de manejo de alimentos.",
+      "El código de salud de Texas aplica a cualquier Vndr que prepare o sirva alimentos. Certificado estatal de manejo de alimentos.",
     tagEn: "Conditional",
     tagEs: "Condicional",
     gateType: "conditional",
@@ -131,12 +131,12 @@ export const CERT_TYPES: readonly CertTypeEntry[] = [
   },
   {
     key: "plnr_professional",
-    labelEn: "Planner professional credential",
-    labelEs: "Credencial profesional de planner",
+    labelEn: "Plnr professional credential",
+    labelEs: "Credencial profesional de Plnr",
     descEn:
-      "Planner-portal credential (CMP, CSEP, or equivalent). Not surfaced in the Vndr Stage 4 funnel.",
+      "Plnr-portal credential (CMP, CSEP, or equivalent). Not surfaced in the Vndr Stage 4 funnel.",
     descEs:
-      "Credencial del portal Planner (CMP, CSEP o equivalente). No aparece en el funnel del Stage 4 de Vndr.",
+      "Credencial del portal Plnr (CMP, CSEP o equivalente). No aparece en el funnel del Stage 4 de Vndr.",
     tagEn: "Plnr",
     tagEs: "Plnr",
     gateType: "optional",

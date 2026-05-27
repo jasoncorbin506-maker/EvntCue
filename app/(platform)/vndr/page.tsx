@@ -428,5 +428,5 @@ function trustSubCopy(score: {
   if (score.subMetrics.profileCompleteness < 75) {
     return "Profile completeness is the easiest first lift — fill it out to surface in more matches.";
   }
-  return "New vendor — your score grows with each inquiry response and completed booking.";
+  return "New Vndr — your score grows with each inquiry response and completed booking.";
 }

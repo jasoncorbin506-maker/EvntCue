@@ -30,8 +30,8 @@ export const commissionFlowLabel: Record<CommissionFlowType, string> = {
   venue_in_house:           "In-house fee",
   venue_fb_surcharge:       "F&B surcharge",
   venue_kickback:           "Referral fee", // Lock 15: NEVER surface "kickback" in UI
-  venue_referral:           "Planner sourcing fee",
-  vndr_referral:            "Vendor referral",
+  venue_referral:           "Plnr sourcing fee",
+  vndr_referral:            "Vndr referral",
   co_plnr_split:            "Co-Plnr split",
   platform_fee:             "Platform fee",
   platform_marketplace_fee: "Marketplace fee",
@@ -44,19 +44,19 @@ export const commissionFlowLabel: Record<CommissionFlowType, string> = {
  */
 export const commissionFlowDescription: Record<CommissionFlowType, string> = {
   venue_in_house:
-    "Fee the venue charges directly to the organizer (room rental, setup, in-house bar).",
+    "Fee the Venu charges directly to the Orgnz (room rental, setup, in-house bar).",
   venue_fb_surcharge:
-    "Food & beverage surcharge the venue collects when an outside caterer is used.",
+    "Food & beverage surcharge the Venu collects when an outside Catr is used.",
   venue_kickback:
-    "Referral compensation the venue receives from a preferred outside vendor for the introduction.",
+    "Referral compensation the Venu receives from a preferred outside Vndr for the introduction.",
   venue_referral:
-    "Sourcing fee the venue pays to a planner who brought the booking.",
+    "Sourcing fee the Venu pays to a Plnr who brought the booking.",
   vndr_referral:
-    "Referral fee paid to a vendor for a successful introduction.",
+    "Referral fee paid to a Vndr for a successful introduction.",
   co_plnr_split:
-    "Revenue share between two planners collaborating on the same event.",
+    "Revenue share between two Plnrs collaborating on the same event.",
   platform_fee:
-    "EvntCue's platform commission on the booking. Rate varies by tier and portal; see data/commission-rates.ts for the canonical v2a matrix. Includes payment processing — vendors see one consolidated number, not a Stripe vs platform breakdown.",
+    "EvntCue's platform commission on the booking. Rate varies by tier and portal; see data/commission-rates.ts for the canonical v2a matrix. Includes payment processing — Vndrs see one consolidated number, not a Stripe vs platform breakdown.",
   platform_marketplace_fee:
     "Marketplace fee applied to discovery-driven bookings.",
   virtual_attendance_fee:

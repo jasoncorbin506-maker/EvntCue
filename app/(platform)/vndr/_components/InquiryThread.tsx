@@ -46,7 +46,7 @@ function formatTimestamp(iso: string): string {
 }
 
 function buyerLabel(buyerRole: "orgnz" | "venue"): string {
-  return buyerRole === "venue" ? "Venue" : "Organizer";
+  return buyerRole === "venue" ? "Venu" : "Orgnz";
 }
 
 export function InquiryThread({ inquiryId, buyerRole }: Props) {

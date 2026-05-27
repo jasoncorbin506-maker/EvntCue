@@ -64,7 +64,7 @@ export async function submitClaimAction(formData: FormData): Promise<ClaimResult
     return { ok: false, error: "This claim link has already been used." };
   }
   if (venue.tenant_id) {
-    return { ok: false, error: "This venue has already been claimed." };
+    return { ok: false, error: "This Venu has already been claimed." };
   }
   if (
     !venue.invite_token_expires_at ||
@@ -114,7 +114,7 @@ export async function submitClaimAction(formData: FormData): Promise<ClaimResult
     if (!authData.user) {
       return {
         ok: false,
-        error: `We sent a confirmation link to ${email}. Click it to finish claiming your venue.`,
+        error: `We sent a confirmation link to ${email}. Click it to finish claiming your Venu.`,
       };
     }
     // Case (c): existing email — Supabase returns a user object but no
@@ -187,7 +187,7 @@ export async function submitClaimAction(formData: FormData): Promise<ClaimResult
     .is("tenant_id", null)
     .is("invite_token_consumed_at", null);
   if (updateErr) {
-    return { ok: false, error: "Could not bind your venue. Try the link again." };
+    return { ok: false, error: "Could not bind your Venu. Try the link again." };
   }
 
   // 7. Hydrate the auth session for the redirect target.

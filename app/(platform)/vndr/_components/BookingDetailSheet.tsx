@@ -24,7 +24,7 @@ type Props = {
 
 const STATUS_LABEL: Record<VndrBookingStatus, string> = {
   pending: "Pending",
-  pending_venue_lock: "Pending venue lock",
+  pending_venue_lock: "Pending Venu lock",
   confirmed: "Confirmed",
   cancellation_requested: "Cancellation requested",
   cancelled: "Cancelled",
