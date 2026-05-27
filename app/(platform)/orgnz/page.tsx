@@ -15,7 +15,9 @@ import {
   sortPresences,
 } from "@/lib/events/vendor-presence";
 import { PHASE_ORDER } from "@/data/run-of-show/dispatch";
+import { getOrgnzEventNotifications } from "@/lib/orgnz/event-notifications";
 import { CuePill } from "./_components/CuePill";
+import { EventNotificationsFeed } from "./_components/EventNotificationsFeed";
 import { Feed, type FeedCard } from "./_components/Feed";
 import { OpenItemsBanner } from "./_components/OpenItemsBanner";
 import { RunOfShow } from "./_components/RunOfShow";
@@ -120,8 +122,14 @@ export default async function OrgnzDashboardPage() {
   // Concept C session B — load vendor presences in parallel with the
   // existing context. Empty array gracefully when migration 049 isn't
   // applied (the query helper swallows the relation-does-not-exist error).
+  // Lock 24 Chunk D — also load resolved date-change notifications for
+  // the feed strip below the Hero.
+  const [vendorPresencesRaw, eventNotifications] = await Promise.all([
+    getEventVendorPresence(event.id),
+    getOrgnzEventNotifications(event.id),
+  ]);
   const vendorPresences = sortPresences(
-    await getEventVendorPresence(event.id),
+    vendorPresencesRaw,
     PHASE_ORDER,
   );
   const allocatedCents = lineItems.reduce((sum, item) => sum + item.amount_cents, 0);
@@ -265,6 +273,7 @@ export default async function OrgnzDashboardPage() {
         dismissedSeedKeys={dismissedSeedKeys}
       />
       <Feed initial={welcomeCards} />
+      <EventNotificationsFeed notifications={eventNotifications} />
       <TileGrid
         budgetCents={event.budget_cents}
         allocatedCents={allocatedCents}

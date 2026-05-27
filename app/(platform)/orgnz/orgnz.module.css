@@ -4649,3 +4649,286 @@
   text-align: center;
   border: 1.5px solid var(--ink);
 }
+
+/* ── Event notifications feed strip (Lock 24 Chunk D) ─────────────────────
+ *
+ * Sits below the existing Feed surface ("Needs you now"). Distinct
+ * visual treatment per UX critique #4.2 (b): slightly darker background
+ * to subordinate to the Hero, narrower vertical rhythm so the strip
+ * reads as "lower priority than the welcome feed above but still
+ * actionable."
+ */
+
+.enFeed {
+  margin: 14px 16px 0;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  padding: 12px 12px 14px;
+}
+
+.enFeedHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2px 4px 10px;
+}
+
+.enFeedHeadL {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt2);
+}
+
+.enFeedHeadR {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt3);
+}
+
+.enFeedList {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+/* Collapsed-summary variant (UX critique #4.2 a). When ALL cards are
+ * accepted, the strip collapses to a single line — click to expand. */
+.enFeedCollapsed {
+  margin: 14px 16px 0;
+}
+
+.enFeedCollapsedButton {
+  width: 100%;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+  padding: 10px 14px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--txt2);
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+
+.enFeedCollapsedButton:hover { background: var(--ink3); }
+
+.enFeedCollapsedExpand {
+  font-size: 11px;
+  color: var(--txt3);
+}
+
+/* Card — three variants by left border color. */
+.enCard {
+  position: relative;
+  background: var(--ink);
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+}
+
+.enCardBorder {
+  width: 4px;
+  flex-shrink: 0;
+}
+
+.enCardAccepted .enCardBorder { background: #78C88C; }   /* mint green */
+.enCardDeclined .enCardBorder { background: var(--coral); }
+.enCardExpired  .enCardBorder { background: var(--txt3); } /* neutral gray */
+.enCardSummary  .enCardBorder { background: var(--gold); } /* multi-vendor summary attention */
+
+.enCardBody {
+  padding: 12px 14px 12px;
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.enCardDismiss {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  color: var(--txt3);
+  font-size: 16px;
+  line-height: 1;
+  cursor: pointer;
+  transition: background 100ms ease, color 100ms ease;
+}
+
+.enCardDismiss:hover { background: var(--ink2); color: var(--txt); }
+
+.enCardTitle {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--txt);
+  line-height: 1.35;
+  padding-right: 28px; /* leave room for dismiss X on accepted cards */
+}
+
+.enCardTitle b {
+  color: var(--txt);
+  font-weight: 600;
+}
+
+.enCardSub {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--txt2);
+  line-height: 1.45;
+  margin-top: 6px;
+}
+
+.enCardActions {
+  margin-top: 10px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.enCardCtaPrimary {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--coral);
+  color: var(--ct);
+  border: none;
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: opacity 100ms ease;
+}
+
+.enCardCtaPrimary:hover { opacity: 0.92; }
+
+/* Per UX critique #1.4 — destructive action visually demoted (outline,
+ * not filled). Sits alongside the two primary-weight CTAs but reads as
+ * "secondary, requires extra step." */
+.enCardCtaSecondary {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--coral);
+  border: 0.5px solid var(--coral);
+  border-radius: 999px;
+  padding: 6.5px 13.5px;
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+
+.enCardCtaSecondary:hover { background: rgba(232, 98, 42, 0.08); }
+
+/* ── Accept-cancellation confirmation modal ───────────────────────────── */
+
+.acScrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  z-index: 200;
+}
+
+.acModal {
+  background: var(--ink);
+  border: 0.5px solid var(--bdr);
+  border-radius: 16px;
+  padding: 18px 18px 16px;
+  max-width: 360px;
+  width: 100%;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.55);
+}
+
+.acTitle {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--txt);
+  margin: 0 0 10px;
+  line-height: 1.25;
+}
+
+.acTitle em {
+  font-style: italic;
+  color: var(--coral);
+}
+
+.acBody {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--txt);
+  line-height: 1.5;
+  margin-bottom: 8px;
+}
+
+.acFineprint {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt3);
+  line-height: 1.5;
+  margin-bottom: 14px;
+}
+
+.acError {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--rose);
+  margin-bottom: 10px;
+}
+
+.acActions {
+  display: flex;
+  gap: 10px;
+}
+
+.acNevermind {
+  flex: 1;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  background: transparent;
+  color: var(--txt2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+  padding: 11px;
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+
+.acNevermind:hover { background: var(--ink2); }
+
+.acConfirm {
+  flex: 1;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  background: var(--coral);
+  color: var(--ct);
+  border: none;
+  border-radius: 10px;
+  padding: 11.5px;
+  cursor: pointer;
+  transition: opacity 100ms ease;
+}
+
+.acConfirm:hover { opacity: 0.92; }
+.acConfirm:disabled, .acNevermind:disabled { opacity: 0.55; cursor: default; }
