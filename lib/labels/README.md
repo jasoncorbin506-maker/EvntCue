@@ -47,13 +47,27 @@ One file per enum domain: `commission-flows.ts`, `event-subtypes.ts`, `inquiry-s
 
 ## i18n note
 
-These map the EN display string for now. When per-portal Spanish coverage lands (Phase 5+ per-portal pass), each module exports a `commissionFlowLabel(locale)` function instead of a static record, sourcing from `messages/{en,es}/labels.json`. v1 is EN-only on the back-of-house surfaces; Spanish is wired on the public/pre-auth funnel (Phase 3.3) and Orgnz chrome.
+ES coverage was added 2026-05-27 (language-hygiene pass) for the four PL #41-44
+maps: `event-subtypes.ts`, `inquiry-status.ts`, `vendor-categories.ts`,
+`commission-flows.ts`. Locale-aware label functions accept `Locale` as a
+parameter (required for `event-subtypes.ts` and `vendor-categories.ts`;
+optional with EN default for `inquiry-status.ts` since Venu portal is back-
+of-house EN-only per Phase 5+ phasing). When per-portal Spanish coverage lands
+elsewhere, callers thread `locale` through. Back-of-house portals stay EN
+until their portal-localization pass.
 
-## Audit queue (from Venu lock 2026-05-13)
+## Audit queue (Lock 15 — 2026-05-13)
 
-Modules to create as their enums hit the UI:
+Status as of 2026-05-27 language-hygiene pass:
 
-- `event-subtypes.ts` — `hindu_wedding`, `bar_mitzvah`, etc. need human-readable labels before any subtype value surfaces in UI copy. Catch during Vndr/Catr/Plnr port sessions. PARKING_LOT #41.
-- `inquiry-status.ts` — `inked` may need to read as `signed` to first-time users. Confirm during Venu Inquiries-tab port. PARKING_LOT #42.
-- `vendor-categories.ts` — short DB codes ("DJ", "MC") expand in Cue prose ("DJ or master of ceremonies"). PARKING_LOT #43.
-- `commission-flows.ts` — shipped session 14 as the Lock 15 precedent. PARKING_LOT #44.
+- ✅ `event-subtypes.ts` — shipped. Wraps `events.event_subtype` (TEXT column
+  per migration 021) against the canonical key list in `data/budget-presets.ts`.
+  41 subtypes covered EN + ES, DFW-Hispanic register per Lock 14b. PARKING_LOT #41 resolved.
+- ✅ `inquiry-status.ts` — shipped + extended. Seven-state lifecycle covered
+  EN + ES. "Inked" kept (Jason's 2026-05-17 decision reaffirmed 2026-05-27).
+  PARKING_LOT #42 resolved.
+- ✅ `vendor-categories.ts` — shipped. `vendorSubTypeCueExpansion()` added
+  for Cue-prose expansion of abbreviations (DJ → "DJ or master of ceremonies").
+  Category-level ES already in `data/vndr-categories.ts`. PARKING_LOT #43 resolved.
+- ✅ `commission-flows.ts` — Lock 15 precedent, session 14. Audited 2026-05-27;
+  all 9 enum values present + labeled. PARKING_LOT #44 resolved.
