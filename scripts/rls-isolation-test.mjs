@@ -3061,6 +3061,63 @@ async function testBookingCancellationRequestsRLS() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST T-36: vendor_cue_dismissals RLS (migration 064). Own-tenant only.
+//
+// Assertions:
+//   (1) Vendor A CAN insert + SELECT their own dismissal row.
+//   (2) Vendor B CANNOT SELECT vndr A's dismissal.
+//   (3) Vendor B CANNOT INSERT a dismissal under vndr A's tenant.
+// -----------------------------------------------------------------------------
+async function testVendorCueDismissalsRLS() {
+  const vndrA = await seedTestUser("vndr");
+  const vndrB = await seedTestUser("vndr");
+
+  const { data: dismissal, error: insErr } = await vndrA.authedClient
+    .from("vendor_cue_dismissals")
+    .insert({
+      vendor_tenant_id: vndrA.tenantId,
+      cue_key: `T-36-key-${TEST_RUN_ID}`,
+    })
+    .select("id")
+    .single();
+  if (insErr) throw new Error(`vndr A dismissal insert failed: ${insErr.message}`);
+
+  // (1) vndr A reads own row.
+  const { data: aView, error: aErr } = await vndrA.authedClient
+    .from("vendor_cue_dismissals")
+    .select("id")
+    .eq("id", dismissal.id);
+  if (aErr) throw new Error(`vndr A read failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`vndr A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+
+  // (2) vndr B cannot read.
+  const { data: bView, error: bErr } = await vndrB.authedClient
+    .from("vendor_cue_dismissals")
+    .select("id")
+    .eq("id", dismissal.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-vndr vcd query: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: vndr B saw vndr A's cue dismissal`);
+  }
+
+  // (3) vndr B cannot insert under vndr A's tenant.
+  const { data: spoof, error: spoofErr } = await vndrB.authedClient
+    .from("vendor_cue_dismissals")
+    .insert({
+      vendor_tenant_id: vndrA.tenantId,
+      cue_key: `T-36-spoof-${TEST_RUN_ID}`,
+    })
+    .select("id");
+  if (!spoofErr && spoof && spoof.length > 0) {
+    throw new Error(`RLS LEAK: vndr B inserted a cue dismissal under vndr A's tenant`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
 const TESTS = [
@@ -3103,6 +3160,7 @@ const TESTS = [
   { name: "T-33 buyer_role enforcement on booking_inquiries (migration 059)", fn: testBookingInquiriesBuyerRoleEnforcement },
   { name: "T-34 event_reviews RLS (migration 062)", fn: testEventReviewsRLS },
   { name: "T-35 booking_cancellation_requests RLS (migration 063)", fn: testBookingCancellationRequestsRLS },
+  { name: "T-36 vendor_cue_dismissals RLS (migration 064)", fn: testVendorCueDismissalsRLS },
 ];
 
 // -----------------------------------------------------------------------------

@@ -8,6 +8,7 @@ import { getVndrAvailabilityBlocksForMonth } from "@/lib/vndr/availability";
 import { getVndrPackages } from "@/lib/vndr/packages";
 import { getVendorProfile } from "@/lib/vndr/profile";
 import { assembleVndrHomeCue } from "@/lib/cue/vndr-home-prompt";
+import { getVendorCueDismissals } from "@/lib/cue/vndr-cue-dismissals";
 import { getPendingReviewPromptsForVendor } from "@/lib/reviews/event-reviews";
 import { Chrome, AskCueButton, NotifButton, ChromeSignOut } from "./_components/Chrome";
 import { ResponseWindowAlert } from "./_components/ResponseWindowAlert";
@@ -74,6 +75,7 @@ export default async function VndrHome({
     packages,
     vendorProfile,
     reviewPrompts,
+    cueDismissedKeys,
   ] = await Promise.all([
     getOldestUnrespondedInquiry(vendor.tenantId),
     getVndrHeroMetrics(vendor),
@@ -83,6 +85,7 @@ export default async function VndrHome({
     getVndrPackages(vendor.tenantId),
     getVendorProfile(vendor.tenantId),
     getPendingReviewPromptsForVendor(vendor.tenantId),
+    getVendorCueDismissals(vendor.tenantId),
   ]);
 
   const defaultCommissionPct = vendorProfile?.referralRatePct ?? null;
@@ -194,9 +197,11 @@ export default async function VndrHome({
         </div>
       </div>
 
-      {/* 3 — Cue Panel (V-2c profile-completeness-one-time-cue session 24:
-          extracted to client component for sessionStorage-backed dismiss). */}
-      <CuePanel branches={cueBranches} />
+      {/* 3 — Cue Panel. V-2c Session 3 (mig 064): dismiss is permanent +
+          cross-device via vendor_cue_dismissals; server passes the
+          dismissedKeys list so the panel renders the right branch on
+          first paint. */}
+      <CuePanel branches={cueBranches} dismissedKeys={cueDismissedKeys} />
 
       {/* 3.5 — Pending review prompts (V-2c Session 2 Stream A, mig 062).
           Only renders when the vendor has events past T+24h they haven't
