@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Chrome } from "../_components/Chrome";
 import { BookingRow } from "../_components/BookingRow";
@@ -25,7 +26,16 @@ export default async function VenuBookings() {
 
   return (
     <>
-      <Chrome venueName={venue.displayName} roleLabel="Bookings" backHref="/venu/discover" />
+      <Chrome
+        venueName={venue.displayName}
+        roleLabel="Bookings"
+        backHref="/venu/discover"
+        right={
+          <Link href="/venu/availability" className={s.chromeAction}>
+            Availability
+          </Link>
+        }
+      />
       {groups.map((group) => (
         <section key={group.key} className={s.section}>
           <div className={s.sectionH}>

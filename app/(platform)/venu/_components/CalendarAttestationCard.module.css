@@ -1,0 +1,48 @@
+.card {
+  display: block;
+  margin: 16px 18px 6px;
+  padding: 16px 18px 18px;
+  border-radius: 14px;
+  background: linear-gradient(135deg, rgba(42, 107, 219, 0.10), rgba(42, 107, 219, 0.03));
+  border: 0.5px solid rgba(42, 107, 219, 0.25);
+  text-decoration: none;
+  color: inherit;
+}
+
+.card:hover {
+  background: linear-gradient(135deg, rgba(42, 107, 219, 0.14), rgba(42, 107, 219, 0.05));
+}
+
+.eyebrow {
+  font-family: "Barlow Condensed", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  font-size: 11px;
+  color: var(--blue, #2a6bdb);
+  margin-bottom: 4px;
+}
+
+.title {
+  font-family: Cormorant, serif;
+  font-style: italic;
+  font-size: 22px;
+  color: var(--txt);
+  line-height: 1.15;
+  margin-bottom: 6px;
+}
+
+.body {
+  font-size: 13.5px;
+  color: var(--txt2);
+  line-height: 1.45;
+  margin-bottom: 10px;
+}
+
+.cta {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--blue, #2a6bdb);
+  font-weight: 600;
+}

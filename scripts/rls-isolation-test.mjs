@@ -2651,6 +2651,140 @@ async function testCrossTenantVendorPhotosIsolation() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST T-32: venue_availability_blocks isolation (migration 066, venue-calendar
+// arc Session A) — venue A's block hidden from venue B + cross-tenant insert
+// denied. Mirrors T-27's vendor-side shape. The brief at
+// inbox-cc/2026-05-26-venue-calendar-availability-full-import-arc.md numbered
+// this T-37 against an assumed 36-test baseline; actual baseline is T-31 so
+// we landed it sequentially as T-32 (Session B's feed + manual-wins tests
+// become T-34 + T-35).
+// -----------------------------------------------------------------------------
+async function testCrossTenantVenueAvailabilityBlocksIsolation() {
+  const venueA = await seedTestUser("venue");
+  const venueB = await seedTestUser("venue");
+
+  // Seed an A block via admin (avoids the auth gate; admin bypasses RLS).
+  const { data: aBlock, error: aErr } = await adminClient
+    .from("venue_availability_blocks")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      venue_space_id: null,
+      blocked_date: "2026-10-15",
+      start_time: null,
+      end_time: null,
+      reason: `T-VENU-VAB seed ${TEST_RUN_ID}`,
+      source: "manual",
+      created_by: venueA.userId,
+    })
+    .select("id")
+    .single();
+  if (aErr || !aBlock) throw new Error(`seed A venue block failed: ${aErr?.message}`);
+
+  // Negative: B cannot SELECT A's block (venue_vab_select tenant-private).
+  const { data: bView, error: bErr } = await venueB.authedClient
+    .from("venue_availability_blocks")
+    .select("id")
+    .eq("id", aBlock.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-venue VAB SELECT: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: venue B saw venue A's availability block`);
+  }
+
+  // Negative: B cannot INSERT spoofing A's tenant (venue_vab_insert WITH CHECK).
+  const { data: spoof, error: spoofErr } = await venueB.authedClient
+    .from("venue_availability_blocks")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      venue_space_id: null,
+      blocked_date: "2026-10-16",
+      start_time: null,
+      end_time: null,
+      source: "manual",
+      created_by: venueB.userId,
+    })
+    .select("id");
+  if (spoofErr && spoofErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-venue VAB INSERT: ${spoofErr.message}`);
+  }
+  if (!spoofErr && spoof && spoof.length > 0) {
+    throw new Error(`RLS LEAK: venue B inserted block under venue A's tenant`);
+  }
+
+  // Positive: A CAN read their own block.
+  const { data: aView, error: aReadErr } = await venueA.authedClient
+    .from("venue_availability_blocks")
+    .select("id")
+    .eq("id", aBlock.id);
+  if (aReadErr) throw new Error(`A positive control failed: ${aReadErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+// -----------------------------------------------------------------------------
+// TEST T-33: venue_calendar_attestations isolation (migration 066, venue-calendar
+// arc Session A) — attestation row presence is the gating signal for Discover,
+// so cross-tenant visibility (or worse, cross-tenant write) would let one venue
+// inadvertently/maliciously affect another's Discover state. Mirrors T-32 shape.
+// -----------------------------------------------------------------------------
+async function testCrossTenantVenueCalendarAttestationsIsolation() {
+  const venueA = await seedTestUser("venue");
+  const venueB = await seedTestUser("venue");
+
+  // Seed A's attestation via admin.
+  const { data: aRow, error: aErr } = await adminClient
+    .from("venue_calendar_attestations")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      attested_at: new Date().toISOString(),
+      attested_by: venueA.userId,
+    })
+    .select("id")
+    .single();
+  if (aErr || !aRow) throw new Error(`seed A attestation failed: ${aErr?.message}`);
+
+  // Negative: B cannot SELECT A's attestation (vca_select tenant-private).
+  const { data: bView, error: bErr } = await venueB.authedClient
+    .from("venue_calendar_attestations")
+    .select("id")
+    .eq("id", aRow.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-venue VCA SELECT: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: venue B saw venue A's calendar attestation`);
+  }
+
+  // Negative: B cannot INSERT an attestation under A's tenant.
+  const { data: spoof, error: spoofErr } = await venueB.authedClient
+    .from("venue_calendar_attestations")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      attested_at: new Date().toISOString(),
+      attested_by: venueB.userId,
+    })
+    .select("id");
+  if (spoofErr && spoofErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-venue VCA INSERT: ${spoofErr.message}`);
+  }
+  if (!spoofErr && spoof && spoof.length > 0) {
+    throw new Error(`RLS LEAK: venue B inserted attestation under venue A's tenant`);
+  }
+
+  // Positive: A CAN read their own attestation.
+  const { data: aView, error: aReadErr } = await venueA.authedClient
+    .from("venue_calendar_attestations")
+    .select("id")
+    .eq("id", aRow.id);
+  if (aReadErr) throw new Error(`A positive control failed: ${aReadErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
 const TESTS = [
@@ -2689,6 +2823,8 @@ const TESTS = [
   { name: "T-29 vndr_package_addons isolation (migration 054 — vndr A vs B via user_owns_vndr_package)", fn: testCrossTenantVndrPackageAddonsIsolation },
   { name: "T-30 vendor_photos isolation (migration 056 — vndr A vs B)", fn: testCrossTenantVendorPhotosIsolation },
   { name: "T-31 vendor_date_commission_overrides isolation (migration 057 — vndr A vs B)", fn: testCrossTenantVendorDateCommissionsIsolation },
+  { name: "T-32 venue_availability_blocks isolation (migration 066 — venue A vs B)", fn: testCrossTenantVenueAvailabilityBlocksIsolation },
+  { name: "T-33 venue_calendar_attestations isolation (migration 066 — venue A vs B)", fn: testCrossTenantVenueCalendarAttestationsIsolation },
 ];
 
 // -----------------------------------------------------------------------------

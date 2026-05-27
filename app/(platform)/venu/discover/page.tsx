@@ -1,7 +1,9 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
 import { Chrome, LivePill } from "../_components/Chrome";
+import { CalendarAttestationCard } from "../_components/CalendarAttestationCard";
 import { getCurrentVenue } from "@/lib/venu/current-venue";
+import { hasVenueAttachedCalendar } from "@/lib/venu/availability";
 import s from "../venu.module.css";
 
 /**
@@ -32,6 +34,7 @@ export default async function VenuDiscover({
   const venueName = venue.displayName;
   const isLive = false;
   const isFirstTimeClaim = welcome === "claim";
+  const calendarAttached = await hasVenueAttachedCalendar(venue.tenantId);
 
   return (
     <>
@@ -40,6 +43,8 @@ export default async function VenuDiscover({
         roleLabel="Discover"
         right={isLive ? <LivePill /> : null}
       />
+
+      {!calendarAttached && <CalendarAttestationCard />}
 
       <section className={s.welcomeStrip}>
         {isFirstTimeClaim ? (
