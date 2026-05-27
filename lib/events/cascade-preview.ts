@@ -11,6 +11,11 @@ import {
   type MilestoneOverride,
   type TaskAnchor,
 } from "./timing";
+import {
+  findActiveBookingsForNotification,
+  writeEventNotification,
+} from "./notifications";
+import type { DateChangePayload } from "./event-notifications-shared";
 
 /**
  * Cascade preview — F2.b's load-bearing computation.
@@ -213,6 +218,52 @@ export async function applyCascadeCommit(args: {
     .eq("id", args.eventId);
   if (eventErr) {
     return { ok: false, error: `Could not update event: ${eventErr.message}` };
+  }
+
+  // 1.5. Vndr notifications (Lock 24 Chunk B) — fire date_change notifications
+  // for any active bookings on this event when the date or start time has
+  // moved. Skip when only timezone / date_status / duration_minutes shifted
+  // (those aren't user-visible "the event date moved" semantics for vendors).
+  //
+  // Failure here does NOT roll back the cascade commit — the event update
+  // already succeeded and history logging follows. A notification-write
+  // failure is logged + surfaced in the result message but the cascade
+  // itself is considered committed.
+  const dateMoved =
+    args.oldEvent.start_date !== args.newEvent.start_date ||
+    args.oldEvent.start_time !== args.newEvent.start_time;
+
+  if (dateMoved) {
+    const bookings = await findActiveBookingsForNotification(args.eventId, admin);
+    if (bookings.length > 0) {
+      const payload: DateChangePayload = {
+        oldStartDate: args.oldEvent.start_date,
+        oldStartTime: args.oldEvent.start_time,
+        oldEndDate: null, // events.end_date isn't part of the cascade today
+        oldEndTime: null,
+        newStartDate: args.newEvent.start_date,
+        newStartTime: args.newEvent.start_time,
+        newEndDate: null,
+        newEndTime: null,
+        reason: args.reason ?? null,
+      };
+      const notifyResult = await writeEventNotification({
+        eventId: args.eventId,
+        bookings,
+        notification: { type: "date_change", data: payload },
+        admin,
+      });
+      if (!notifyResult.ok) {
+        // Log + continue. Per the comment block above, notification-write
+        // failure doesn't undo the date change — the orgnz UI surfaces the
+        // failure via the result message and can retry the notification
+        // step separately (Chunk D may add a manual "resend notifications"
+        // affordance if observed behavior demands).
+        console.warn(
+          `applyCascadeCommit notification write failed for event ${args.eventId}: ${notifyResult.error}`,
+        );
+      }
+    }
   }
 
   // 2. Apply approved absolute shifts on custom_milestones
