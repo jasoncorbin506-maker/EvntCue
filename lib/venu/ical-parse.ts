@@ -1,9 +1,15 @@
 import "server-only";
-import * as ical from "node-ical";
 
 /**
  * iCal feed parsing + URL validation. Server-only — node-ical is a Node
  * module that uses streams + buffers + DNS lookups.
+ *
+ * Note: node-ical is dynamically imported inside parseIcalText (not at
+ * module top) to avoid Vercel's "collect page data" build phase eagerly
+ * loading its transitive deps (rrule.js / axios), which currently trips
+ * a Turbopack CommonJS interop bug ("TypeError: s.BigInt is not a
+ * function" — surfaced 2026-05-27 first prod build). The runtime cost
+ * of a single dynamic import per sync-feed call is negligible.
  *
  * Output is a normalized list of (UID, blocked_date, start_time, end_time,
  * reason) tuples that the sync worker writes directly to
@@ -123,10 +129,13 @@ export async function fetchAndParseFeed(
 ): Promise<FetchAndParseResult> {
   const fetched = await fetchIcalText(feedUrl);
   if (!fetched.ok) return { ok: false, error: fetched.error };
-  return { ok: true, events: parseIcalText(fetched.text) };
+  return { ok: true, events: await parseIcalText(fetched.text) };
 }
 
-export function parseIcalText(text: string): ParsedEvent[] {
+export async function parseIcalText(text: string): Promise<ParsedEvent[]> {
+  // Dynamic import — keeps node-ical's heavy transitive deps out of the
+  // build-time module graph. See file header comment.
+  const ical = await import("node-ical");
   const parsed = ical.parseICS(text);
   const now = new Date();
   const windowEnd = new Date(now);

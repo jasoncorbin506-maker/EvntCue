@@ -118,6 +118,11 @@ export async function POST(): Promise<NextResponse> {
 // Tell Next.js to never cache cron responses.
 export const dynamic = "force-dynamic";
 
+// Force Node runtime (not Edge). node-ical pulls in fs/stream/buffer-using
+// transitive deps that don't run in Edge, plus the 5-min maxDuration only
+// applies on Node functions.
+export const runtime = "nodejs";
+
 // Allow up to 5 min for a full feed sweep. Each feed is bounded by the
 // 30s fetch timeout in ical-parse.ts; 5 min covers ~10 feeds on the slow
 // side, comfortable for early venue counts.
