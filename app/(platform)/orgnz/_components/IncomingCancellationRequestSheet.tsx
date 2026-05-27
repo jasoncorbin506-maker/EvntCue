@@ -69,7 +69,7 @@ export function IncomingCancellationRequestSheet({ request, onClose }: Props) {
         <div className={s.sheetHeader}>
           <div>
             <div className={s.sheetTitle}>
-              {request.vendorDisplayName ?? "Vendor"} requested cancellation
+              {request.vendorDisplayName ?? "Vndr"} requested cancellation
             </div>
             <div className={s.sheetSubtitle}>
               {request.eventName} · filed {formatRelative(request.createdAt)}
@@ -91,7 +91,7 @@ export function IncomingCancellationRequestSheet({ request, onClose }: Props) {
         </div>
         {request.reasonText && (
           <>
-            <div className={s.sectionLbl}>Vendor&rsquo;s note</div>
+            <div className={s.sectionLbl}>Vndr&rsquo;s note</div>
             <div className={s.message}>{request.reasonText}</div>
           </>
         )}
@@ -108,8 +108,8 @@ export function IncomingCancellationRequestSheet({ request, onClose }: Props) {
           <>
             <div style={{ marginTop: 14, fontSize: 12.5, color: "var(--txt2)", lineHeight: 1.5 }}>
               {confirmDecision === "approve"
-                ? "Confirm: cancel this booking. The vendor will be notified."
-                : "Confirm: keep the booking confirmed. The vendor's request will be marked denied."}
+                ? "Confirm: cancel this booking. The Vndr will be notified."
+                : "Confirm: keep the booking confirmed. The Vndr's request will be marked denied."}
             </div>
             <div className={s.footer}>
               <button

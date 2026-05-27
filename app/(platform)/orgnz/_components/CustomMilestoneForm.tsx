@@ -203,13 +203,13 @@ export function CustomMilestoneForm({
       </div>
 
       <div className={s.cmField}>
-        <span className={s.cmFieldL}>Vendor (optional)</span>
+        <span className={s.cmFieldL}>Vndr (optional)</span>
         <input
           type="text"
           className={s.cmInput}
           value={vendorName}
           onChange={(e) => setVendorName(e.target.value)}
-          placeholder="Vendor or person responsible"
+          placeholder="Vndr or person responsible"
           maxLength={200}
         />
         <input

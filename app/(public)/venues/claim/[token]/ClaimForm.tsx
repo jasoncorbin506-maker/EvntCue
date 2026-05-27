@@ -120,7 +120,7 @@ export function ClaimForm({ token, venueDisplayName, venueCity, signedInEmail }:
             </svg>
           </div>
           <div className={s.formNoteTxt}>
-            <b>Not the right venue?</b> Don&apos;t use this link — it&apos;s tied to one
+            <b>Not the right Venu?</b> Don&apos;t use this link — it&apos;s tied to one
             property. Email{" "}
             <a href="mailto:team@evntcue.com" style={{ color: "var(--blut)" }}>
               team@evntcue.com

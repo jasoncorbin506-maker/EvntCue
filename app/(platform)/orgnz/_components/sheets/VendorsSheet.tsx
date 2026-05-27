@@ -15,7 +15,7 @@ export function VendorsSheet({ open, onClose, hasVenu }: Props) {
     <Sheet
       open={open}
       onClose={onClose}
-      eyebrow="Vendors"
+      eyebrow="Vndrs"
       eyebrowAccent="coral"
       title={
         <>
@@ -25,12 +25,12 @@ export function VendorsSheet({ open, onClose, hasVenu }: Props) {
     >
       <div className={styles.sheetEmpty}>
         <div className={styles.sheetEmptyT}>
-          <em>No vendors booked yet.</em>
+          <em>No Vndrs booked yet.</em>
         </div>
         <div className={styles.sheetEmptyB}>
           {hasVenu
-            ? "Your venue's locked — start matching with photographers, caterers, florals, and music."
-            : "Lock 5a: vendors firm up once your venue confirms the date. Browse for inspiration in the meantime."}
+            ? "Your Venu's locked — start matching with photographers, Catrs, florals, and music."
+            : "Lock 5a: Vndrs firm up once your Venu confirms the date. Browse for inspiration in the meantime."}
         </div>
       </div>
 

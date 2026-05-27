@@ -16,8 +16,10 @@ import s from "./venues.module.css";
  * Per the lock doc: NO search field, NO ghost-pool lookup, NO public
  * discovery of any kind. Single "Get started" CTA → /venues/start.
  *
- * Renames "For Venus" pill from the mockup to "For Venues" — the mockup's
- * typo / clever-spelling experiment isn't part of the locked brand.
+ * Uses "For Venus" pill per the locked brand vocabulary (Sacred Rule #1,
+ * Lock 14b — Venu/Venus is the canonical short form; the earlier mockup-
+ * derived "For Venues" was reverted in the 2026-05-27 language-hygiene
+ * pass per Cowork's brand-vocab sweep brief).
  */
 export default function VenuesPublicLanding() {
   return (
@@ -28,13 +30,13 @@ export default function VenuesPublicLanding() {
           <div className={s.pubMark} aria-hidden="true" />
           <div className={s.pubWordmark}>EvntCue</div>
         </div>
-        <div className={s.pubRolePill}>For Venues</div>
+        <div className={s.pubRolePill}>For Venus</div>
       </header>
 
       {/* Hero */}
       <section className={s.heroWrap}>
         <div className={s.heroBg} aria-hidden="true" />
-        <div className={s.heroEyebrow}>Built in DFW for DFW venues</div>
+        <div className={s.heroEyebrow}>Built in DFW for DFW Venus</div>
         <h1 className={s.heroHAction}>List your space.</h1>
         <div className={s.heroHPositioning}>The way you already run it.</div>
         <p className={s.heroSub}>
@@ -94,7 +96,7 @@ export default function VenuesPublicLanding() {
             <div className={s.whatBody}>
               <div className={s.whatName}>Day-of cockpit</div>
               <div className={s.whatSub}>
-                Vendor check-in, live timeline, BEO acknowledgment. Run the event from your phone.
+                Vndr check-in, live timeline, BEO acknowledgment. Run the event from your phone.
               </div>
             </div>
           </div>
@@ -121,7 +123,7 @@ export default function VenuesPublicLanding() {
               </svg>
             </div>
             <div className={s.whatBody}>
-              <div className={s.whatName}>Your preferred vendors stay yours</div>
+              <div className={s.whatName}>Your preferred Vndrs stay yours</div>
               <div className={s.whatSub}>
                 Keep the relationships you&apos;ve built. Add new ones when you want to.
               </div>
@@ -137,7 +139,7 @@ export default function VenuesPublicLanding() {
           <div className={s.howRow}>
             <div className={s.howNum}>1</div>
             <div className={s.howBody}>
-              <div className={s.howName}>Verify your venue</div>
+              <div className={s.howName}>Verify your Venu</div>
               <div className={s.howSub}>Property record + insurance · ~2 minutes</div>
             </div>
           </div>

@@ -38,13 +38,13 @@ export const CRISIS_QUICK_ACTIONS: QuickAction[] = [
   {
     iconPath: "M12 7v5l3 2M16 3l5 5",
     title: "Push timeline +15",
-    detail: "Cascade to all vendors",
-    toast: "<em>Pushed</em> next milestone +15 min. Vendors notified.",
+    detail: "Cascade to all Vndrs",
+    toast: "<em>Pushed</em> next milestone +15 min. Vndrs notified.",
   },
   {
     iconPath: "M12 21s-7-7-7-12a7 7 0 0114 0c0 5-7 12-7 12z",
-    title: "Copy venue address",
-    detail: "For lost guests / vendors",
+    title: "Copy Venu address",
+    detail: "For lost guests / Vndrs",
     toast: "Address copied. <em>Brighton Abbey, Argyle TX</em>",
   },
   {
@@ -85,7 +85,7 @@ export const MOMENT_ACTIONS: MomentAction[] = [
     iconPath: "M10 8v8M14 8v8",
     title: "Hold the show",
     detail: "Quiet pause · no announcement",
-    toast: "<em>Pause acknowledged.</em> Vendors will hold position.",
+    toast: "<em>Pause acknowledged.</em> Vndrs will hold position.",
   },
 ];
 

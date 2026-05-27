@@ -165,10 +165,10 @@ export function VendorDetailSheet({ presence, onClose }: Props) {
               onClick={handleDelete}
               disabled={pendingDelete}
             >
-              {pendingDelete ? "Removing…" : "Remove vendor"}
+              {pendingDelete ? "Removing…" : "Remove Vndr"}
             </button>
             <span className={s.deleteHint}>
-              You can re-add anytime from the &ldquo;+ Add vendor&rdquo; affordance.
+              You can re-add anytime from the &ldquo;+ Add Vndr&rdquo; affordance.
             </span>
           </div>
         </div>

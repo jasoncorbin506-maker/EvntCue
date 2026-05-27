@@ -209,7 +209,7 @@ export function dateStatusTransition(
     return {
       allowed: false,
       reason:
-        "Date is confirmed — moving back to tentative invalidates vendor calendar locks. Requires explicit override + reason text.",
+        "Date is confirmed — moving back to tentative invalidates Vndr calendar locks. Requires explicit override + reason text.",
     };
   }
   return { allowed: true };

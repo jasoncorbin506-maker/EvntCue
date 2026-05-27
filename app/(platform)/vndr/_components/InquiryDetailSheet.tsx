@@ -135,7 +135,7 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
         {inquiry.message && (
           <>
             <div className={s.sectionLbl}>
-              Message from {inquiry.buyerRole === "venue" ? "venue" : "organizer"}
+              Message from {inquiry.buyerRole === "venue" ? "Venu" : "Orgnz"}
             </div>
             <div className={s.message}>{inquiry.message}</div>
           </>
@@ -168,7 +168,7 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
               />
             </div>
             <div className={s.hint}>
-              Sent now — the {inquiry.buyerRole === "venue" ? "venue" : "organizer"} sees your price and can accept.
+              Sent now — the {inquiry.buyerRole === "venue" ? "Venu" : "Orgnz"} sees your price and can accept.
             </div>
           </>
         )}

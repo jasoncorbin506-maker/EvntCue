@@ -356,7 +356,7 @@ export function ProfileForm({ profile, photos, certifications, packages }: Props
                 step={1}
               />
             </Field>
-            <Field label="Planner referral rate (0–25%)">
+            <Field label="Plnr referral rate (0–25%)">
               <input
                 type="number"
                 className={s.formInput}
@@ -370,8 +370,9 @@ export function ProfileForm({ profile, photos, certifications, packages }: Props
               />
             </Field>
             <div className={s.formHint}>
-              This is your profile-level referral rate. Per-package referrals
-              live in the Packages section below.
+              This is your profile-level referral rate (paid to Plnrs who
+              refer events to you). Per-package referrals live in the Packages
+              section below.
             </div>
           </>
         ) : (
@@ -381,7 +382,7 @@ export function ProfileForm({ profile, photos, certifications, packages }: Props
               value={fmtDollars(committed.startingPriceCents)}
             />
             <ReadField
-              label="Planner referral rate"
+              label="Plnr referral rate"
               value={
                 committed.referralRatePct === null
                   ? "—"

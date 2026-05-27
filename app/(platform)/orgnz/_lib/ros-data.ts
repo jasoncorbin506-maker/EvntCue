@@ -19,7 +19,7 @@ export type RosBlock = {
 };
 
 export const ROS_BLOCKS: RosBlock[] = [
-  { time: "11:00 AM", title: "Vendor load-in window opens", vendor: "All vendors · north entrance", state: "done" },
+  { time: "11:00 AM", title: "Vndr load-in window opens", vendor: "All Vndrs · north entrance", state: "done" },
   { time: "12:30 PM", title: "Bridal party arrives · suite open", vendor: "Brighton · Tom holds the key", state: "done" },
   { time: "1:00 PM", title: "Hair & makeup begins", vendor: "Bridal suite · 4 stylists", state: "done" },
   { time: "2:15 PM", title: "Hayes Studio arrives · getting-ready coverage", vendor: "Hayes · photo + video", state: "done" },
@@ -36,7 +36,7 @@ export const ROS_BLOCKS: RosBlock[] = [
   { time: "8:15 PM", title: "Cake cutting", vendor: "The Sugar Atelier", state: "" },
   { time: "8:30 PM", title: "Open dancing", vendor: "DJ Reyes · full set", state: "" },
   { time: "10:30 PM", title: "Send-off · sparklers + getaway car", vendor: "Bridal party · all guests", state: "" },
-  { time: "11:30 PM", title: "Hard stop · venue cleanup begins", vendor: "Brighton + all vendors", state: "" },
+  { time: "11:30 PM", title: "Hard stop · Venu cleanup begins", vendor: "Brighton + all Vndrs", state: "" },
 ];
 
 export const ROS_NOW = {

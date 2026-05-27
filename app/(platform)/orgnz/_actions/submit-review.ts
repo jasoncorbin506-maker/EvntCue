@@ -59,7 +59,7 @@ export async function submitReview(
       ok: false,
       error:
         error?.message ??
-        "Review submit failed — you may have already reviewed this vendor on this event.",
+        "Review submit failed — you may have already reviewed this Vndr on this event.",
     };
   }
   revalidatePath("/orgnz");

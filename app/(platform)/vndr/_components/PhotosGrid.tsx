@@ -152,7 +152,7 @@ export function PhotosGrid({ initial }: Props) {
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img
                 src={p.publicUrl}
-                alt={p.altText ?? "Vendor portfolio photo"}
+                alt={p.altText ?? "Vndr portfolio photo"}
                 className={s.photoImg}
                 draggable={false}
               />

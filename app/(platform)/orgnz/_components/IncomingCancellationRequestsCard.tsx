@@ -48,8 +48,8 @@ export function IncomingCancellationRequestsCard({ requests }: Props) {
         </div>
         <div className={s.sheetSubtitle}>
           {requests.length === 1
-            ? "1 vendor wants to cancel"
-            : `${requests.length} vendors want to cancel`}
+            ? "1 Vndr wants to cancel"
+            : `${requests.length} Vndrs want to cancel`}
         </div>
       </div>
       <div style={{ display: "flex", flexDirection: "column", gap: 6 }}>
@@ -63,7 +63,7 @@ export function IncomingCancellationRequestsCard({ requests }: Props) {
           >
             <div style={{ minWidth: 0 }}>
               <div style={{ fontFamily: "var(--font-ui)", fontSize: 13, fontWeight: 600, color: "#fff" }}>
-                {r.vendorDisplayName ?? "Vendor"}
+                {r.vendorDisplayName ?? "Vndr"}
               </div>
               <div style={{ fontFamily: "var(--font-body)", fontSize: 11, color: "var(--txt3)", marginTop: 2 }}>
                 {r.eventName} · filed {formatRelative(r.createdAt)}

@@ -65,16 +65,16 @@ export default function VenuesStart() {
 
         <div className={s.formBody}>
           <h1 className={s.formH}>
-            Tell us about <i>your venue</i>
+            Tell us about <i>your Venu</i>
           </h1>
           <p className={s.formSub}>
-            We verify every venue against property records and a Certificate of Insurance.
+            We verify every Venu against property records and a Certificate of Insurance.
             This protects your listing and keeps the platform real.
           </p>
 
           <div className={s.formFields}>
             <label className={s.formField}>
-              <div className={s.formFieldLbl}>Venue name · how guests know you</div>
+              <div className={s.formFieldLbl}>Venu name · how guests know you</div>
               <input
                 className={s.formFieldInput}
                 type="text"
@@ -142,8 +142,8 @@ export default function VenuesStart() {
               </svg>
             </div>
             <div className={s.formNoteTxt}>
-              <b>Don&apos;t have a COI handy?</b> Most venues do — check your existing policy or
-              email your broker. Real venues already carry this.
+              <b>Don&apos;t have a COI handy?</b> Most Venus do — check your existing policy or
+              email your broker. Real Venus already carry this.
             </div>
           </div>
 
@@ -153,7 +153,7 @@ export default function VenuesStart() {
             disabled={!canSubmit}
             onClick={() => setScreen("verifying")}
           >
-            Verify my venue
+            Verify my Venu
           </button>
         </div>
       </main>

@@ -86,7 +86,7 @@ export function VenuSheet({ open, onClose, hasVenu }: Props) {
           { t: "Signed contract", d: "Executed Mar 28 · $11,200" },
           { t: "Walkthrough notes", d: "2 sessions · 14 photos · 8 to-dos" },
           { t: "Floor plan + capacity", d: "Ceremony 175 · reception 220" },
-          { t: "Approved vendor list", d: "Brighton&rsquo;s preferred · 18 names" },
+          { t: "Approved Vndr list", d: "Brighton&rsquo;s preferred · 18 names" },
         ].map((row) => (
           <button
             key={row.t}
