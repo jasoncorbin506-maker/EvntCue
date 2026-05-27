@@ -9,9 +9,17 @@ import {
 } from "@/lib/events/event-notifications-shared";
 
 /**
- * Hourly Vercel cron worker — sends the day-7 reminder email for pending
+ * Daily Vercel cron worker — sends the day-7 reminder email for pending
  * date-change notifications. Schedule defined in vercel.json:
- * `0 * * * *`. Lock 24 Q3 ("14d flat with a reminder at day 7").
+ * `0 7 * * *` (07:00 UTC, one hour after sync-calendar-feeds to avoid
+ * same-minute fire on the daily slot).
+ *
+ * Schedule rationale: Vercel Hobby tier caps cron granularity at daily;
+ * an hourly schedule would either reject on deploy or hit invocation
+ * limits. The day-7 reminder is a "day-of" event — daily-resolution is
+ * fine per Lock 24 Q3 framing (the reminder is informational, not
+ * time-critical). When the Vercel project upgrades to Pro, the
+ * schedule can flip to hourly (`0 * * * *`) for tighter delivery.
  *
  * Auth: Vercel cron requests carry `Authorization: Bearer <CRON_SECRET>`.
  * Without that header we 401. Hard Rule #9 — never substring-print env
