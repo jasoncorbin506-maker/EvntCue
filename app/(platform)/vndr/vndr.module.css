@@ -1792,3 +1792,416 @@
   background: rgba(232, 98, 42, 0.12);
   color: var(--coral);
 }
+
+/* ── Date-change notification card (Lock 24 Chunk C) ────────────────────── */
+
+/* Distinct from inquiry rows — coral left border, Cormorant title, sits
+ * above the Inquiries list filter chips. Lock 24 UX walkthrough section
+ * "Vendor side / Inquiries tab list card." */
+
+.dcCard {
+  position: relative;
+  margin: 14px 16px 0;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  overflow: hidden;
+  display: flex;
+  align-items: stretch;
+}
+
+.dcCardBorder {
+  width: 4px;
+  background: var(--coral);
+  flex-shrink: 0;
+}
+
+.dcCardBody {
+  padding: 14px 14px 12px;
+  flex: 1;
+  min-width: 0;
+}
+
+.dcCardTitle {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 19px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--txt);
+  line-height: 1.2;
+}
+
+.dcCardDash {
+  color: var(--txt3);
+  font-style: normal;
+  margin: 0 2px;
+}
+
+.dcCardEventName {
+  /* keeps italic from parent */
+}
+
+.dcCardSub {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--txt2);
+  margin-top: 4px;
+  line-height: 1.4;
+  text-transform: capitalize;
+}
+
+.dcCardDiff {
+  margin-top: 10px;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.dcCardWas {
+  color: var(--txt3);
+  text-decoration: line-through;
+  text-decoration-color: rgba(255, 255, 255, 0.2);
+}
+
+.dcCardSep {
+  color: var(--txt3);
+}
+
+.dcCardNow {
+  color: var(--coral);
+  font-weight: 600;
+}
+
+.dcCardReminder {
+  margin-top: 8px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt2);
+  background: rgba(120, 160, 220, 0.10);
+  border: 0.5px solid rgba(120, 160, 220, 0.25);
+  border-radius: 6px;
+  padding: 4px 8px;
+  display: inline-block;
+}
+
+.dcCardError {
+  margin-top: 8px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--rose);
+}
+
+.dcCardActions {
+  margin-top: 12px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.dcCardReview {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--coral);
+  text-decoration: none;
+}
+
+.dcCardReview:hover {
+  text-decoration: underline;
+  text-decoration-color: var(--coral);
+}
+
+.dcCardAccept {
+  margin-left: auto;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  background: var(--coral);
+  color: var(--ct);
+  border: none;
+  border-radius: 999px;
+  padding: 7px 14px;
+  cursor: pointer;
+  transition: opacity 100ms ease;
+}
+
+.dcCardAccept:hover { opacity: 0.92; }
+.dcCardAccept:disabled { opacity: 0.55; cursor: default; }
+
+/* ── Date-change detail page (Lock 24 Chunk C, full-page surface) ──────── */
+
+.dcDetail {
+  padding: 14px 16px 28px;
+}
+
+.dcBack {
+  display: inline-block;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--coral);
+  text-decoration: none;
+  margin-bottom: 12px;
+}
+
+.dcBack:hover { text-decoration: underline; }
+
+.dcHero {
+  margin-bottom: 16px;
+}
+
+.dcEyebrow {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--coral);
+}
+
+.dcEventName {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
+  color: var(--txt);
+  margin: 4px 0 4px;
+  line-height: 1.15;
+}
+
+.dcEventMeta {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--txt2);
+  text-transform: capitalize;
+}
+
+.dcChangeCard {
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  padding: 14px;
+  margin-bottom: 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.dcChangeRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.dcChangeLbl {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  width: 36px;
+  flex-shrink: 0;
+  padding-top: 2px;
+}
+
+.dcChangeValue {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--txt);
+  line-height: 1.35;
+}
+
+.dcChangeValueNew {
+  color: var(--coral);
+  font-weight: 600;
+}
+
+.dcChangeTime {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--txt2);
+  margin-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+
+.dcChangeValueNew .dcChangeTime { color: var(--coral); }
+
+.dcChangeArrow {
+  font-family: var(--font-ui);
+  font-size: 14px;
+  color: var(--txt3);
+  text-align: center;
+  margin: -2px 0;
+}
+
+.dcReason {
+  margin-bottom: 14px;
+}
+
+.dcReasonLbl {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  margin-bottom: 4px;
+}
+
+.dcReasonText {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--txt);
+  line-height: 1.45;
+}
+
+.dcImpact {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--txt);
+  line-height: 1.5;
+  background: rgba(120, 160, 220, 0.08);
+  border: 0.5px solid rgba(120, 160, 220, 0.22);
+  border-radius: 10px;
+  padding: 12px 14px;
+  margin-bottom: 16px;
+}
+
+.dcError {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--rose);
+  margin-bottom: 12px;
+}
+
+.dcCtas {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 18px;
+}
+
+.dcAccept {
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--coral);
+  color: var(--ct);
+  border: none;
+  border-radius: 12px;
+  padding: 14px;
+  cursor: pointer;
+  transition: opacity 100ms ease;
+}
+
+.dcAccept:hover { opacity: 0.92; }
+.dcAccept:disabled { opacity: 0.55; cursor: default; }
+
+.dcDecline {
+  width: 100%;
+  font-family: var(--font-ui);
+  font-size: 14px;
+  font-weight: 600;
+  background: transparent;
+  color: var(--coral);
+  border: 0.5px solid var(--coral);
+  border-radius: 12px;
+  padding: 13.5px;
+  cursor: pointer;
+  transition: background 100ms ease;
+}
+
+.dcDecline:hover { background: rgba(232, 98, 42, 0.08); }
+.dcDecline:disabled { opacity: 0.55; cursor: default; }
+
+.dcExpiry {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt3);
+  line-height: 1.5;
+  text-align: center;
+  padding: 0 8px;
+}
+
+/* ── Post-action state + undo toast (Lock 22 forgiveness pattern) ──────── */
+
+.dcPostState {
+  padding: 40px 16px;
+  text-align: center;
+}
+
+.dcPostCheck {
+  font-size: 40px;
+  color: var(--coral);
+  line-height: 1;
+  margin-bottom: 12px;
+}
+
+.dcPostTitle {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 500;
+  color: var(--txt);
+  margin-bottom: 8px;
+}
+
+.dcPostSub {
+  font-family: var(--font-body);
+  font-size: 14px;
+  color: var(--txt2);
+  line-height: 1.5;
+  max-width: 320px;
+  margin: 0 auto;
+}
+
+.dcUndoToast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: var(--ink3);
+  border: 0.5px solid var(--bdr);
+  border-radius: 999px;
+  padding: 8px 8px 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+  animation: dcUndoToastIn 200ms ease;
+  z-index: 100;
+}
+
+@keyframes dcUndoToastIn {
+  from { transform: translate(-50%, 12px); opacity: 0; }
+  to { transform: translate(-50%, 0); opacity: 1; }
+}
+
+.dcUndoToastMessage {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  color: var(--txt);
+}
+
+.dcUndoToastButton {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  background: var(--coral);
+  color: var(--ct);
+  border: none;
+  border-radius: 999px;
+  padding: 6px 12px;
+  cursor: pointer;
+  transition: opacity 100ms ease;
+}
+
+.dcUndoToastButton:hover { opacity: 0.92; }
+.dcUndoToastButton:disabled { opacity: 0.55; cursor: default; }

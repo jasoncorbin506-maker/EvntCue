@@ -1,7 +1,9 @@
 import { redirect } from "next/navigation";
 import { getCurrentVendor } from "@/lib/vndr/current-vendor";
 import { getVndrInquiries } from "@/lib/vndr/inquiries";
+import { getPendingDateChangeNotifications } from "@/lib/vndr/event-notifications";
 import { Chrome, NotifButton, ChromeSignOut } from "../_components/Chrome";
+import { DateChangeCard } from "../_components/DateChangeCard";
 import { InquiriesList } from "../_components/InquiriesList";
 
 /**
@@ -20,15 +22,26 @@ import { InquiriesList } from "../_components/InquiriesList";
  * created_at DESC). RLS scopes the result to the vendor's own inquiries.
  * Empty state is honest — brand-new vendor with no leads sees "No
  * inquiries yet."
+ *
+ * Lock 24 Chunk C addition: pending date-change notifications surface as
+ * a distinct card variant at the top of the list (above the filter chips
+ * + inquiry rows). Coral border + Cormorant title signals "this needs a
+ * response in a different category than a new inquiry." Quick-Accept on
+ * the card per UX critique #4.1; full decision lives on the detail page
+ * at /vndr/inquiries/date-change/[notification_id].
  */
 export default async function VndrInquiries() {
   const vendor = await getCurrentVendor();
   if (!vendor) redirect("/vndr-onboarding/1");
 
-  const inquiries = await getVndrInquiries(vendor.tenantId);
-  const hasUnresponded = inquiries.some(
-    (i) => i.status === "inquiry" || i.status === "reviewing",
-  );
+  const [inquiries, pendingDateChanges] = await Promise.all([
+    getVndrInquiries(vendor.tenantId),
+    getPendingDateChangeNotifications(vendor.tenantId),
+  ]);
+
+  const hasUnresponded =
+    inquiries.some((i) => i.status === "inquiry" || i.status === "reviewing") ||
+    pendingDateChanges.length > 0;
 
   return (
     <>
@@ -42,6 +55,9 @@ export default async function VndrInquiries() {
           </>
         }
       />
+      {pendingDateChanges.map((dc) => (
+        <DateChangeCard key={dc.id} notification={dc} />
+      ))}
       <InquiriesList inquiries={inquiries} />
     </>
   );
