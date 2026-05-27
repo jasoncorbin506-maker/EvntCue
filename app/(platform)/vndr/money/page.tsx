@@ -26,10 +26,11 @@ export default async function VndrMoney() {
         }
       />
       <div className={s.placeholder}>
-        <div className={s.placeholderTitle}>Money</div>
+        <div className={s.placeholderTitle}>Coming soon</div>
         <div className={s.placeholderBody}>
-          Earnings, analytics, and billing will live here. V-2c ports the payout
-          flow once we wire vendor payout primitives.
+          Once your first bookings land, this is where you&apos;ll track
+          earnings, payouts, and platform fees. Hold tight — the money tab
+          unlocks alongside the first wave of completed events.
         </div>
       </div>
     </>
