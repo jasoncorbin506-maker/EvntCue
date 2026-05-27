@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Chrome, LivePill } from "../_components/Chrome";
+import { Chrome, LivePill, ChromeSignOut } from "../_components/Chrome";
 import { CalendarAttestationCard } from "../_components/CalendarAttestationCard";
 import { getCurrentVenue } from "@/lib/venu/current-venue";
 import { hasVenueAttachedCalendar } from "@/lib/venu/availability";
@@ -45,7 +45,12 @@ export default async function VenuDiscover({
       <Chrome
         venueName={venueName}
         roleLabel="Discover"
-        right={isLive ? <LivePill /> : null}
+        right={
+          <>
+            {isLive ? <LivePill /> : null}
+            <ChromeSignOut />
+          </>
+        }
       />
 
       {!calendarAttached && <CalendarAttestationCard />}

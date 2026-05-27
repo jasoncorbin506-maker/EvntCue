@@ -27,9 +27,15 @@ export type ToolRowProps = {
   name: string;
   sub: string;
   badge?: ToolBadge;
+  /**
+   * When true, renders as a non-tappable div with greyed-out styling +
+   * "Coming soon" badge instead of a Link. Used for PARKING_LOT #45 open
+   * design items so taps don't 404 against undesigned interior routes.
+   */
+  disabled?: boolean;
 };
 
-export function ToolRow({ href, icon, name, sub, badge }: ToolRowProps) {
+export function ToolRow({ href, icon, name, sub, badge, disabled }: ToolRowProps) {
   const badgeCls = badge
     ? badge.tone === "live"
       ? s.toolRowBadgeLive
@@ -38,17 +44,35 @@ export function ToolRow({ href, icon, name, sub, badge }: ToolRowProps) {
         : s.toolRowBadgeNeutral
     : "";
 
-  return (
-    <Link href={href} className={s.toolRow}>
+  const body = (
+    <>
       <div className={s.toolRowIco}>{icon}</div>
       <div className={s.toolRowBody}>
         <div className={s.toolRowName}>{name}</div>
         <div className={s.toolRowSub}>{sub}</div>
       </div>
       <div className={s.toolRowMeta}>
-        {badge && <div className={`${s.toolRowBadge} ${badgeCls}`}>{badge.label}</div>}
-        <div className={s.toolRowArrow}>›</div>
+        {disabled ? (
+          <div className={`${s.toolRowBadge} ${s.toolRowBadgeNeutral}`}>Coming soon</div>
+        ) : (
+          badge && <div className={`${s.toolRowBadge} ${badgeCls}`}>{badge.label}</div>
+        )}
+        {!disabled && <div className={s.toolRowArrow}>›</div>}
       </div>
+    </>
+  );
+
+  if (disabled) {
+    return (
+      <div className={`${s.toolRow} ${s.toolRowDisabled}`} aria-disabled="true">
+        {body}
+      </div>
+    );
+  }
+
+  return (
+    <Link href={href} className={s.toolRow}>
+      {body}
     </Link>
   );
 }

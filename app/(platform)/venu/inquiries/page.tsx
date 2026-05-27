@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Chrome } from "../_components/Chrome";
+import { Chrome, ChromeSignOut } from "../_components/Chrome";
 import { InquiriesSegment } from "../_components/Segment";
 import { getCurrentVenue } from "@/lib/venu/current-venue";
 import { getVenueInquiries } from "@/lib/venu/inquiries";
@@ -16,7 +16,12 @@ export default async function VenuInquiries() {
 
   return (
     <>
-      <Chrome venueName={venue.displayName} roleLabel="Inquiries" backHref="/venu/discover" />
+      <Chrome
+        venueName={venue.displayName}
+        roleLabel="Inquiries"
+        backHref="/venu/discover"
+        right={<ChromeSignOut />}
+      />
       <InquiriesSegment inquiries={inquiries} />
     </>
   );

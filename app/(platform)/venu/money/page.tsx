@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Chrome, LivePill } from "../_components/Chrome";
+import { Chrome, LivePill, ChromeSignOut } from "../_components/Chrome";
 import { commissionFlowLabel } from "@/lib/labels/commission-flows";
 import { formatUSDCents } from "../_lib/demo-data";
 import { getCurrentVenue } from "@/lib/venu/current-venue";
@@ -89,7 +89,17 @@ export default async function VenuMoney({
 
   return (
     <>
-      <Chrome venueName={venue.displayName} roleLabel="Money" right={<LivePill />} backHref="/venu/discover" />
+      <Chrome
+        venueName={venue.displayName}
+        roleLabel="Money"
+        right={
+          <>
+            <LivePill />
+            <ChromeSignOut />
+          </>
+        }
+        backHref="/venu/discover"
+      />
 
       {/* Hero number */}
       <section className={s.moneyHero}>

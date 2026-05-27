@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { SignOutButton } from "@/app/_components/SignOutButton";
 import s from "../venu.module.css";
 
 /**
@@ -56,4 +57,13 @@ export function Chrome({ venueName, roleLabel, right, backHref }: ChromeProps) {
  */
 export function LivePill() {
   return <span className={`${s.pill} ${s.pillLive}`}>Live</span>;
+}
+
+/**
+ * Icon-style sign-out button. Mirrors the Vndr Chrome's ChromeSignOut.
+ * Wired into the right slot on every Venu tab so the operator always has
+ * a sign-out affordance from the persistent chrome.
+ */
+export function ChromeSignOut() {
+  return <SignOutButton variant="icon" className={s.chromeIconBtn} ariaLabel="Sign out" />;
 }

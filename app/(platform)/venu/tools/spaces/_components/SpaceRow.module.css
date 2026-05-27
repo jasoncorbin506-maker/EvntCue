@@ -1,0 +1,125 @@
+.row {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 14px 16px;
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+  background: var(--bg2);
+}
+
+.head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.nameWrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+
+.name {
+  font-family: Cormorant, serif;
+  font-style: italic;
+  font-size: 18px;
+  color: var(--txt);
+}
+
+.statusPill {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  padding: 3px 8px;
+  border-radius: 999px;
+  border: 0.5px solid;
+}
+
+.statusActive {
+  color: #1a6b3a;
+  border-color: rgba(36, 124, 78, 0.3);
+  background: rgba(36, 124, 78, 0.06);
+}
+
+.statusSeasonal {
+  color: #8B5C00;
+  border-color: rgba(139, 92, 0, 0.25);
+  background: rgba(139, 92, 0, 0.05);
+}
+
+.statusInactive {
+  color: var(--txt2);
+  border-color: var(--bdr);
+  background: rgba(0, 0, 0, 0.03);
+}
+
+.facts {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--txt2);
+}
+
+.fact {
+  display: inline-flex;
+  align-items: center;
+}
+
+.desc {
+  font-size: 13px;
+  color: var(--txt2);
+  line-height: 1.45;
+  margin-top: 2px;
+}
+
+.error {
+  color: #B33;
+  font-size: 12px;
+  background: rgba(179, 51, 51, 0.06);
+  border-radius: 6px;
+  padding: 6px 10px;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+}
+
+.actionBtn {
+  background: transparent;
+  border: 0.5px solid var(--bdr);
+  border-radius: 999px;
+  padding: 6px 14px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--txt2);
+  cursor: pointer;
+}
+
+.actionBtn:hover:not(:disabled) {
+  color: var(--txt);
+  border-color: var(--txt2);
+}
+
+.actionBtn:disabled {
+  opacity: 0.55;
+  cursor: default;
+}
+
+.danger {
+  color: #B33;
+}
+
+.danger:hover:not(:disabled) {
+  color: #B33;
+  border-color: #B33;
+}

@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Chrome } from "../_components/Chrome";
+import { Chrome, ChromeSignOut } from "../_components/Chrome";
 import { getCurrentVenue } from "@/lib/venu/current-venue";
 import {
   getVenueAvailabilityBlocks,
@@ -87,6 +87,7 @@ export default async function VenuAvailability() {
         venueName={venue.displayName}
         roleLabel="Availability"
         backHref="/venu/bookings"
+        right={<ChromeSignOut />}
       />
 
       {showAttestation && (

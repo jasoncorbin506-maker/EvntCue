@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Chrome } from "../_components/Chrome";
+import { Chrome, ChromeSignOut } from "../_components/Chrome";
 import { BookingRow } from "../_components/BookingRow";
 import { getCurrentVenue } from "@/lib/venu/current-venue";
 import { getVenueBookings, groupVenuBookings } from "@/lib/venu/bookings";
@@ -31,9 +31,12 @@ export default async function VenuBookings() {
         roleLabel="Bookings"
         backHref="/venu/discover"
         right={
-          <Link href="/venu/availability" className={s.chromeAction}>
-            Availability
-          </Link>
+          <>
+            <Link href="/venu/availability" className={s.chromeAction}>
+              Availability
+            </Link>
+            <ChromeSignOut />
+          </>
         }
       />
       {groups.map((group) => (

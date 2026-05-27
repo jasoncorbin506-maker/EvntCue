@@ -1,5 +1,5 @@
 import { redirect } from "next/navigation";
-import { Chrome, LivePill } from "../_components/Chrome";
+import { Chrome, LivePill, ChromeSignOut } from "../_components/Chrome";
 import { ToolRow } from "../_components/ToolRow";
 import { commissionFlowLabel } from "@/lib/labels/commission-flows";
 import { getCurrentVenue } from "@/lib/venu/current-venue";
@@ -43,7 +43,17 @@ export default async function VenuTools() {
 
   return (
     <>
-      <Chrome venueName={venue.displayName} roleLabel="Tools" right={<LivePill />} backHref="/venu/discover" />
+      <Chrome
+        venueName={venue.displayName}
+        roleLabel="Tools"
+        right={
+          <>
+            <LivePill />
+            <ChromeSignOut />
+          </>
+        }
+        backHref="/venu/discover"
+      />
 
       {/* Tools hero — "For everything that spans bookings" */}
       <section className={s.toolsHero}>
@@ -71,6 +81,7 @@ export default async function VenuTools() {
         <div className={s.toolList}>
           <ToolRow
             href="/venu/tools/live"
+            disabled
             name="Venu Live"
             sub="Day-of cockpit · vendor check-in · timeline"
             badge={{ label: "Saturday", tone: "live" }}
@@ -84,6 +95,7 @@ export default async function VenuTools() {
           />
           <ToolRow
             href="/venu/tools/preferred"
+            disabled
             name="Preferred list"
             sub="Vendors, caterers, planners you trust"
             icon={
@@ -95,6 +107,7 @@ export default async function VenuTools() {
           />
           <ToolRow
             href="/venu/tools/atmosphere"
+            disabled
             name="Atmosphere Board"
             sub="Photos that teach Cue how to match"
             icon={
@@ -118,6 +131,7 @@ export default async function VenuTools() {
           />
           <ToolRow
             href="/venu/tools/commission-flows"
+            disabled
             name="Commission flows"
             sub={venueFlows}
             icon={

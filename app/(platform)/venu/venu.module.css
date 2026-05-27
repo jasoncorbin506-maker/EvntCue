@@ -154,6 +154,35 @@
   border: 0.5px solid var(--bdr);
 }
 
+/* Icon-style chrome button (sign-out, future notif). Square 32×32, bay-blue tinted. */
+.chromeIconBtn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  background: var(--bg2, rgba(0, 0, 0, 0.025));
+  border: 0.5px solid var(--bdr);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: var(--txt2);
+  padding: 0;
+  flex-shrink: 0;
+}
+
+.chromeIconBtn:hover {
+  color: var(--txt);
+  border-color: var(--txt2);
+}
+
+.chromeIconBtn svg {
+  width: 15px;
+  height: 15px;
+  stroke: currentColor;
+  fill: none;
+  stroke-width: 1.6;
+}
+
 .chromeAction:hover {
   color: var(--txt);
   border-color: var(--txt2);
@@ -1146,6 +1175,14 @@
   text-decoration: none;
   color: inherit;
   cursor: pointer;
+}
+
+/* Disabled ToolRow — PARKING_LOT #45 interiors not yet designed. Non-tappable
+   and visibly muted so users don't try to navigate into a 404. */
+.toolRowDisabled {
+  opacity: 0.55;
+  cursor: default;
+  pointer-events: none;
 }
 
 .toolRowIco {

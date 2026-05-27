@@ -47,11 +47,20 @@ export type CalendarAttestation = {
   createdAt: string;
 };
 
+export type VenueSpaceStatus = "active" | "inactive" | "seasonal";
+
 export type VenueSpace = {
   id: string;
   tenantId: string;
   name: string;
-  status: string;
+  status: VenueSpaceStatus;
+  /** Operator capacity. */
+  capacity: number | null;
+  /** Rate per day in cents. 0 if unset. */
+  ratePerDayCents: number;
+  /** Optional. */
+  description: string | null;
+  sqFt: number | null;
 };
 
 /**
