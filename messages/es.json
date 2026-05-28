@@ -542,8 +542,8 @@
         "cueTextWarn": "La mayoría de las reservaciones de {category} se hacen con {recommended}+ meses de anticipación. Estarías a {actual} meses — algunos Vndrs podrían tener disponibilidad limitada.",
         "cueTextDanger": "La mayoría de las reservaciones de {category} se hacen con {recommended}+ meses de anticipación. Estarías a {actual} meses. Muchos Vndrs no podrán acomodarte con tan poco tiempo.",
         "vendorTag": "Vndrs reservados",
-        "vendorTextSingle": "1 Vndr tiene una reservación confirmada en esta fecha. Cambiar la fecha requerirá que vuelva a confirmar — el sistema de notificación + re-aceptación llega con la Fase 4. <em>Avísale directamente mientras tanto.</em>",
-        "vendorTextMultiple": "{count} Vndrs tienen reservaciones confirmadas en esta fecha. Cambiar la fecha requerirá que vuelvan a confirmar — el sistema de notificación + re-aceptación llega con la Fase 4. <em>Avísales directamente mientras tanto.</em>"
+        "vendorTextSingle": "1 Vndr tiene una reservación confirmada en esta fecha. Se le notificará por correo y en la pestaña de Solicitudes de su portal cuando guardes el cambio. <em>Verás su respuesta en tu feed.</em>",
+        "vendorTextMultiple": "{count} Vndrs tienen reservaciones confirmadas en esta fecha. Se les notificará por correo y en la pestaña de Solicitudes de su portal cuando guardes el cambio. <em>Verás sus respuestas en tu feed.</em>"
       },
       "lock": {
         "eyebrow": "Tu fecha es tentativa",

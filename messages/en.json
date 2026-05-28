@@ -542,8 +542,8 @@
         "cueTextWarn": "Most {category} bookings happen {recommended}+ months out. You’d be at {actual} months — some Vndrs may have limited availability.",
         "cueTextDanger": "Most {category} bookings happen {recommended}+ months out. You’d be at {actual} months. Many Vndrs won’t be able to accommodate at this lead time.",
         "vendorTag": "Booked Vndrs",
-        "vendorTextSingle": "1 Vndr has a committed booking on this date. Changing the date will require them to re-confirm — Vndr notification + re-acceptance lands with Phase 4. <em>Notify them directly until then.</em>",
-        "vendorTextMultiple": "{count} Vndrs have committed bookings on this date. Changing the date will require them to re-confirm — Vndr notification + re-acceptance lands with Phase 4. <em>Notify them directly until then.</em>"
+        "vendorTextSingle": "1 Vndr has a committed booking on this date. They'll be notified by email and in their portal Inquiries tab when you commit. <em>You'll see their response in your feed.</em>",
+        "vendorTextMultiple": "{count} Vndrs have committed bookings on this date. They'll be notified by email and in their portal Inquiries tab when you commit. <em>You'll see their responses in your feed.</em>"
       },
       "lock": {
         "eyebrow": "Your date is tentative",
