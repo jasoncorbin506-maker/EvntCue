@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
+import { useSearchParams } from "next/navigation";
 import { useLocale } from "next-intl";
 import { VNDR_CATEGORIES, type VndrCategoryKey } from "@/data/vndr-categories";
 import { vendorCategoryLabel } from "@/lib/labels/vendor-categories";
@@ -69,7 +70,10 @@ type Tile = {
 
 export default function OrgnzBrowse() {
   const locale = useLocale() as Locale;
-  const [selected, setSelected] = useState<string | null>(null);
+  // Deep-link focus (e.g. /orgnz/browse?focus=plnr from the Plnr tile) pre-selects
+  // a provider tile so its "coming soon" placeholder shows on load.
+  const searchParams = useSearchParams();
+  const [selected, setSelected] = useState<string | null>(searchParams.get("focus"));
 
   const vendorTiles: Tile[] = VNDR_CATEGORIES.map((cat) => ({
     key: cat.key,

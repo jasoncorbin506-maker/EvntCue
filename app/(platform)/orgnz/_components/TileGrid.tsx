@@ -192,12 +192,8 @@ export function TileGrid(props: Props) {
         </button>
       )}
 
-      {/* PLNR — free (browse) */}
-      <button
-        type="button"
-        className={`${styles.tile} ${styles.tilePlnr}`}
-        onClick={() => openSheet("plnr")}
-      >
+      {/* PLNR — free → marketplace browse (/orgnz/browse, Plnr-focused) */}
+      <Link href="/orgnz/browse?focus=plnr" className={`${styles.tile} ${styles.tilePlnr}`}>
         <div className={styles.tileH}>
           <div className={styles.tileIco}>
             <svg viewBox="0 0 24 24">
@@ -212,7 +208,7 @@ export function TileGrid(props: Props) {
         <div className={styles.tileD}>
           {hasPlnr ? t("tilePlnrDayOf") : t("tilePlnrBrowse")}
         </div>
-      </button>
+      </Link>
 
       {/* VENU — free (browse) */}
       <button
