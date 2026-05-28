@@ -90,7 +90,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     const eventName = eventJoin.name ?? "your event";
     const payload = (row.payload ?? {}) as DateChangePayload;
 
-    // Resolve the primary vendor user's email + locale via user_roles → users.
+    // Resolve locale (+ fallback login email) via user_roles → users.
     const { data: roleRow } = await admin
       .from("user_roles")
       .select("user_id, users!inner ( email, language_preference )")
@@ -103,10 +103,21 @@ export async function GET(request: Request): Promise<NextResponse> {
       email?: string;
       language_preference?: string;
     };
-    const email = userJoin.email ?? null;
+    const loginEmail = userJoin.email ?? null;
     const locale = userJoin.language_preference === "es" ? "es" : "en";
 
-    if (!email) {
+    // Lock 24 email-target fix — business notifications go to the documented
+    // business address (vendors.contact_email), not the operator's login
+    // email. Fall back to login email only when contact_email is unset.
+    const { data: vendorRow } = await admin
+      .from("vendors")
+      .select("contact_email")
+      .eq("tenant_id", row.vendor_tenant_id as string)
+      .maybeSingle();
+    const contactEmail = (vendorRow?.contact_email as string | null)?.trim() || null;
+    const toEmail = contactEmail ?? loginEmail;
+
+    if (!toEmail) {
       summary.skippedNoEmail += 1;
       continue;
     }
@@ -120,7 +131,7 @@ export async function GET(request: Request): Promise<NextResponse> {
     });
 
     const sendResult = await sendEmail({
-      to: email,
+      to: toEmail,
       subject: content.subject,
       text: content.text,
       html: content.html,
