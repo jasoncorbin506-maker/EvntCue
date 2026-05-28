@@ -577,6 +577,14 @@
         "body": "En cuanto la asegures, los calendarios de los Vndrs bloquean tu espacio y la confirmación sale para todos los invitados. Aún puedes editar la fecha después — te mostramos qué se cascadea.",
         "button": "Asegurar mi fecha",
         "locking": "Asegurando…"
+      },
+      "activation": {
+        "eyebrow": "Cuando estés listo",
+        "headline": "Fija la fecha — <em>hazlo realidad</em>",
+        "body": "Tu borrador es tu espacio de planeación. Fija la fecha y tu evento se vuelve real — se abren las reservas para que empieces a armar tu equipo. Puedes cambiar la fecha después; mantendremos a todos al tanto.",
+        "primary": "Fijar la fecha",
+        "secondary": "Todavía no",
+        "activating": "Fijando…"
       }
     }
   },

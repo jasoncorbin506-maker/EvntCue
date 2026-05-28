@@ -17,6 +17,7 @@ import {
 import { PHASE_ORDER } from "@/data/run-of-show/dispatch";
 import { getOrgnzEventNotifications } from "@/lib/orgnz/event-notifications";
 import { getOrgnzVendorDetailsForEvent } from "@/lib/orgnz/vendor-detail";
+import { isEventActive } from "@/lib/events/activation";
 import { CuePill } from "./_components/CuePill";
 import { EventNotificationsFeed } from "./_components/EventNotificationsFeed";
 import { Feed, type FeedCard } from "./_components/Feed";
@@ -24,6 +25,7 @@ import { OpenItemsBanner } from "./_components/OpenItemsBanner";
 import { RunOfShow } from "./_components/RunOfShow";
 import { Hero } from "./_components/Hero";
 import { LockDateCta } from "./_components/LockDateCta";
+import { DateSetCta } from "./_components/DateSetCta";
 import { SheetManager } from "./_components/SheetManager";
 import { TileGrid } from "./_components/TileGrid";
 import { TimelineRail } from "./_components/TimelineRail";
@@ -295,16 +297,19 @@ export default async function OrgnzDashboardPage() {
           duration_minutes: event.duration_minutes,
         }}
       />
-      <LockDateCta
-        eventId={event.id}
-        currentTiming={{
-          start_date: event.start_date,
-          start_time: event.start_time,
-          timezone: event.timezone,
-          date_status: event.date_status,
-          duration_minutes: event.duration_minutes,
-        }}
-      />
+      {event.status === "draft" && <DateSetCta eventId={event.id} />}
+      {isEventActive(event.status) && (
+        <LockDateCta
+          eventId={event.id}
+          currentTiming={{
+            start_date: event.start_date,
+            start_time: event.start_time,
+            timezone: event.timezone,
+            date_status: event.date_status,
+            duration_minutes: event.duration_minutes,
+          }}
+        />
+      )}
       <OpenItemsBanner counts={openItemsCounts} />
       <TimelineRail
         pins={pins}
