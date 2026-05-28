@@ -30,15 +30,29 @@ import { IncomingCancellationRequestsCard } from "../_components/IncomingCancell
  *   Booked = inked + booked
  *   Lost   = closed
  */
-export default async function OrgnzInquiries() {
+type SearchParams = Promise<{ thread?: string }>;
+
+export default async function OrgnzInquiries({
+  searchParams,
+}: {
+  searchParams: SearchParams;
+}) {
   const organizer = await getCurrentOrganizer();
   if (!organizer) redirect("/login?role=orgnz");
 
-  const [inquiries, reviewPrompts, cancellationRequests] = await Promise.all([
-    getOrgnzInquiries(organizer.tenantId),
-    getPendingReviewPromptsForOrganizer(organizer.tenantId),
-    getPendingCancellationRequestsForOrganizer(organizer.tenantId),
-  ]);
+  const [{ thread }, inquiries, reviewPrompts, cancellationRequests] =
+    await Promise.all([
+      searchParams,
+      getOrgnzInquiries(organizer.tenantId),
+      getPendingReviewPromptsForOrganizer(organizer.tenantId),
+      getPendingCancellationRequestsForOrganizer(organizer.tenantId),
+    ]);
+
+  // Deep-link: ?thread=<inquiry-id> opens that thread's sheet on mount.
+  // Validated against the loaded inquiries list so a stale link silently
+  // falls through to the unopened state instead of a confusing empty sheet.
+  const initialOpenId =
+    thread && inquiries.some((i) => i.id === thread) ? thread : null;
 
   return (
     <div style={{ padding: "14px 16px 32px" }}>
@@ -48,7 +62,7 @@ export default async function OrgnzInquiries() {
       {reviewPrompts.length > 0 && (
         <ReviewPromptsCard prompts={reviewPrompts} />
       )}
-      <OrgnzInquiriesList inquiries={inquiries} />
+      <OrgnzInquiriesList inquiries={inquiries} initialOpenId={initialOpenId} />
     </div>
   );
 }

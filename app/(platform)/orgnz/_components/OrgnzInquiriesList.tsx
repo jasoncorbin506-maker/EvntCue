@@ -71,11 +71,13 @@ function formatPrice(cents: number | null): string {
 
 type Props = {
   inquiries: OrgnzInquiry[];
+  /** Optional inquiry id to open on mount — set by /orgnz/inquiries?thread=<id>. */
+  initialOpenId?: string | null;
 };
 
-export function OrgnzInquiriesList({ inquiries }: Props) {
+export function OrgnzInquiriesList({ inquiries, initialOpenId = null }: Props) {
   const [filter, setFilter] = useState<Filter>("all");
-  const [openId, setOpenId] = useState<string | null>(null);
+  const [openId, setOpenId] = useState<string | null>(initialOpenId);
 
   const filtered = useMemo(() => {
     const allowed = FILTER_STATUSES[filter];

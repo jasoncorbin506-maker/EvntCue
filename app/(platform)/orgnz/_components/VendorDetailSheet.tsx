@@ -1,44 +1,77 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
-import {
-  PHASE_LABELS,
-  PHASE_ORDER,
-} from "@/data/run-of-show/dispatch";
+import { createPortal } from "react-dom";
+import type { EventNotificationResponse } from "@/lib/events/event-notifications-shared";
 import {
   presenceDisplayName,
   type VendorPresence,
 } from "@/lib/events/vendor-presence-shared";
+import type { VendorDetail } from "@/lib/orgnz/vendor-detail-shared";
 import { deleteVendorPresence } from "../_actions/delete-vendor-presence";
 import { addVendorPresence } from "../_actions/add-vendor-presence";
 import { showToast } from "../_lib/toast";
-import { VendorRangePill } from "./VendorRangePill";
 import s from "./VendorDetailSheet.module.css";
 import orgnzStyles from "../orgnz.module.css";
 
 type Props = {
   presence: VendorPresence | null;
+  /** Booking + notification + thread detail for this presence's vendor. */
+  detail: VendorDetail | null;
   onClose: () => void;
 };
 
+function formatPrice(cents: number | null | undefined): string {
+  if (cents == null) return "—";
+  const dollars = cents / 100;
+  return dollars.toLocaleString("en-US", {
+    style: "currency",
+    currency: "USD",
+    maximumFractionDigits: 0,
+  });
+}
+
+function formatDate(iso: string | null): string {
+  if (!iso) return "—";
+  return new Date(iso.length > 10 ? iso : iso + "T00:00:00").toLocaleDateString(
+    "en-US",
+    { month: "short", day: "numeric", year: "numeric" },
+  );
+}
+
+const NOTIF_PILL: Record<
+  EventNotificationResponse,
+  { label: string; tone: "info" | "success" | "warn" | "danger" }
+> = {
+  pending: { label: "Date change · awaiting response", tone: "info" },
+  accepted: { label: "Date change · accepted", tone: "success" },
+  declined: { label: "Date change · declined", tone: "danger" },
+  expired: { label: "Date change · expired", tone: "warn" },
+};
+
 /**
- * Read-only vendor detail sheet — Concept C session B per Cowork's
- * v2-vertical brief Call 1 + Out-of-scope clarification.
+ * Per-vendor detail sheet on the orgnz dashboard.
  *
- * V-1: read-only fields (no edit flow). Delete action lives here with
- * Lock 22 undo-toast forgiveness — tap delete → row removed + toast
- * "Vendor removed · Undo" for ~8s. Undo re-INSERTs via addVendorPresence
- * (fresh row id; the original id is gone — acceptable for V-1 since
- * nothing else references vendor presence rows by id yet).
+ * Shows what THIS vendor is doing on THIS event — package + total +
+ * confirmed date, plus Lock 24 date-change status when a notification
+ * is in flight. Primary action is Quick connect: deep-links to the
+ * existing inquiry thread (?thread=<id>) when one exists, else falls
+ * back to mailto: against vendors.contact_email so the orgnz isn't
+ * stuck behind a stub.
  *
- * The link-to-Vndr-profile affordance for roster vendors (vendor_tenant_id
- * set) is shown but stub-routes to /vndr/{tenantId} which doesn't render
- * a public profile page yet (V-2b territory). Tap surfaces an honest
- * "Vendor profiles open when Vndr Discover launches" toast.
+ * The phase coverage list lives on the row itself (VendorRangePill)
+ * so it's not duplicated here. Remove Vndr action preserved per the
+ * Concept C delete flow.
  */
-export function VendorDetailSheet({ presence, onClose }: Props) {
+export function VendorDetailSheet({ presence, detail, onClose }: Props) {
   const [pendingDelete, startDeleteTransition] = useTransition();
   const [deleted, setDeleted] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Portal target — document.body — only available client-side, so gate
+  // first render until after mount.
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!presence) {
@@ -56,15 +89,16 @@ export function VendorDetailSheet({ presence, onClose }: Props) {
     };
   }, [presence, onClose]);
 
-  if (!presence || deleted) return null;
+  if (!presence || deleted || !mounted) return null;
 
   const { primary, secondary } = presenceDisplayName(presence);
-  const phasesCovered = PHASE_ORDER.filter((p) => presence.phases.includes(p));
+  const booking = detail?.booking ?? null;
+  const notif = detail?.latestNotification ?? null;
+  const inquiryThreadId = detail?.inquiryThreadId ?? null;
+  const contactEmail = detail?.contactEmail ?? null;
 
   function handleDelete() {
     if (!presence || pendingDelete) return;
-    // Snapshot for undo before the action fires (the action revalidates +
-    // closes; undo restores from snapshot).
     const snapshot = presence;
     startDeleteTransition(async () => {
       const res = await deleteVendorPresence(snapshot.id);
@@ -73,25 +107,23 @@ export function VendorDetailSheet({ presence, onClose }: Props) {
         return;
       }
       setDeleted(true);
-      // Lock 22 undo: ~8s window. Toast is fire-and-forget; if the user
-      // taps Undo within the window, re-INSERT via addVendorPresence.
-      // Toast helper doesn't currently support action buttons, so V-1
-      // ships with a passive confirmation toast — the explicit undo
-      // affordance becomes a follow-up when the toast component supports
-      // action buttons. For now: re-add via the AddVendorSheet if the
-      // user changes their mind.
       showToast(`<em>${primary}</em> removed from the event.`);
       onClose();
     });
   }
 
-  function handleVendorProfileTap() {
-    if (presence?.vendor_tenant_id) {
-      showToast("Vendor profiles open when Vndr Discover launches.");
-    }
-  }
+  const mailtoHref = contactEmail
+    ? `mailto:${encodeURIComponent(contactEmail)}?subject=${encodeURIComponent(
+        `About our booking — ${primary}`,
+      )}`
+    : null;
 
-  return (
+  // Portal to document.body so ancestor `transform` / `filter` /
+  // `animation: rise` styles can't break the drawer's `position: fixed`.
+  // (RunOfShow's outer <section> wraps this and has a rise animation that
+  // intermittently turns into a containing block for fixed descendants —
+  // which dropped the drawer to the bottom of the page on laptop viewports.)
+  return createPortal(
     <>
       <div className={orgnzStyles.scrim} onClick={onClose} />
       <aside
@@ -107,9 +139,7 @@ export function VendorDetailSheet({ presence, onClose }: Props) {
             <h3 className={orgnzStyles.drawerTitle} id="vendor-detail-title">
               <em>{primary}</em>
             </h3>
-            {secondary && (
-              <div className={s.secondaryName}>{secondary}</div>
-            )}
+            {secondary && <div className={s.secondaryName}>{secondary}</div>}
           </div>
           <button
             type="button"
@@ -122,41 +152,68 @@ export function VendorDetailSheet({ presence, onClose }: Props) {
         </div>
 
         <div className={orgnzStyles.drawerBody}>
-          <div className={s.section}>
-            <div className={s.sectionLabel}>Coverage</div>
-            <div className={s.coverageRow}>
-              <VendorRangePill phases={presence.phases} />
-              <span className={s.coverageCount}>
-                {presence.phases.length} of 12 phases
-              </span>
+          {/* Lock 24 notification status — only when a notification exists. */}
+          {notif && (
+            <div className={s.section}>
+              <div className={s.sectionLabel}>Status</div>
+              <div className={`${s.statusPill} ${s[`statusPill_${NOTIF_PILL[notif.response].tone}`]}`}>
+                {NOTIF_PILL[notif.response].label}
+              </div>
+              {notif.oldStartDate && notif.newStartDate && (
+                <div className={s.statusMeta}>
+                  {formatDate(notif.oldStartDate)} → {formatDate(notif.newStartDate)}
+                </div>
+              )}
+              {notif.emailDeliveryFailed && (
+                <div className={s.statusMeta}>
+                  Email didn&rsquo;t reach them — try Quick connect or another channel.
+                </div>
+              )}
             </div>
-            <ul className={s.phaseList}>
-              {phasesCovered.map((phase) => (
-                <li key={phase} className={s.phaseItem}>
-                  {PHASE_LABELS[phase]}
-                </li>
-              ))}
-            </ul>
+          )}
+
+          {/* Booking summary. */}
+          <div className={s.section}>
+            <div className={s.sectionLabel}>Booking</div>
+            {booking ? (
+              <dl className={s.kvGrid}>
+                <dt>Package</dt>
+                <dd>{booking.packageName ?? "Custom"}</dd>
+                <dt>Total</dt>
+                <dd>{formatPrice(booking.totalCents)}</dd>
+                <dt>Deposit</dt>
+                <dd>
+                  {booking.depositPct > 0
+                    ? `${booking.depositPct}% of total`
+                    : "—"}
+                </dd>
+                <dt>Confirmed</dt>
+                <dd>{formatDate(booking.confirmedAt)}</dd>
+                <dt>Status</dt>
+                <dd className={s.kvCapitalize}>{booking.status.replace(/_/g, " ")}</dd>
+              </dl>
+            ) : (
+              <p className={s.empty}>No booking on file for this vendor yet.</p>
+            )}
           </div>
 
-          {presence.notes && (
-            <div className={s.section}>
-              <div className={s.sectionLabel}>Notes</div>
-              <p className={s.notes}>{presence.notes}</p>
-            </div>
-          )}
-
-          {presence.vendor_tenant_id && (
-            <div className={s.section}>
-              <button
-                type="button"
-                className={s.profileLink}
-                onClick={handleVendorProfileTap}
+          {/* Quick connect — deep-link to inquiry thread, mailto fallback. */}
+          <div className={s.section}>
+            {inquiryThreadId ? (
+              <Link
+                href={`/orgnz/inquiries?thread=${inquiryThreadId}`}
+                className={s.quickConnect}
               >
-                Open Vndr profile →
-              </button>
-            </div>
-          )}
+                Quick connect — open conversation →
+              </Link>
+            ) : mailtoHref ? (
+              <a href={mailtoHref} className={s.quickConnect}>
+                Quick connect — email {contactEmail} →
+              </a>
+            ) : (
+              <p className={s.empty}>No contact info on file for this vendor.</p>
+            )}
+          </div>
 
           <div className={s.deleteRow}>
             <button
@@ -168,12 +225,13 @@ export function VendorDetailSheet({ presence, onClose }: Props) {
               {pendingDelete ? "Removing…" : "Remove Vndr"}
             </button>
             <span className={s.deleteHint}>
-              You can re-add anytime from the &ldquo;+ Add Vndr&rdquo; affordance.
+              Removes them from the Run of Show. The booking record stays.
             </span>
           </div>
         </div>
       </aside>
-    </>
+    </>,
+    document.body,
   );
 }
 

@@ -16,6 +16,7 @@ import {
 } from "@/lib/events/vendor-presence";
 import { PHASE_ORDER } from "@/data/run-of-show/dispatch";
 import { getOrgnzEventNotifications } from "@/lib/orgnz/event-notifications";
+import { getOrgnzVendorDetailsForEvent } from "@/lib/orgnz/vendor-detail";
 import { CuePill } from "./_components/CuePill";
 import { EventNotificationsFeed } from "./_components/EventNotificationsFeed";
 import { Feed, type FeedCard } from "./_components/Feed";
@@ -124,14 +125,19 @@ export default async function OrgnzDashboardPage() {
   // applied (the query helper swallows the relation-does-not-exist error).
   // Lock 24 Chunk D — also load resolved date-change notifications for
   // the feed strip below the Hero.
-  const [vendorPresencesRaw, eventNotifications] = await Promise.all([
-    getEventVendorPresence(event.id),
-    getOrgnzEventNotifications(event.id),
-  ]);
+  const [vendorPresencesRaw, eventNotifications, vendorDetailMap] =
+    await Promise.all([
+      getEventVendorPresence(event.id),
+      getOrgnzEventNotifications(event.id),
+      // ctx.tenantId is non-null whenever ctx.event is — events are only
+      // loaded inside the tenantId guard in load-context.ts.
+      getOrgnzVendorDetailsForEvent(event.id, ctx.tenantId!),
+    ]);
   const vendorPresences = sortPresences(
     vendorPresencesRaw,
     PHASE_ORDER,
   );
+  const vendorDetailsByTenant = Object.fromEntries(vendorDetailMap);
   const allocatedCents = lineItems.reduce((sum, item) => sum + item.amount_cents, 0);
   const days = daysUntil(event.start_date);
   const category = toCategory(event.event_type);
@@ -161,6 +167,42 @@ export default async function OrgnzDashboardPage() {
     }>,
     customMilestones,
   });
+
+  // Enrich the "Vendor lock" milestone pin with live booking counts so the
+  // drawer shows "3 of 3 vendors confirmed" instead of the static category
+  // list. Covers wedding_vendor_lock, social_*_vendor_lock,
+  // corporate_*_vendor_lock, fallback_vendor_lock — all end in `_vendor_lock`.
+  const vendorsWithBookings = Object.values(vendorDetailsByTenant).filter(
+    (d) => d.booking !== null,
+  );
+  if (vendorsWithBookings.length > 0) {
+    const totalCount = vendorsWithBookings.length;
+    const confirmedCount = vendorsWithBookings.filter(
+      (d) => d.booking?.status === "confirmed",
+    ).length;
+    const allConfirmed = confirmedCount === totalCount;
+    const vendorNames = vendorsWithBookings
+      .map((d) => d.displayName ?? "Vndr")
+      .join(" · ");
+    for (const pin of pins) {
+      if (!pin.milestoneKey?.endsWith("_vendor_lock")) continue;
+      pin.sub = `${confirmedCount} of ${totalCount} confirmed`;
+      pin.body = [
+        {
+          ico: allConfirmed ? "check" : "users",
+          t: allConfirmed
+            ? `All ${totalCount} vendors confirmed`
+            : `${confirmedCount} of ${totalCount} confirmed · ${totalCount - confirmedCount} pending`,
+          d: vendorNames,
+        },
+        {
+          ico: "note",
+          t: "Vendor lock",
+          d: "By this date, you should have your core vendors booked. Tap a vendor on the Run of Show to view their booking or open the conversation.",
+        },
+      ];
+    }
+  }
 
   const dismissedSeedKeys = Object.entries(overrides)
     .filter(([, v]) => (v as { status?: string })?.status === "dismissed")
@@ -292,6 +334,7 @@ export default async function OrgnzDashboardPage() {
         eventType={event.event_type}
         byPhase={rosByPhase}
         vendorPresences={vendorPresences}
+        vendorDetailsByTenant={vendorDetailsByTenant}
       />
       <SheetManager
         budget={budgetSheetData}
