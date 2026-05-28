@@ -170,6 +170,8 @@
     "signinHeadline": "Welcome back.",
     "signupSub": "Your budget, milestones, and mood board are waiting. One step from here.",
     "signupSubVndr": "Your packages, inquiries, and bookings are waiting. One step from here.",
+    "signupHeadlineVenu": "Keep your calendar full.",
+    "signupSubVenu": "Your spaces, inquiries, and calendar are waiting. One step from here.",
     "signinSub": "Sign in to pick up where you left off.",
     "createAccount": "Create account",
     "signIn": "Sign in",
@@ -330,6 +332,26 @@
     "tileVenuPick": "Pick one",
     "tileVenuContract": "Walkthroughs & contract",
     "tileVenuBrowse": "Browse DFW Venus"
+  },
+  "venuStart": {
+    "title": "Get listed on EvntCue",
+    "openCta": "Get started",
+    "headline": "Let's get you",
+    "headlineEm": "listed.",
+    "sub": "A few quick details and your dashboard is ready.",
+    "nameLabel": "Venu name · how guests know you",
+    "namePlaceholder": "The Lantern Hall",
+    "contactLabel": "Your name",
+    "contactPlaceholder": "Sarah Okafor",
+    "emailLabel": "Email · becomes your login",
+    "emailPlaceholder": "you@venue.com",
+    "cityLabel": "City",
+    "cityPlaceholder": "Dallas",
+    "cityHint": "DFW and the surrounding metro",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "8+ characters",
+    "cta": "Create my dashboard",
+    "close": "Close"
   },
   "vndr": {
     "onboarding": {

@@ -1,5 +1,6 @@
 import Link from "next/link";
 import s from "./venues.module.css";
+import { StartVenueCta } from "./StartVenueCta";
 
 /**
  * Public marketing landing for the Venu portal — /venues.
@@ -14,7 +15,8 @@ import s from "./venues.module.css";
  * existing work, not a recruitment criterion).
  *
  * Per the lock doc: NO search field, NO ghost-pool lookup, NO public
- * discovery of any kind. Single "Get started" CTA → /venues/start.
+ * discovery of any kind. Single "Get started" CTA opens the capture modal
+ * (StartVenueCta) → /login?role=venue.
  *
  * Uses "For Venus" pill per the locked brand vocabulary (Sacred Rule #1,
  * Lock 14b — Venu/Venus is the canonical short form; the earlier mockup-
@@ -44,9 +46,7 @@ export default function VenuesPublicLanding() {
           <i>the weddings, the quinces, the bar mitzvahs, the corporate galas.</i>{" "}
           EvntCue gives you the workflow to keep doing it — cleanly, profitably, on your terms.
         </p>
-        <Link href="/venues/start" className={s.heroCta}>
-          Get started
-        </Link>
+        <StartVenueCta />
       </section>
 
       {/* Proof strip — Lock 25 v2a proof points. Lead with zero buyer

@@ -1,19 +1,15 @@
 "use client";
 
-import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { useTranslations } from "next-intl";
 import styles from "./landing.module.css";
-import { ComingSoonModal, type ComingSoonRole } from "./ComingSoonModal";
 
 export function RoleStack() {
   const router = useRouter();
-  const [comingSoon, setComingSoon] = useState<ComingSoonRole | null>(null);
   const t = useTranslations("landing");
 
   return (
-    <>
-      <div className={styles.stack}>
+    <div className={styles.stack}>
         <button
           type="button"
           className={`${styles.card} ${styles.cardOrgnz}`}
@@ -69,7 +65,7 @@ export function RoleStack() {
         <button
           type="button"
           className={`${styles.card} ${styles.cardVenu}`}
-          onClick={() => setComingSoon("venu")}
+          onClick={() => router.push("/venues")}
         >
           <div className={styles.icon}>
             <svg viewBox="0 0 44 44" width="44" height="44" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -90,11 +86,6 @@ export function RoleStack() {
           </div>
           <div className={styles.arrow}>›</div>
         </button>
-      </div>
-
-      {comingSoon && (
-        <ComingSoonModal role={comingSoon} onClose={() => setComingSoon(null)} />
-      )}
-    </>
+    </div>
   );
 }
