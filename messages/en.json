@@ -577,6 +577,14 @@
         "body": "Once you lock, Vndr calendars block your slot and the confirmation goes out to anyone you’ve invited. You can still edit the date after locking — we’ll show you what cascades.",
         "button": "Lock my date",
         "locking": "Locking…"
+      },
+      "activation": {
+        "eyebrow": "Ready when you are",
+        "headline": "Set the date — <em>make it real</em>",
+        "body": "Your draft is your planning space. Set the date and your event becomes real — booking opens up so you can start lining up your team. You can change the date later; we’ll keep everyone posted.",
+        "primary": "Set this date",
+        "secondary": "Not yet",
+        "activating": "Setting…"
       }
     }
   },

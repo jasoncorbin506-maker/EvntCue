@@ -27,6 +27,11 @@ export type OrgnzEvent = {
   guest_count: number | null;
   budget_cents: number | null;
   contingency_pct: number | null;
+  // Lock 27 (activation gate) — 'draft' = planning sandbox (non-transactional),
+  // 'active' = real event (bookings/inquiries/payments allowed). Flipped by the
+  // "Date Set, Ready to Book" affordance via activate-event. Selected in the
+  // events query since PL #61.
+  status: string | null;
   /**
    * Phase 3.6 milestone-editing overrides. Optional on the type so the rest
    * of the app still works before migration 024 is applied to Supabase
