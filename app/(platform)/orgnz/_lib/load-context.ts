@@ -1,6 +1,16 @@
 import { cache } from "react";
+import { headers } from "next/headers";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
+import {
+  humanizeEventType,
+  resolveSelectedEvent,
+  sortEventsForPicker,
+} from "@/lib/events/event-picker";
+
+// PL #61 — proxy.ts copies `/orgnz?event=<id>` into this request header so the
+// layout (which never receives searchParams) can resolve the selection.
+const ORGNZ_EVENT_HEADER = "x-orgnz-event-id";
 
 export type OrgnzEvent = {
   id: string;
@@ -58,12 +68,34 @@ export type OrgnzCustomMilestone = {
   day_of_relevant?: boolean;
 };
 
+/**
+ * PL #61 — lightweight per-event row for the Chrome event picker. One per
+ * event on the tenant. `dateLabel` / `typeLabel` are pre-formatted server-side
+ * so the client picker stays dumb and locale-consistent.
+ */
+export type OrgnzEventSummary = {
+  id: string;
+  name: string;
+  eventType: string;
+  typeLabel: string;
+  startDate: string | null;
+  dateLabel: string | null;
+  status: string | null;
+};
+
 export type OrgnzContext = {
   user: { id: string; email: string; initials: string; displayName: string };
   tenantId: string | null;
   event: OrgnzEvent | null;
   lineItems: OrgnzBudgetLine[];
   customMilestones: OrgnzCustomMilestone[];
+  // PL #61 — multi-event support.
+  events: OrgnzEventSummary[];
+  selectedEventId: string | null;
+  /** True when a `?event=<id>` was requested but didn't resolve to a tenant
+   * event (stale bookmark / wrong tenant). The Chrome surfaces a soft toast
+   * and strips the bad param — warnings inform, never block (Lock 22). */
+  eventNotFound: boolean;
 };
 
 function deriveInitials(email: string): string {
@@ -95,21 +127,52 @@ export const loadOrgnzContext = cache(async (): Promise<OrgnzContext | null> => 
   let event: OrgnzEvent | null = null;
   let lineItems: OrgnzBudgetLine[] = [];
   let customMilestones: OrgnzCustomMilestone[] = [];
+  let events: OrgnzEventSummary[] = [];
+  let selectedEventId: string | null = null;
+  let eventNotFound = false;
 
   if (tenantId) {
-    // Core event select — only columns guaranteed to exist on EVERY deployment.
-    // Phase 3.6 columns (milestone_overrides) get a separate best-effort query
-    // below so a pre-migration schema doesn't 500 every page that loads the
-    // orgnz context.
-    const { data: events } = await admin
+    // PL #61 — the URL-driven selection, forwarded by proxy.ts as a request
+    // header (layouts never receive searchParams).
+    const requestedEventId =
+      (await headers()).get(ORGNZ_EVENT_HEADER)?.trim() || null;
+
+    // Load ALL events on the tenant in one pass: created_at-desc ordering
+    // doubles as the default-selection order, and the rows feed the Chrome
+    // picker. Only columns guaranteed to exist on EVERY deployment (+ status
+    // for the picker pill). Phase 3.6 columns (milestone_overrides) get a
+    // separate best-effort query below so a pre-migration schema doesn't 500
+    // every page that loads the orgnz context.
+    const { data: rows } = await admin
       .from("events")
       .select(
-        "id,name,event_type,event_subtype,start_date,start_time,timezone,date_status,duration_minutes,guest_count,budget_cents,contingency_pct",
+        "id,name,event_type,event_subtype,start_date,start_time,timezone,date_status,duration_minutes,guest_count,budget_cents,contingency_pct,status",
       )
       .eq("orgnz_tenant_id", tenantId)
-      .order("created_at", { ascending: false })
-      .limit(1);
-    event = (events?.[0] as OrgnzEvent | undefined) ?? null;
+      .order("created_at", { ascending: false });
+
+    const allEvents =
+      (rows as (OrgnzEvent & { status?: string | null })[] | null) ?? [];
+
+    // Resolve the active event. `allEvents` is ordered created_at-desc, so the
+    // default (no/invalid `?event=`) is the most-recent — preserving pre-#61
+    // behavior. See lib/events/event-picker.ts.
+    const resolution = resolveSelectedEvent(allEvents, requestedEventId);
+    event = resolution.selected;
+    eventNotFound = resolution.eventNotFound;
+    selectedEventId = event?.id ?? null;
+
+    // Picker rows, sorted next-upcoming-first for display (the created_at-desc
+    // order above is retained purely for default-selection).
+    events = sortEventsForPicker(allEvents).map((e) => ({
+      id: e.id,
+      name: e.name,
+      eventType: e.event_type,
+      typeLabel: humanizeEventType(e.event_type),
+      startDate: e.start_date ?? null,
+      dateLabel: e.start_date ? formatStartDateMedium(e.start_date) : null,
+      status: (e.status as string | null) ?? null,
+    }));
 
     if (event) {
       const { data: items } = await admin
@@ -198,6 +261,9 @@ export const loadOrgnzContext = cache(async (): Promise<OrgnzContext | null> => 
     event,
     lineItems,
     customMilestones,
+    events,
+    selectedEventId,
+    eventNotFound,
   };
 });
 
@@ -238,4 +304,19 @@ export function buildTargetIso(
 
 export function prettyEventType(eventType: string): string {
   return eventType.charAt(0).toUpperCase() + eventType.slice(1);
+}
+
+// ── PL #61 event-picker helpers ──────────────────────────────────────────────
+
+const MEDIUM_DATE = new Intl.DateTimeFormat("en-US", {
+  month: "short",
+  day: "numeric",
+  year: "numeric",
+});
+
+/** "Jul 1, 2027" — fuller than the chrome chip's short date so a picker row is
+ *  unambiguous across years. Matches the en-US convention the other date
+ *  formatters in this module already use. */
+export function formatStartDateMedium(startDateIso: string): string {
+  return MEDIUM_DATE.format(new Date(startDateIso + "T00:00:00"));
 }
