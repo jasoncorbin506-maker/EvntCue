@@ -83,6 +83,11 @@ export async function postAuthSeed(args: {
     .eq("id", args.userId)
     .maybeSingle();
 
+  // First-account signal: true exactly once per user (the public.users mirror
+  // didn't exist before this signup). Gates the welcome email so it fires on
+  // account creation, never on a returning sign-in.
+  const isNewUser = !existingUser;
+
   if (!existingUser) {
     const { error: insertUserErr } = await admin.from("users").insert({
       id: args.userId,
@@ -277,6 +282,13 @@ export async function postAuthSeed(args: {
     if (stage0Raw) c.delete("evntcue_venue_stage0");
   }
 
+  // Welcome email — first account only. Fire-and-forget: a send failure must
+  // never block account creation (Lock 22 — inform, never block). Resend is a
+  // heavy dep, so sendEmail is lazy-imported here rather than at module top.
+  if (isNewUser && desiredRole !== "admin") {
+    await sendWelcomeEmail(desiredRole, args.email, locale);
+  }
+
   // Make sure auth session is hydrated for the redirect target
   void (await createClient()).auth.getUser();
 
@@ -287,6 +299,55 @@ export async function postAuthSeed(args: {
   if (desiredRole === "catr") return "/catr";
   if (desiredRole === "admin") return "/admin";
   return "/orgnz";
+}
+
+/** Portal home each welcome CTA points at (matches the postAuthSeed redirects). */
+const WELCOME_ROUTE: Record<"orgnz" | "vndr" | "venu" | "plnr" | "catr", string> = {
+  orgnz: "/orgnz",
+  vndr: "/vndr-onboarding/1",
+  venu: "/venu",
+  plnr: "/plnr",
+  catr: "/catr",
+};
+
+/**
+ * Send the portal-appropriate welcome email. Maps the role enum ("venue") to
+ * the portal/accent key ("venu"). Never throws — a failed welcome must not
+ * break signup (Lock 22). Resend + the template module are lazy-imported so
+ * they stay out of the auth bundle's eager graph.
+ */
+async function sendWelcomeEmail(
+  role: "orgnz" | "vndr" | "venue" | "plnr" | "catr",
+  email: string,
+  locale: "en" | "es",
+): Promise<void> {
+  const portal = role === "venue" ? "venu" : role;
+  try {
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://evntcue.com";
+    const { renderWelcomeEmail } = await import("@/lib/email/templates/transactional");
+    const { sendEmail } = await import("@/lib/email/send");
+    const content = renderWelcomeEmail({
+      portal,
+      ctaUrl: `${baseUrl}${WELCOME_ROUTE[portal]}`,
+      locale,
+    });
+    const result = await sendEmail({
+      to: email,
+      subject: content.subject,
+      text: content.text,
+      html: content.html,
+      tags: [
+        { name: "kind", value: "welcome" },
+        { name: "portal", value: portal },
+      ],
+    });
+    if (!result.ok) {
+      console.warn(`welcome email failed for ${portal} signup: ${result.error}`);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`welcome email threw for ${portal} signup: ${message}`);
+  }
 }
 
 /**
