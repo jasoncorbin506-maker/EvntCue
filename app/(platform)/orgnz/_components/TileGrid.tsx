@@ -77,12 +77,8 @@ export function TileGrid(props: Props) {
         </div>
       </button>
 
-      {/* VENDORS — free (browse) */}
-      <button
-        type="button"
-        className={`${styles.tile} ${styles.tileVendors}`}
-        onClick={() => openSheet("vendors")}
-      >
+      {/* VENDORS — free → marketplace browse (/orgnz/browse) */}
+      <Link href="/orgnz/browse" className={`${styles.tile} ${styles.tileVendors}`}>
         <div className={styles.tileH}>
           <div className={styles.tileIco}>
             <svg viewBox="0 0 24 24">
@@ -106,7 +102,7 @@ export function TileGrid(props: Props) {
         <div className={styles.tileD}>
           {vendorCount === 0 ? t("tileVendorsLock") : t("tileVendorsStatus")}
         </div>
-      </button>
+      </Link>
 
       {/* MOOD — free */}
       <Link href="/mood-board" className={`${styles.tile} ${styles.tileMood}`}>

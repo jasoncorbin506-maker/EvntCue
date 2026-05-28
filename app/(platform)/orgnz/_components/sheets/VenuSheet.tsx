@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import styles from "../../orgnz.module.css";
 import { Sheet } from "../Sheet";
 import { showToast } from "../../_lib/toast";
@@ -11,6 +12,7 @@ type Props = {
 };
 
 export function VenuSheet({ open, onClose, hasVenu }: Props) {
+  const router = useRouter();
   if (!hasVenu) {
     return (
       <Sheet
@@ -36,7 +38,7 @@ export function VenuSheet({ open, onClose, hasVenu }: Props) {
         <button
           type="button"
           className={`${styles.browseCta} ${styles.browseCtaBlue}`}
-          onClick={() => showToast("DFW Venu Marketplace opens when the portal ships.")}
+          onClick={() => router.push("/orgnz/browse")}
         >
           <div className={styles.browseCtaL}>
             <div className={styles.browseCtaEye}>Find your venue</div>

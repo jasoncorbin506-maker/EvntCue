@@ -1,6 +1,6 @@
 "use client";
 
-export type SheetName = "budget" | "vendors" | "plnr" | "venu" | "guests" | "openItems" | null;
+export type SheetName = "budget" | "plnr" | "venu" | "guests" | "openItems" | null;
 
 const SHEET_EVENT = "orgnz-sheet";
 const PADRINO_EVENT = "orgnz-padrino";

@@ -1,5 +1,6 @@
 "use client";
 
+import { useRouter } from "next/navigation";
 import styles from "../../orgnz.module.css";
 import { Sheet } from "../Sheet";
 import { showToast } from "../../_lib/toast";
@@ -50,6 +51,7 @@ type Props = {
 };
 
 export function PlnrSheet({ open, onClose }: Props) {
+  const router = useRouter();
   return (
     <Sheet
       open={open}
@@ -100,7 +102,7 @@ export function PlnrSheet({ open, onClose }: Props) {
       <button
         type="button"
         className={`${styles.browseCta} ${styles.browseCtaGold}`}
-        onClick={() => showToast("Plnr Marketplace opens when the portal ships.")}
+        onClick={() => router.push("/orgnz/browse")}
         style={{ marginTop: 14 }}
       >
         <div className={styles.browseCtaL}>
