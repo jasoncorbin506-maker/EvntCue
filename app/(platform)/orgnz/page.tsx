@@ -168,6 +168,42 @@ export default async function OrgnzDashboardPage() {
     customMilestones,
   });
 
+  // Enrich the "Vendor lock" milestone pin with live booking counts so the
+  // drawer shows "3 of 3 vendors confirmed" instead of the static category
+  // list. Covers wedding_vendor_lock, social_*_vendor_lock,
+  // corporate_*_vendor_lock, fallback_vendor_lock — all end in `_vendor_lock`.
+  const vendorsWithBookings = Object.values(vendorDetailsByTenant).filter(
+    (d) => d.booking !== null,
+  );
+  if (vendorsWithBookings.length > 0) {
+    const totalCount = vendorsWithBookings.length;
+    const confirmedCount = vendorsWithBookings.filter(
+      (d) => d.booking?.status === "confirmed",
+    ).length;
+    const allConfirmed = confirmedCount === totalCount;
+    const vendorNames = vendorsWithBookings
+      .map((d) => d.displayName ?? "Vndr")
+      .join(" · ");
+    for (const pin of pins) {
+      if (!pin.milestoneKey?.endsWith("_vendor_lock")) continue;
+      pin.sub = `${confirmedCount} of ${totalCount} confirmed`;
+      pin.body = [
+        {
+          ico: allConfirmed ? "check" : "users",
+          t: allConfirmed
+            ? `All ${totalCount} vendors confirmed`
+            : `${confirmedCount} of ${totalCount} confirmed · ${totalCount - confirmedCount} pending`,
+          d: vendorNames,
+        },
+        {
+          ico: "note",
+          t: "Vendor lock",
+          d: "By this date, you should have your core vendors booked. Tap a vendor on the Run of Show to view their booking or open the conversation.",
+        },
+      ];
+    }
+  }
+
   const dismissedSeedKeys = Object.entries(overrides)
     .filter(([, v]) => (v as { status?: string })?.status === "dismissed")
     .map(([k]) => k);
