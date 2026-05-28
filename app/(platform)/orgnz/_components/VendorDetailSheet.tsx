@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { useEffect, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import type { EventNotificationResponse } from "@/lib/events/event-notifications-shared";
 import {
   presenceDisplayName,
@@ -66,6 +67,11 @@ const NOTIF_PILL: Record<
 export function VendorDetailSheet({ presence, detail, onClose }: Props) {
   const [pendingDelete, startDeleteTransition] = useTransition();
   const [deleted, setDeleted] = useState(false);
+  const [mounted, setMounted] = useState(false);
+
+  // Portal target — document.body — only available client-side, so gate
+  // first render until after mount.
+  useEffect(() => setMounted(true), []);
 
   useEffect(() => {
     if (!presence) {
@@ -83,7 +89,7 @@ export function VendorDetailSheet({ presence, detail, onClose }: Props) {
     };
   }, [presence, onClose]);
 
-  if (!presence || deleted) return null;
+  if (!presence || deleted || !mounted) return null;
 
   const { primary, secondary } = presenceDisplayName(presence);
   const booking = detail?.booking ?? null;
@@ -112,7 +118,12 @@ export function VendorDetailSheet({ presence, detail, onClose }: Props) {
       )}`
     : null;
 
-  return (
+  // Portal to document.body so ancestor `transform` / `filter` /
+  // `animation: rise` styles can't break the drawer's `position: fixed`.
+  // (RunOfShow's outer <section> wraps this and has a rise animation that
+  // intermittently turns into a containing block for fixed descendants —
+  // which dropped the drawer to the bottom of the page on laptop viewports.)
+  return createPortal(
     <>
       <div className={orgnzStyles.scrim} onClick={onClose} />
       <aside
@@ -219,7 +230,8 @@ export function VendorDetailSheet({ presence, detail, onClose }: Props) {
           </div>
         </div>
       </aside>
-    </>
+    </>,
+    document.body,
   );
 }
 
