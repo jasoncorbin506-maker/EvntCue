@@ -16,8 +16,25 @@ const URL_PATH_TO_DB_ROLE: Record<UrlRolePath, string> = {
   admin: "admin",
 };
 
+// PL #61 — Orgnz multi-event. Layouts never receive searchParams, so the
+// `/orgnz?event=<id>` selection is forwarded to the server as this request
+// header for loadOrgnzContext to read. See app/(platform)/orgnz/_lib/load-context.ts.
+const ORGNZ_EVENT_HEADER = "x-orgnz-event-id";
+
 export async function proxy(request: NextRequest) {
-  let response = NextResponse.next({ request });
+  // Forward the Orgnz event selection as a request header (scoped to /orgnz;
+  // stripped elsewhere so a client can't smuggle it in). The header rides on a
+  // copy of the request headers that we keep cookie-synced below.
+  const requestHeaders = new Headers(request.headers);
+  const isOrgnz = request.nextUrl.pathname.split("/")[1] === "orgnz";
+  const eventParam = isOrgnz ? request.nextUrl.searchParams.get("event") : null;
+  if (eventParam) {
+    requestHeaders.set(ORGNZ_EVENT_HEADER, eventParam);
+  } else {
+    requestHeaders.delete(ORGNZ_EVENT_HEADER);
+  }
+
+  let response = NextResponse.next({ request: { headers: requestHeaders } });
 
   const supabase = createServerClient(
     process.env.NEXT_PUBLIC_SUPABASE_URL!,
@@ -31,7 +48,14 @@ export async function proxy(request: NextRequest) {
           cookiesToSet.forEach(({ name, value }) =>
             request.cookies.set(name, value),
           );
-          response = NextResponse.next({ request });
+          // Keep the forwarded headers' cookie in sync with the refreshed
+          // Supabase session — the #61 header forwarding must not drop a token
+          // refresh on its way to the downstream server render.
+          const refreshedCookie = request.headers.get("cookie");
+          if (refreshedCookie !== null) {
+            requestHeaders.set("cookie", refreshedCookie);
+          }
+          response = NextResponse.next({ request: { headers: requestHeaders } });
           cookiesToSet.forEach(({ name, value, options }) =>
             response.cookies.set(name, value, options),
           );

@@ -19,7 +19,7 @@ export default async function OrgnzLayout({
   const ctx = await loadOrgnzContext();
   if (!ctx) redirect("/login?role=orgnz");
 
-  const { event, tenantId } = ctx;
+  const { event, tenantId, events, selectedEventId, eventNotFound } = ctx;
   const eventName = event?.name ?? null;
   const startDateShort = event ? formatStartDateShort(event.start_date) : null;
   const daysOut = event ? daysUntil(event.start_date) : null;
@@ -33,6 +33,9 @@ export default async function OrgnzLayout({
           startDateShort={startDateShort}
           daysOut={daysOut}
           unreadInquiriesCount={unreadInquiriesCount}
+          events={events}
+          selectedEventId={selectedEventId}
+          eventNotFound={eventNotFound}
         />
         {children}
         {/* HelpBar (Ask Cue + 12-Min Bump) is day-of-only — gated inside .app via .app.dayof. */}
