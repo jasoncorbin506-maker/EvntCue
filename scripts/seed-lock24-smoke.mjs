@@ -84,6 +84,10 @@ const PKG_1_ID = "5eed0001-0000-0000-0000-000000000401";
 const PKG_2_ID = "5eed0001-0000-0000-0000-000000000402";
 const PKG_3_ID = "5eed0001-0000-0000-0000-000000000403";
 
+const INQ_1_ID = "5eed0001-0000-0000-0000-000000000501";
+const INQ_2_ID = "5eed0001-0000-0000-0000-000000000502";
+const INQ_3_ID = "5eed0001-0000-0000-0000-000000000503";
+
 const SEED_TENANT_IDS = [ORGNZ_TENANT_ID, VNDR_1_TENANT_ID, VNDR_2_TENANT_ID, VNDR_3_TENANT_ID];
 
 // Future event: 6 weeks from today (per brief: 4-8 weeks so date-change is meaningful).
@@ -116,6 +120,11 @@ const VENDORS = [
     bookingTotalCents: 350000,
     roleLabel: "Florals",
     phases: ["pre_day_staging", "load_in", "opening_moment", "first_arc"],
+    inquiryId: INQ_1_ID,
+    inquiryMessage:
+      "Hi! We're booking florals for our wedding — would love to chat about your signature package.",
+    inquiryReply:
+      "Thanks for reaching out! Happy to walk you through everything when you have a few minutes.",
   },
   {
     tenantId: VNDR_2_TENANT_ID,
@@ -141,6 +150,11 @@ const VENDORS = [
       "continuation_arc",
       "send_off",
     ],
+    inquiryId: INQ_2_ID,
+    inquiryMessage:
+      "Looking for full-day photography coverage. What does your standard timeline look like?",
+    inquiryReply:
+      "I cover prep through send-off — let's hop on a quick call to map it out.",
   },
   {
     tenantId: VNDR_3_TENANT_ID,
@@ -157,6 +171,10 @@ const VENDORS = [
     bookingTotalCents: 185000,
     roleLabel: "DJ",
     phases: ["first_arc", "transition", "anchor_moment", "continuation_arc", "send_off"],
+    inquiryId: INQ_3_ID,
+    inquiryMessage: "Need a DJ for reception. What's your availability + base package?",
+    inquiryReply:
+      "I'd love to host your reception. Sharing my package menu now — let me know what fits.",
   },
 ];
 
@@ -207,10 +225,13 @@ async function clearSeedPublicRows() {
   const vndrTenantIds = [VNDR_1_TENANT_ID, VNDR_2_TENANT_ID, VNDR_3_TENANT_ID];
   const packageIds = [PKG_1_ID, PKG_2_ID, PKG_3_ID];
   const bookingIds = [BOOKING_1_ID, BOOKING_2_ID, BOOKING_3_ID];
+  const inquiryIds = [INQ_1_ID, INQ_2_ID, INQ_3_ID];
 
   const steps = [
     ["event_notifications", admin.from("event_notifications").delete().eq("event_id", EVENT_ID)],
     ["event_vendor_presence", admin.from("event_vendor_presence").delete().eq("event_id", EVENT_ID)],
+    ["inquiry_messages", admin.from("inquiry_messages").delete().in("inquiry_id", inquiryIds)],
+    ["booking_inquiries", admin.from("booking_inquiries").delete().in("id", inquiryIds)],
     ["bookings", admin.from("bookings").delete().in("id", bookingIds)],
     ["events", admin.from("events").delete().eq("id", EVENT_ID)],
     ["vndr_packages", admin.from("vndr_packages").delete().in("id", packageIds)],
@@ -357,7 +378,46 @@ async function main() {
     });
     if (presErr) fail(`insert event_vendor_presence(${v.email})`, presErr);
 
-    console.log(`  vndr ${vAuth.email} (${vAuth.id}) → booking ${v.bookingId} → notif email ${v.contactEmail}`);
+    // booking_inquiries + inquiry_messages — gives VendorDetailSheet's
+    // Quick connect button a real thread to deep-link to. Inquiry is in
+    // 'booked' status since the seeded booking is already confirmed.
+    const { error: inqErr } = await admin.from("booking_inquiries").insert({
+      id: v.inquiryId,
+      event_id: EVENT_ID,
+      buyer_tenant_id: ORGNZ.tenantId,
+      buyer_role: "orgnz",
+      vndr_tenant_id: v.tenantId,
+      event_date: EVENT_START_DATE,
+      guest_count: 150,
+      message: v.inquiryMessage,
+      proposed_price_cents: v.bookingTotalCents,
+      status: "booked",
+      responded_at: nowIso,
+      resulting_booking_id: v.bookingId,
+    });
+    if (inqErr) fail(`insert booking_inquiries(${v.email})`, inqErr);
+
+    const { error: msgErr } = await admin.from("inquiry_messages").insert([
+      {
+        inquiry_id: v.inquiryId,
+        inquiry_table: "booking_inquiries",
+        sender_user_id: orgnzAuth.id,
+        sender_tenant_id: ORGNZ.tenantId,
+        sender_role: "orgnz",
+        body: v.inquiryMessage,
+      },
+      {
+        inquiry_id: v.inquiryId,
+        inquiry_table: "booking_inquiries",
+        sender_user_id: vAuth.id,
+        sender_tenant_id: v.tenantId,
+        sender_role: "vndr",
+        body: v.inquiryReply,
+      },
+    ]);
+    if (msgErr) fail(`insert inquiry_messages(${v.email})`, msgErr);
+
+    console.log(`  vndr ${vAuth.email} (${vAuth.id}) → booking ${v.bookingId} → inquiry ${v.inquiryId} → notif email ${v.contactEmail}`);
   }
 
   // Phase E — verify final state.
@@ -374,15 +434,19 @@ async function main() {
     admin.from("vndr_packages").select("id", { count: "exact", head: true }).in("id", [PKG_1_ID, PKG_2_ID, PKG_3_ID]),
     admin.from("event_notifications").select("id", { count: "exact", head: true }).eq("event_id", EVENT_ID),
     admin.from("event_vendor_presence").select("id", { count: "exact", head: true }).eq("event_id", EVENT_ID),
+    admin.from("booking_inquiries").select("id", { count: "exact", head: true }).eq("event_id", EVENT_ID),
+    admin.from("inquiry_messages").select("id", { count: "exact", head: true }).in("inquiry_id", [INQ_1_ID, INQ_2_ID, INQ_3_ID]),
   ]);
-  const [tenantsR, eventsR, bookingsR, vendorsR, packagesR, notifR, presenceR] = checks;
-  console.log(`  seed tenants:        ${tenantsR.count}  (expect 4)`);
-  console.log(`  seed events:         ${eventsR.count}  (expect 1)`);
-  console.log(`  seed vendors row:    ${vendorsR.count}  (expect 3)`);
-  console.log(`  seed vndr_packages:  ${packagesR.count}  (expect 3)`);
-  console.log(`  seed bookings:       ${bookingsR.count}  (expect 3)`);
+  const [tenantsR, eventsR, bookingsR, vendorsR, packagesR, notifR, presenceR, inqR, msgR] = checks;
+  console.log(`  seed tenants:         ${tenantsR.count}  (expect 4)`);
+  console.log(`  seed events:          ${eventsR.count}  (expect 1)`);
+  console.log(`  seed vendors row:     ${vendorsR.count}  (expect 3)`);
+  console.log(`  seed vndr_packages:   ${packagesR.count}  (expect 3)`);
+  console.log(`  seed bookings:        ${bookingsR.count}  (expect 3)`);
   console.log(`  event_vendor_presence:${presenceR.count}  (expect 3 — surfaces on orgnz dashboard)`);
-  console.log(`  event_notifications: ${notifR.count}  (0 unless a date-change already fired)`);
+  console.log(`  booking_inquiries:    ${inqR.count}  (expect 3 — Quick connect deep-link)`);
+  console.log(`  inquiry_messages:     ${msgR.count}  (expect 6 — 2 per thread)`);
+  console.log(`  event_notifications:  ${notifR.count}  (0 unless a date-change already fired)`);
 
   // Phase F — write credentials outside the repo.
   const credsPath = resolve(homedir(), "Desktop/Backstage/seed-lock24-credentials.md");

@@ -126,3 +126,102 @@
   letter-spacing: 0.02em;
   line-height: 1.4;
 }
+
+/* Lock 24 status pill — Date change · awaiting / accepted / declined / expired. */
+.statusPill {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 10px;
+  border-radius: 999px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.statusPill_info {
+  background: rgba(127, 158, 196, 0.12);
+  border: 0.5px solid rgba(127, 158, 196, 0.35);
+  color: var(--bay, #7f9ec4);
+}
+.statusPill_success {
+  background: rgba(108, 167, 122, 0.12);
+  border: 0.5px solid rgba(108, 167, 122, 0.35);
+  color: #6ca77a;
+}
+.statusPill_warn {
+  background: rgba(214, 168, 90, 0.12);
+  border: 0.5px solid rgba(214, 168, 90, 0.35);
+  color: #d6a85a;
+}
+.statusPill_danger {
+  background: rgba(232, 98, 42, 0.12);
+  border: 0.5px solid rgba(232, 98, 42, 0.4);
+  color: var(--coral);
+}
+
+.statusMeta {
+  margin-top: 6px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt2);
+  letter-spacing: 0.02em;
+  line-height: 1.45;
+}
+
+/* Booking summary key/value grid. */
+.kvGrid {
+  display: grid;
+  grid-template-columns: max-content 1fr;
+  column-gap: 14px;
+  row-gap: 6px;
+  margin: 0;
+}
+.kvGrid dt {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.02em;
+  color: var(--txt3);
+}
+.kvGrid dd {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  color: var(--txt1);
+  letter-spacing: 0.01em;
+}
+.kvCapitalize {
+  text-transform: capitalize;
+}
+
+.empty {
+  margin: 0;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  color: var(--txt3);
+  letter-spacing: 0.02em;
+  font-style: italic;
+}
+
+/* Primary action — Quick connect (deep-link or mailto). */
+.quickConnect {
+  display: inline-flex;
+  align-items: center;
+  padding: 10px 16px;
+  background: var(--coral);
+  border: none;
+  border-radius: 10px;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 600;
+  color: white;
+  cursor: pointer;
+  letter-spacing: 0.02em;
+  text-decoration: none;
+  transition: background 150ms ease, transform 150ms ease;
+}
+.quickConnect:hover {
+  background: #d05626;
+}
+.quickConnect:active {
+  transform: translateY(1px);
+}

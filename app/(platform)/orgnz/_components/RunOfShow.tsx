@@ -14,6 +14,7 @@ import {
   presencesInPhase as filterPresencesInPhase,
   type VendorPresence,
 } from "@/lib/events/vendor-presence-shared";
+import type { VendorDetail } from "@/lib/orgnz/vendor-detail-shared";
 import { AddVendorPopup } from "./AddVendorPopup";
 import { AddVendorSheet } from "./AddVendorSheet";
 import { VendorDetailSheet } from "./VendorDetailSheet";
@@ -42,6 +43,8 @@ type Props = {
   byPhase: Record<RoSPhase, MergedRoSRow[]>;
   /** Event-level vendor presence rows. Pre-sorted by sortPresences(). */
   vendorPresences: VendorPresence[];
+  /** Per-vendor booking + notification + thread detail, keyed by vndr_tenant_id. */
+  vendorDetailsByTenant: Record<string, VendorDetail>;
 };
 
 /**
@@ -73,6 +76,7 @@ export function RunOfShow({
   eventType,
   byPhase,
   vendorPresences,
+  vendorDetailsByTenant,
 }: Props) {
   const [clock, setClock] = useState<{ time: string; period: string }>(() =>
     formatClock(new Date()),
@@ -232,6 +236,11 @@ export function RunOfShow({
       {/* Sheets + popup managed by RunOfShow state. */}
       <VendorDetailSheet
         presence={detailPresence}
+        detail={
+          detailPresence?.vendor_tenant_id
+            ? vendorDetailsByTenant[detailPresence.vendor_tenant_id] ?? null
+            : null
+        }
         onClose={() => setDetailPresenceId(null)}
       />
       <AddVendorSheet

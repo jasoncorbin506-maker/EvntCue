@@ -16,6 +16,7 @@ import {
 } from "@/lib/events/vendor-presence";
 import { PHASE_ORDER } from "@/data/run-of-show/dispatch";
 import { getOrgnzEventNotifications } from "@/lib/orgnz/event-notifications";
+import { getOrgnzVendorDetailsForEvent } from "@/lib/orgnz/vendor-detail";
 import { CuePill } from "./_components/CuePill";
 import { EventNotificationsFeed } from "./_components/EventNotificationsFeed";
 import { Feed, type FeedCard } from "./_components/Feed";
@@ -124,14 +125,19 @@ export default async function OrgnzDashboardPage() {
   // applied (the query helper swallows the relation-does-not-exist error).
   // Lock 24 Chunk D — also load resolved date-change notifications for
   // the feed strip below the Hero.
-  const [vendorPresencesRaw, eventNotifications] = await Promise.all([
-    getEventVendorPresence(event.id),
-    getOrgnzEventNotifications(event.id),
-  ]);
+  const [vendorPresencesRaw, eventNotifications, vendorDetailMap] =
+    await Promise.all([
+      getEventVendorPresence(event.id),
+      getOrgnzEventNotifications(event.id),
+      // ctx.tenantId is non-null whenever ctx.event is — events are only
+      // loaded inside the tenantId guard in load-context.ts.
+      getOrgnzVendorDetailsForEvent(event.id, ctx.tenantId!),
+    ]);
   const vendorPresences = sortPresences(
     vendorPresencesRaw,
     PHASE_ORDER,
   );
+  const vendorDetailsByTenant = Object.fromEntries(vendorDetailMap);
   const allocatedCents = lineItems.reduce((sum, item) => sum + item.amount_cents, 0);
   const days = daysUntil(event.start_date);
   const category = toCategory(event.event_type);
@@ -292,6 +298,7 @@ export default async function OrgnzDashboardPage() {
         eventType={event.event_type}
         byPhase={rosByPhase}
         vendorPresences={vendorPresences}
+        vendorDetailsByTenant={vendorDetailsByTenant}
       />
       <SheetManager
         budget={budgetSheetData}
