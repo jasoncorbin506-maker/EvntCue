@@ -1,8 +1,17 @@
-import "server-only";
-
 import type {
   DateChangePayload,
 } from "@/lib/events/event-notifications-shared";
+import {
+  EMAIL_ACCENTS,
+  button,
+  dateChangePanel,
+  emailShell,
+  eyebrow,
+  headline,
+  paragraph,
+  quote,
+  subtle,
+} from "./_layout";
 
 /**
  * Email templates for Lock 24 event_notifications (Chunk E).
@@ -15,14 +24,19 @@ import type {
  *    moments; 'we wanted to let you know' framing not 'URGENT: DATE
  *    CHANGED'."
  *
- * Output: { subject, text, html } per template. The Resend wrapper
- * accepts all three. Plain text is mandatory (deliverability + screen
- * readers); HTML is the rich variant with light Cormorant-italic
- * styling on warm phrases.
+ * Presentation lives in ./_layout.ts (the shared editorial-stationery shell
+ * reused by the Phase 1 transactional templates). This module owns copy +
+ * locale + the notification-specific date panel only.
  *
- * Brand-vocab discipline: Vndr / Plnr / Venu / Orgnz stay English even
- * in ES copy (Cue languageInjection prompt already canonicalizes this).
- * Descriptive prose uses Spanish category nouns where natural.
+ * Output: { subject, text, html } per template. Plain text is mandatory
+ * (deliverability + screen readers); HTML is the rich editorial variant.
+ *
+ * Brand-vocab discipline: Vndr / Plnr / Venu / Orgnz stay English even in ES
+ * copy. Descriptive prose uses Spanish category nouns where natural.
+ *
+ * Audience is Vndr + Catr → coral accent (Lock 18). Not server-only: pure
+ * string builders; the Resend/DB boundary stays in lib/email/send.ts +
+ * lib/events/notifications.ts.
  */
 
 export type DateChangeEmailLocale = "en" | "es";
@@ -32,6 +46,17 @@ export type DateChangeEmailContent = {
   text: string;
   html: string;
 };
+
+const ACCENT = EMAIL_ACCENTS.vndr;
+
+/** Escape user-supplied text (event name, Orgnz reason) before HTML interpolation. */
+function esc(s: string): string {
+  return s
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
 
 function formatDateLong(iso: string | null, locale: DateChangeEmailLocale): string {
   if (!iso) return "TBD";
@@ -56,12 +81,9 @@ function formatTime(iso: string | null, locale: DateChangeEmailLocale): string |
   });
 }
 
-const SHELL_OPEN = `<!doctype html>
-<html><body style="margin:0;padding:24px;background:#0e1014;font-family:Georgia,'Cormorant Garamond',serif;color:#E5E5E5;">
-<div style="max-width:560px;margin:0 auto;background:#15181f;border:1px solid #2a2d33;border-radius:12px;padding:28px;">`;
-const SHELL_CLOSE = `</div></body></html>`;
-
-const BUTTON_STYLE = `display:inline-block;padding:12px 22px;background:#E8622A;color:#fff;text-decoration:none;border-radius:999px;font-family:'Helvetica Neue',Arial,sans-serif;font-weight:600;font-size:14px;letter-spacing:0.02em;`;
+function withTime(dateLabel: string, time: string | null): string {
+  return time ? `${dateLabel} · ${time}` : dateLabel;
+}
 
 // =============================================================================
 // Initial notification — sent on cascade commit (Chunk B write path)
@@ -74,11 +96,10 @@ export function renderInitialNotificationEmail(args: {
   locale: DateChangeEmailLocale;
 }): DateChangeEmailContent {
   const { eventName, payload, detailUrl, locale } = args;
-  const oldDate = formatDateLong(payload.oldStartDate, locale);
-  const newDate = formatDateLong(payload.newStartDate, locale);
-  const oldTime = formatTime(payload.oldStartTime, locale);
-  const newTime = formatTime(payload.newStartTime, locale);
-  const reasonBlock = payload.reason ? payload.reason : null;
+  const was = withTime(formatDateLong(payload.oldStartDate, locale), formatTime(payload.oldStartTime, locale));
+  const now = withTime(formatDateLong(payload.newStartDate, locale), formatTime(payload.newStartTime, locale));
+  const reason = payload.reason ?? null;
+  const safeName = esc(eventName);
 
   if (locale === "es") {
     const subject = `Cambio de fecha — ${eventName}`;
@@ -87,10 +108,10 @@ export function renderInitialNotificationEmail(args: {
       ``,
       `La Orgnz movió la fecha de ${eventName}.`,
       ``,
-      `Antes: ${oldDate}${oldTime ? ` · ${oldTime}` : ""}`,
-      `Ahora:  ${newDate}${newTime ? ` · ${newTime}` : ""}`,
-      reasonBlock ? `` : ``,
-      reasonBlock ? `Nota de la Orgnz: "${reasonBlock}"` : ``,
+      `Antes: ${was}`,
+      `Ahora: ${now}`,
+      reason ? `` : null,
+      reason ? `Nota de la Orgnz: "${reason}"` : null,
       ``,
       `Revisa el cambio y responde (aceptar o declinar) cuando puedas — tienes 14 días.`,
       ``,
@@ -98,24 +119,22 @@ export function renderInitialNotificationEmail(args: {
       ``,
       `— EvntCue`,
     ]
-      .filter((l) => l !== null)
+      .filter((l): l is string => l !== null)
       .join("\n");
-    const html = `${SHELL_OPEN}
-<p style="font-family:Georgia,serif;font-style:italic;font-size:18px;color:#E5E5E5;margin:0 0 16px;">Queríamos avisarte:</p>
-<p style="font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#C8C8C8;margin:0 0 16px;">
-La Orgnz movió la fecha de <b style="color:#E5E5E5;">${eventName}</b>.
-</p>
-<table cellpadding="0" cellspacing="0" style="margin:0 0 16px;font-family:Helvetica,Arial,sans-serif;font-size:13px;">
-<tr><td style="padding:4px 10px 4px 0;color:#8C8C8C;">Antes</td><td style="color:#C8C8C8;">${oldDate}${oldTime ? ` · ${oldTime}` : ""}</td></tr>
-<tr><td style="padding:4px 10px 4px 0;color:#8C8C8C;">Ahora</td><td style="color:#E8622A;font-weight:600;">${newDate}${newTime ? ` · ${newTime}` : ""}</td></tr>
-</table>
-${reasonBlock ? `<p style="font-family:Georgia,serif;font-style:italic;font-size:14px;color:#C8C8C8;border-left:2px solid #E8622A;padding:4px 12px;margin:0 0 16px;">"${reasonBlock}"</p>` : ""}
-<p style="font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#C8C8C8;margin:0 0 20px;">
-Revisa el cambio y responde cuando puedas — tienes 14 días.
-</p>
-<a href="${detailUrl}" style="${BUTTON_STYLE}">Revisar el cambio →</a>
-<p style="font-family:Helvetica,Arial,sans-serif;font-size:11px;color:#5C5C5C;margin:24px 0 0;">— EvntCue</p>
-${SHELL_CLOSE}`;
+    const html = emailShell({
+      lang: "es",
+      preheader: `La fecha de ${eventName} cambió — revisa y responde en 14 días.`,
+      footerNote: `Recibes esto porque tienes una reserva activa en EvntCue.`,
+      children: [
+        eyebrow("Cambio de fecha", ACCENT),
+        headline("Queríamos avisarte."),
+        paragraph(`La Orgnz movió la fecha de <b style="color:#1F2533;">${safeName}</b>.`),
+        dateChangePanel({ wasLabel: "Antes", nowLabel: "Ahora", was, now, accent: ACCENT }),
+        reason ? quote(esc(reason), ACCENT, "Nota de la Orgnz") : "",
+        subtle(`Revisa el cambio y responde cuando puedas — tienes <b style="color:#5A5346;">14 días</b>.`),
+        button({ href: detailUrl, label: "Revisar el cambio", accent: ACCENT }),
+      ].join("\n"),
+    });
     return { subject, text, html };
   }
 
@@ -126,10 +145,10 @@ ${SHELL_CLOSE}`;
     ``,
     `The Orgnz moved the date of ${eventName}.`,
     ``,
-    `Was:  ${oldDate}${oldTime ? ` · ${oldTime}` : ""}`,
-    `Now:  ${newDate}${newTime ? ` · ${newTime}` : ""}`,
-    reasonBlock ? `` : ``,
-    reasonBlock ? `Note from the Orgnz: "${reasonBlock}"` : ``,
+    `Was: ${was}`,
+    `Now: ${now}`,
+    reason ? `` : null,
+    reason ? `Note from the Orgnz: "${reason}"` : null,
     ``,
     `Review the change and respond when you can — you have 14 days.`,
     ``,
@@ -137,24 +156,22 @@ ${SHELL_CLOSE}`;
     ``,
     `— EvntCue`,
   ]
-    .filter((l) => l !== null)
+    .filter((l): l is string => l !== null)
     .join("\n");
-  const html = `${SHELL_OPEN}
-<p style="font-family:Georgia,serif;font-style:italic;font-size:18px;color:#E5E5E5;margin:0 0 16px;">We wanted to let you know:</p>
-<p style="font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#C8C8C8;margin:0 0 16px;">
-The Orgnz moved the date of <b style="color:#E5E5E5;">${eventName}</b>.
-</p>
-<table cellpadding="0" cellspacing="0" style="margin:0 0 16px;font-family:Helvetica,Arial,sans-serif;font-size:13px;">
-<tr><td style="padding:4px 10px 4px 0;color:#8C8C8C;">Was</td><td style="color:#C8C8C8;">${oldDate}${oldTime ? ` · ${oldTime}` : ""}</td></tr>
-<tr><td style="padding:4px 10px 4px 0;color:#8C8C8C;">Now</td><td style="color:#E8622A;font-weight:600;">${newDate}${newTime ? ` · ${newTime}` : ""}</td></tr>
-</table>
-${reasonBlock ? `<p style="font-family:Georgia,serif;font-style:italic;font-size:14px;color:#C8C8C8;border-left:2px solid #E8622A;padding:4px 12px;margin:0 0 16px;">"${reasonBlock}"</p>` : ""}
-<p style="font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#C8C8C8;margin:0 0 20px;">
-Review the change and respond when you can — you have 14 days.
-</p>
-<a href="${detailUrl}" style="${BUTTON_STYLE}">Review the change →</a>
-<p style="font-family:Helvetica,Arial,sans-serif;font-size:11px;color:#5C5C5C;margin:24px 0 0;">— EvntCue</p>
-${SHELL_CLOSE}`;
+  const html = emailShell({
+    lang: "en",
+    preheader: `The date for ${eventName} moved — review and respond within 14 days.`,
+    footerNote: `You're receiving this because you have an active booking on EvntCue.`,
+    children: [
+      eyebrow("Date change", ACCENT),
+      headline("We wanted to let you know."),
+      paragraph(`The Orgnz moved the date of <b style="color:#1F2533;">${safeName}</b>.`),
+      dateChangePanel({ wasLabel: "Was", nowLabel: "Now", was, now, accent: ACCENT }),
+      reason ? quote(esc(reason), ACCENT, "Note from the Orgnz") : "",
+      subtle(`Review the change and respond when you can — you have <b style="color:#5A5346;">14 days</b>.`),
+      button({ href: detailUrl, label: "Review the change", accent: ACCENT }),
+    ].join("\n"),
+  });
   return { subject, text, html };
 }
 
@@ -170,6 +187,8 @@ export function renderReminderEmail(args: {
 }): DateChangeEmailContent {
   const { eventName, payload, detailUrl, locale } = args;
   const newDate = formatDateLong(payload.newStartDate, locale);
+  const safeName = esc(eventName);
+  const newDateAccent = `<span style="color:${ACCENT};font-weight:600;">${esc(newDate)}</span>`;
 
   if (locale === "es") {
     const subject = `Recordatorio — cambio de fecha de ${eventName}`;
@@ -185,17 +204,18 @@ export function renderReminderEmail(args: {
       ``,
       `— EvntCue`,
     ].join("\n");
-    const html = `${SHELL_OPEN}
-<p style="font-family:Georgia,serif;font-style:italic;font-size:18px;color:#E5E5E5;margin:0 0 16px;">Solo te recordamos:</p>
-<p style="font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#C8C8C8;margin:0 0 16px;">
-La fecha de <b style="color:#E5E5E5;">${eventName}</b> cambió a <span style="color:#E8622A;font-weight:600;">${newDate}</span>.
-</p>
-<p style="font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#C8C8C8;margin:0 0 16px;">
-Aún no has respondido — tienes 7 días más antes de que la solicitud expire. Si la fecha no funciona, declinar es una opción válida; la Orgnz lo verá y podrá buscar otra solución.
-</p>
-<a href="${detailUrl}" style="${BUTTON_STYLE}">Revisar el cambio →</a>
-<p style="font-family:Helvetica,Arial,sans-serif;font-size:11px;color:#5C5C5C;margin:24px 0 0;">— EvntCue</p>
-${SHELL_CLOSE}`;
+    const html = emailShell({
+      lang: "es",
+      preheader: `Quedan 7 días para responder al cambio de fecha de ${eventName}.`,
+      footerNote: `Recibes esto porque tienes una reserva activa en EvntCue.`,
+      children: [
+        eyebrow("Recordatorio", ACCENT),
+        headline("Solo te recordamos."),
+        paragraph(`La fecha de <b style="color:#1F2533;">${safeName}</b> cambió a ${newDateAccent}.`),
+        paragraph(`Aún no has respondido — tienes <b style="color:#1F2533;">7 días</b> más antes de que la solicitud expire. Si la fecha no funciona, declinar es una opción válida; la Orgnz lo verá y podrá buscar otra solución.`),
+        button({ href: detailUrl, label: "Revisar el cambio", accent: ACCENT }),
+      ].join("\n"),
+    });
     return { subject, text, html };
   }
 
@@ -213,16 +233,17 @@ ${SHELL_CLOSE}`;
     ``,
     `— EvntCue`,
   ].join("\n");
-  const html = `${SHELL_OPEN}
-<p style="font-family:Georgia,serif;font-style:italic;font-size:18px;color:#E5E5E5;margin:0 0 16px;">Just a quick reminder:</p>
-<p style="font-family:Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#C8C8C8;margin:0 0 16px;">
-The date of <b style="color:#E5E5E5;">${eventName}</b> moved to <span style="color:#E8622A;font-weight:600;">${newDate}</span>.
-</p>
-<p style="font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#C8C8C8;margin:0 0 16px;">
-You haven't responded yet — you have 7 more days before the request expires. If the new date doesn't work, declining is a valid choice; the Orgnz will see it and can find another path forward.
-</p>
-<a href="${detailUrl}" style="${BUTTON_STYLE}">Review the change →</a>
-<p style="font-family:Helvetica,Arial,sans-serif;font-size:11px;color:#5C5C5C;margin:24px 0 0;">— EvntCue</p>
-${SHELL_CLOSE}`;
+  const html = emailShell({
+    lang: "en",
+    preheader: `7 days left to respond to the date change for ${eventName}.`,
+    footerNote: `You're receiving this because you have an active booking on EvntCue.`,
+    children: [
+      eyebrow("Reminder", ACCENT),
+      headline("Just a quick reminder."),
+      paragraph(`The date of <b style="color:#1F2533;">${safeName}</b> moved to ${newDateAccent}.`),
+      paragraph(`You haven't responded yet — you have <b style="color:#1F2533;">7 more days</b> before the request expires. If the new date doesn't work, declining is a valid choice; the Orgnz will see it and can find another path forward.`),
+      button({ href: detailUrl, label: "Review the change", accent: ACCENT }),
+    ].join("\n"),
+  });
   return { subject, text, html };
 }

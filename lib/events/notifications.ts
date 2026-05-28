@@ -243,6 +243,11 @@ export async function writeEventNotification(args: {
     const eventName = (eventRow?.name as string | null) ?? "your event";
 
     const vendorIds = inserted.map((r) => r.vendor_tenant_id as string);
+
+    // Locale (and a fallback login email) per vendor tenant, resolved from the
+    // primary user. language_preference lives on the user, not the vendor row,
+    // so we still need this join — but only for locale + fallback, NOT as the
+    // send target (see below).
     const { data: roleRows } = await admin
       .from("user_roles")
       .select("tenant_id, users!inner ( email, language_preference )")
@@ -250,7 +255,7 @@ export async function writeEventNotification(args: {
       .in("role", ["vndr", "catr"])
       .eq("is_primary", true);
 
-    const emailByTenant = new Map<
+    const loginByTenant = new Map<
       string,
       { email: string; locale: "en" | "es" }
     >();
@@ -260,27 +265,45 @@ export async function writeEventNotification(args: {
         language_preference?: string;
       };
       if (u.email) {
-        emailByTenant.set(r.tenant_id as string, {
+        loginByTenant.set(r.tenant_id as string, {
           email: u.email,
           locale: u.language_preference === "es" ? "es" : "en",
         });
       }
     }
 
+    // Lock 24 email-target fix: vendor business notifications go to the
+    // documented business address (`vendors.contact_email`), NOT the operator's
+    // personal login email. Login emails are for auth (reset/verify); business
+    // correspondence belongs at the contact the vendor set up at signup.
+    // Fall back to the login email only when contact_email is unset.
+    const { data: vendorRows } = await admin
+      .from("vendors")
+      .select("tenant_id, contact_email")
+      .in("tenant_id", vendorIds);
+
+    const contactByTenant = new Map<string, string>();
+    for (const v of vendorRows ?? []) {
+      const email = (v.contact_email as string | null)?.trim();
+      if (email) contactByTenant.set(v.tenant_id as string, email);
+    }
+
     for (const newRow of inserted) {
       const tenantId = newRow.vendor_tenant_id as string;
-      const target = emailByTenant.get(tenantId);
-      if (!target) continue; // primary user without email; cron reminder will retry the lookup
+      const login = loginByTenant.get(tenantId);
+      const toEmail = contactByTenant.get(tenantId) ?? login?.email ?? null;
+      if (!toEmail) continue; // no business contact AND no login email; cron reminder will retry the lookup
+      const locale = login?.locale ?? "en";
 
       const detailUrl = `${baseUrl}/vndr/inquiries/date-change/${newRow.id}`;
       const content = renderInitialNotificationEmail({
         eventName,
         payload,
         detailUrl,
-        locale: target.locale,
+        locale,
       });
       const result = await sendEmail({
-        to: target.email,
+        to: toEmail,
         subject: content.subject,
         text: content.text,
         html: content.html,
