@@ -30,6 +30,8 @@ import "server-only";
 import type { SupabaseClient } from "@supabase/supabase-js";
 
 import { createAdminClient } from "@/lib/supabase/admin";
+import { sendEmail } from "@/lib/email/send";
+import { renderInitialNotificationEmail } from "@/lib/email/templates/event-notifications";
 
 import type {
   CancellationPayload,
@@ -215,6 +217,84 @@ export async function writeEventNotification(args: {
       console.warn(
         `event_notifications supersession warning for vendor ${newRow.vendor_tenant_id} on event ${args.eventId}: ${updateErr.message}`,
       );
+    }
+  }
+
+  // -------------------------------------------------------------------------
+  // 3. Initial-notification emails (Lock 24 Chunk E)
+  //
+  // Fire-and-forget per row. Failures are logged for observability but
+  // don't fail the cascade — the in-app card is already durable; missed
+  // emails surface via the orgnz feed once we wire `email_delivery_failed`
+  // display in a follow-up. RESEND_API_KEY absence is treated as a soft
+  // skip so dev environments without the key still work for in-app testing.
+  // -------------------------------------------------------------------------
+  if (args.notification.type === "date_change") {
+    const payload = args.notification.data;
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://evntcue.com";
+
+    // Fetch event name (one query — cheap) + per-vendor primary user
+    // email/locale (one query, joined).
+    const { data: eventRow } = await admin
+      .from("events")
+      .select("name")
+      .eq("id", args.eventId)
+      .maybeSingle();
+    const eventName = (eventRow?.name as string | null) ?? "your event";
+
+    const vendorIds = inserted.map((r) => r.vendor_tenant_id as string);
+    const { data: roleRows } = await admin
+      .from("user_roles")
+      .select("tenant_id, users!inner ( email, language_preference )")
+      .in("tenant_id", vendorIds)
+      .in("role", ["vndr", "catr"])
+      .eq("is_primary", true);
+
+    const emailByTenant = new Map<
+      string,
+      { email: string; locale: "en" | "es" }
+    >();
+    for (const r of roleRows ?? []) {
+      const u = (r.users ?? {}) as {
+        email?: string;
+        language_preference?: string;
+      };
+      if (u.email) {
+        emailByTenant.set(r.tenant_id as string, {
+          email: u.email,
+          locale: u.language_preference === "es" ? "es" : "en",
+        });
+      }
+    }
+
+    for (const newRow of inserted) {
+      const tenantId = newRow.vendor_tenant_id as string;
+      const target = emailByTenant.get(tenantId);
+      if (!target) continue; // primary user without email; cron reminder will retry the lookup
+
+      const detailUrl = `${baseUrl}/vndr/inquiries/date-change/${newRow.id}`;
+      const content = renderInitialNotificationEmail({
+        eventName,
+        payload,
+        detailUrl,
+        locale: target.locale,
+      });
+      const result = await sendEmail({
+        to: target.email,
+        subject: content.subject,
+        text: content.text,
+        html: content.html,
+        tags: [
+          { name: "lock", value: "24" },
+          { name: "kind", value: "date-change-initial" },
+          { name: "notification_id", value: newRow.id as string },
+        ],
+      });
+      if (!result.ok) {
+        console.warn(
+          `event_notifications initial email failed for ${tenantId} on ${args.eventId}: ${result.error}`,
+        );
+      }
     }
   }
 
