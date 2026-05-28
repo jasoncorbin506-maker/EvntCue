@@ -114,6 +114,8 @@ const VENDORS = [
     packageName: "Signature Floral Package",
     packagePriceCents: 350000,
     bookingTotalCents: 350000,
+    roleLabel: "Florals",
+    phases: ["pre_day_staging", "load_in", "opening_moment", "first_arc"],
   },
   {
     tenantId: VNDR_2_TENANT_ID,
@@ -128,6 +130,17 @@ const VENDORS = [
     packageName: "Full Day Photography",
     packagePriceCents: 425000,
     bookingTotalCents: 425000,
+    roleLabel: "Photography",
+    phases: [
+      "vip_arrivals",
+      "guest_arrivals",
+      "opening_moment",
+      "first_arc",
+      "transition",
+      "anchor_moment",
+      "continuation_arc",
+      "send_off",
+    ],
   },
   {
     tenantId: VNDR_3_TENANT_ID,
@@ -142,6 +155,8 @@ const VENDORS = [
     packageName: "Reception DJ Package",
     packagePriceCents: 185000,
     bookingTotalCents: 185000,
+    roleLabel: "DJ",
+    phases: ["first_arc", "transition", "anchor_moment", "continuation_arc", "send_off"],
   },
 ];
 
@@ -195,6 +210,7 @@ async function clearSeedPublicRows() {
 
   const steps = [
     ["event_notifications", admin.from("event_notifications").delete().eq("event_id", EVENT_ID)],
+    ["event_vendor_presence", admin.from("event_vendor_presence").delete().eq("event_id", EVENT_ID)],
     ["bookings", admin.from("bookings").delete().in("id", bookingIds)],
     ["events", admin.from("events").delete().eq("id", EVENT_ID)],
     ["vndr_packages", admin.from("vndr_packages").delete().in("id", packageIds)],
@@ -328,6 +344,19 @@ async function main() {
     });
     if (bookErr) fail(`insert bookings(${v.email})`, bookErr);
 
+    // event_vendor_presence — separate primitive that surfaces the vendor on
+    // the orgnz dashboard's cast list + per-phase dots. The bookings table
+    // alone doesn't drive that surface (per lib/events/vendor-presence.ts).
+    const { error: presErr } = await admin.from("event_vendor_presence").insert({
+      event_id: EVENT_ID,
+      vendor_tenant_id: v.tenantId,
+      vendor_name: v.displayName,
+      role_label: v.roleLabel,
+      phases: v.phases,
+      created_by: orgnzAuth.id,
+    });
+    if (presErr) fail(`insert event_vendor_presence(${v.email})`, presErr);
+
     console.log(`  vndr ${vAuth.email} (${vAuth.id}) → booking ${v.bookingId} → notif email ${v.contactEmail}`);
   }
 
@@ -344,14 +373,16 @@ async function main() {
     ]),
     admin.from("vndr_packages").select("id", { count: "exact", head: true }).in("id", [PKG_1_ID, PKG_2_ID, PKG_3_ID]),
     admin.from("event_notifications").select("id", { count: "exact", head: true }).eq("event_id", EVENT_ID),
+    admin.from("event_vendor_presence").select("id", { count: "exact", head: true }).eq("event_id", EVENT_ID),
   ]);
-  const [tenantsR, eventsR, bookingsR, vendorsR, packagesR, notifR] = checks;
-  console.log(`  seed tenants:       ${tenantsR.count}  (expect 4)`);
-  console.log(`  seed events:        ${eventsR.count}  (expect 1)`);
-  console.log(`  seed vendors row:   ${vendorsR.count}  (expect 3)`);
-  console.log(`  seed vndr_packages: ${packagesR.count}  (expect 3)`);
-  console.log(`  seed bookings:      ${bookingsR.count}  (expect 3)`);
-  console.log(`  event_notifications:${notifR.count}  (expect 0 — fires on date-change)`);
+  const [tenantsR, eventsR, bookingsR, vendorsR, packagesR, notifR, presenceR] = checks;
+  console.log(`  seed tenants:        ${tenantsR.count}  (expect 4)`);
+  console.log(`  seed events:         ${eventsR.count}  (expect 1)`);
+  console.log(`  seed vendors row:    ${vendorsR.count}  (expect 3)`);
+  console.log(`  seed vndr_packages:  ${packagesR.count}  (expect 3)`);
+  console.log(`  seed bookings:       ${bookingsR.count}  (expect 3)`);
+  console.log(`  event_vendor_presence:${presenceR.count}  (expect 3 — surfaces on orgnz dashboard)`);
+  console.log(`  event_notifications: ${notifR.count}  (0 unless a date-change already fired)`);
 
   // Phase F — write credentials outside the repo.
   const credsPath = resolve(homedir(), "Desktop/Backstage/seed-lock24-credentials.md");
