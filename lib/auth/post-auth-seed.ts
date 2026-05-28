@@ -258,6 +258,23 @@ export async function postAuthSeed(args: {
         );
       }
     }
+  } else if (desiredRole === "venue") {
+    // Venu Door B path. Pick up the front-door capture (name + city) from the
+    // evntcue_venue_stage0 cookie (set by /venues/start) and seed a venues row
+    // scoped to the new tenant. Without this row getCurrentVenue() returns null
+    // and /venu redirects to /venues — a broken dashboard. Verification (county
+    // property record + COI) is a deferred chunk, so the row lands 'in_review'.
+    const stage0Raw = c.get("evntcue_venue_stage0")?.value;
+    let stage0: VenueStage0 | null = null;
+    if (stage0Raw) {
+      try {
+        stage0 = JSON.parse(stage0Raw) as VenueStage0;
+      } catch {
+        // Bad JSON — seed with email-as-name fallback.
+      }
+    }
+    await seedVenueFromStage0(admin, args, tenantId, stage0);
+    if (stage0Raw) c.delete("evntcue_venue_stage0");
   }
 
   // Make sure auth session is hydrated for the redirect target
@@ -459,5 +476,84 @@ async function seedVendorFromStage0(
         email_captured: args.email,
       })
       .eq("session_token", sessionToken);
+  }
+}
+
+/**
+ * Internal helper — insert a draft venues row scoped to the new tenant for the
+ * Door B self-serve signup (/venues/start). Venu analogue of
+ * seedVendorFromStage0; the vndr branch seeds a vendors row, this seeds a
+ * venues row.
+ *
+ * The venues table (migration 025) requires only display_name (NOT NULL);
+ * claim_status + acquisition_lane have defaults but we set them explicitly.
+ * Two CHECK constraints govern the insert:
+ *   - venues_tenant_implies_claimed: tenant_id + claimed_at travel together →
+ *     we set both atomically.
+ *   - venues_token_consistency: invite_token_* fields are all-or-nothing → we
+ *     leave all NULL (self-serve has no invite token), which is consistent.
+ *
+ * RLS venues_insert is admin-only (WITH CHECK is_admin()); this runs on the
+ * service-role admin client which bypasses RLS — same posture as the Door A
+ * claim flow (claim-venue.ts) and seedVendorFromStage0.
+ *
+ * claim_status='in_review' (not 'published'): the row is live enough for the
+ * owner's own dashboard (getCurrentVenue does not filter on status) but is not
+ * marked verified for public discovery. Real verification lands in a later chunk.
+ *
+ * Also stamps users.full_name from the captured contact name — the /venues
+ * modal collects it alongside the venue identity.
+ */
+type VenueStage0 = {
+  venueName?: unknown;
+  contactName?: unknown;
+  email?: unknown;
+  city?: unknown;
+  state?: unknown;
+};
+
+async function seedVenueFromStage0(
+  admin: ReturnType<typeof createAdminClient>,
+  args: { userId: string; email: string },
+  tenantId: string,
+  stage0: VenueStage0 | null,
+): Promise<void> {
+  // Idempotent guard — skip if a venues row already exists for this tenant.
+  const { data: existing } = await admin
+    .from("venues")
+    .select("id")
+    .eq("tenant_id", tenantId)
+    .limit(1);
+  if (existing && existing.length > 0) return;
+
+  const displayName =
+    typeof stage0?.venueName === "string" && stage0.venueName.trim()
+      ? stage0.venueName.trim()
+      : args.email; // NOT NULL fallback; venue renames from the dashboard
+  const city =
+    typeof stage0?.city === "string" && stage0.city.trim() ? stage0.city.trim() : null;
+  const state =
+    typeof stage0?.state === "string" && stage0.state.trim() ? stage0.state.trim() : null;
+  const contactName =
+    typeof stage0?.contactName === "string" && stage0.contactName.trim()
+      ? stage0.contactName.trim()
+      : null;
+
+  await admin.from("venues").insert({
+    tenant_id: tenantId,
+    // venues_tenant_implies_claimed CHECK: tenant_id + claimed_at travel together.
+    claimed_at: new Date().toISOString(),
+    claim_status: "in_review", // self-serve; verification pending (deferred chunk)
+    acquisition_lane: "self_serve",
+    display_name: displayName,
+    city,
+    state,
+  });
+
+  // Stamp the contact's name onto their user record (users.full_name was NULL
+  // from the step-1 mirror, which only knows email). First-seed only — the
+  // idempotent guard above means we never clobber a returning user's name.
+  if (contactName) {
+    await admin.from("users").update({ full_name: contactName }).eq("id", args.userId);
   }
 }

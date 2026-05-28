@@ -28,13 +28,14 @@
  * four values (COI, business_license, tabc, food_handler). plnr_professional
  * is Plnr-portal; health_permit + other are Stage 4 polish + edge cases.
  *
- * Sub-type triggers come from the §75 "show what applies" reveal rule.
- * Values match the canonical sub-types in data/vndr-categories.ts under the
- * 'dessert' category (Mixologist, Sommelier, Cake designer, Dessert vendor,
- * Coffee cart). Conditional reveal precision is load-bearing: TX alcohol law
- * applies to anyone serving alcohol (TABC), TX health code applies to anyone
- * handling food (food_handler) — over- or under-revealing has compliance
- * implications, not just UX cost.
+ * Lock 14 amendment (2026-05-23) + Jason 2026-05-28: dessert & bar (Mixologist,
+ * Sommelier, Cake designer, Dessert vendor, Coffee cart, Late-night snack) are
+ * Catr, not Vndr — a dessert vendor IS a caterer and carries the same legal
+ * burden (valid food safety, insurance, and TABC where alcohol applies). That
+ * compliance is enforced Catr-side as HARD gates (migration 010 TABC + SafeTab),
+ * NOT as Vndr soft gates. No current Vndr sub-type handles food or alcohol, so
+ * the conditional tabc / food_handler triggers below are empty for Vndr; the
+ * cert entries remain only to document the migration 003 enum.
  */
 
 import type { Locale } from "@/i18n/locale";
@@ -107,7 +108,9 @@ export const CERT_TYPES: readonly CertTypeEntry[] = [
     tagEs: "Condicional",
     gateType: "conditional",
     trustReward: 12,
-    triggerSubTypes: ["Mixologist", "Sommelier"],
+    // Empty for Vndr — Mixologist/Sommelier are Catr sub-types (Lock 14 amendment);
+    // alcohol compliance is a Catr hard gate, not a Vndr soft gate.
+    triggerSubTypes: [],
   },
   {
     key: "food_handler",
@@ -121,13 +124,9 @@ export const CERT_TYPES: readonly CertTypeEntry[] = [
     tagEs: "Condicional",
     gateType: "conditional",
     trustReward: 12,
-    // Sub-type strings must match data/vndr-categories.ts exactly.
-    triggerSubTypes: [
-      "Coffee cart",
-      "Cake designer / bakery",
-      "Dessert vendor",
-      "Late-night snack",
-    ],
+    // Empty for Vndr — these dessert/bar sub-types moved to Catr (Lock 14
+    // amendment); food-safety compliance is a Catr hard gate, not a Vndr soft gate.
+    triggerSubTypes: [],
   },
   {
     key: "plnr_professional",
@@ -210,10 +209,10 @@ export function certTypeTrustReward(key: CertTypeKey): number {
  * gated certs (TABC, food_handler) are over-reveal-tolerant by design —
  * surfacing one extra optional card is cheaper than missing one.
  *
- * Fallback when sub_types is empty: category-based reveal. The Lock 14
- * amendment (session 18o) removed 'dessert' from Vndr taxonomy, so the
- * fallback is effectively never-fires in V-1c — kept for V-2+ surfaces
- * that may re-introduce conditional categories.
+ * No category fallback: the 'dessert' category that historically triggered
+ * conditional certs moved to Catr (Lock 14 amendment), so an empty sub_types
+ * selection reveals no conditional card. A future food/alcohol Vndr category
+ * would re-introduce its triggers + a fallback here.
  *
  * Note: as of V-1c this helper is dead code in the live Stage 4 UI
  * (Stage4.tsx hard-codes general_liability_insurance + business_license
@@ -238,9 +237,8 @@ export function certTypeShouldReveal(
       entry.triggerSubTypes.includes(st),
     );
   }
-  // Fallback: sub_types empty — reveal conditional cards when category is
-  // 'dessert' (the umbrella that historically held TABC + food_handler
-  // sub-types). Effectively unreachable in V-1c post-Lock-14; preserved
-  // for V-2+ surfaces.
-  return vendor.primaryCategory === "dessert";
+  // No category-based fallback: the 'dessert' category that historically
+  // triggered TABC + food_handler moved to Catr (Lock 14 amendment), where that
+  // compliance is a hard gate. No current Vndr category triggers a conditional cert.
+  return false;
 }

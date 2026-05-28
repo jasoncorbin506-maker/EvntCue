@@ -94,12 +94,15 @@ export default async function MoodBoardPage() {
         urlImportSubtitle: t("urlImportSubtitle"),
         urlImportLoading: t("urlImportLoading"),
         urlImportSuccessSingle: t("urlImportSuccessSingle"),
-        urlImportSuccessMulti: t("urlImportSuccessMulti"),
-        urlImportSuccessCapped: t("urlImportSuccessCapped"),
+        // t.raw — these carry {count}/{remaining}/{slot} placeholders that the
+        // canvas fills in client-side via .replace(); t() would try to format
+        // them server-side without the value and throw FORMATTING_ERROR.
+        urlImportSuccessMulti: t.raw("urlImportSuccessMulti"),
+        urlImportSuccessCapped: t.raw("urlImportSuccessCapped"),
         urlImportInvalid: t("urlImportInvalid"),
         urlImportBoardTitle: t("urlImportBoardTitle"),
-        urlImportBoardBody: t("urlImportBoardBody"),
-        urlImportBoardBodyCap: t("urlImportBoardBodyCap"),
+        urlImportBoardBody: t.raw("urlImportBoardBody"),
+        urlImportBoardBodyCap: t.raw("urlImportBoardBodyCap"),
         urlImportBoardCancel: t("urlImportBoardCancel"),
         urlImportBoardConfirm: t("urlImportBoardConfirm"),
         // Chunk D — render spread
@@ -113,14 +116,14 @@ export default async function MoodBoardPage() {
         // Chunk D Step 3e — per-slot re-roll
         rerollButton: t("rerollButton"),
         rerollPending: t("rerollPending"),
-        rerollRemaining: t("rerollRemaining"),
+        rerollRemaining: t.raw("rerollRemaining"),
         rerollWindowClosed: t("rerollWindowClosed"),
         rerollCapReached: t("rerollCapReached"),
         // Chunk E — Web Share API
         shareButton: t("shareButton"),
         sharePending: t("sharePending"),
         shareCopied: t("shareCopied"),
-        shareTitleTemplate: t("shareTitleTemplate"),
+        shareTitleTemplate: t.raw("shareTitleTemplate"),
         shareText: t("shareText"),
       }}
     />

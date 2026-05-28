@@ -1,0 +1,158 @@
+/* Orgnz marketplace browse — provider category tile grid + an inline
+ * "coming soon" placeholder. Modeled on the Vndr intake funnel Stage 1
+ * category grid (app/(public)/vndr-onboarding/[step]/_components/Stage1.module.css)
+ * so the shopper-facing browse surface mirrors the vendor-facing one.
+ *
+ * Each tile carries its provider's portal color via two custom properties set
+ * inline per tile: --tile-accent (solid) + --tile-tint (rgba wash). Vendor
+ * categories are coral (Vndr); Venu blue; Plnr violet; Catr amber. */
+
+.wrap {
+  padding: 14px 16px 40px;
+}
+
+.back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--txt2);
+  text-decoration: none;
+  margin-bottom: 18px;
+}
+.back:hover {
+  color: var(--txt);
+}
+
+.head {
+  margin-bottom: 4px;
+}
+.eyebrow {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.22em;
+  text-transform: uppercase;
+  color: var(--rose);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.title {
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 400;
+  color: var(--txt);
+  line-height: 1.15;
+  margin-bottom: 8px;
+}
+.title em {
+  font-style: italic;
+  color: var(--rose);
+}
+.sub {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  color: var(--txt2);
+  line-height: 1.5;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 14px 12px 13px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 0.5px solid var(--bdr);
+  border-radius: 12px;
+  text-align: left;
+  cursor: pointer;
+  color: var(--txt2);
+  transition: border-color 0.15s ease, background 0.15s ease, color 0.15s ease;
+}
+.card:hover {
+  border-color: var(--tile-accent);
+  color: var(--txt);
+}
+.cardOn {
+  border-color: var(--tile-accent);
+  background: var(--tile-tint);
+  color: #fff;
+}
+
+.ico {
+  width: 22px;
+  height: 22px;
+  color: var(--tile-accent);
+  flex-shrink: 0;
+}
+.ico svg {
+  width: 100%;
+  height: 100%;
+}
+
+.name {
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  font-weight: 500;
+  color: inherit;
+  line-height: 1.25;
+}
+.examples {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  color: var(--txt2);
+  line-height: 1.4;
+}
+
+/* Placeholder panel — revealed when a tile is selected. Listings land with
+ * V-2d; until then this is the honest forward-looking state (Lock 22). */
+.placeholder {
+  margin-top: 18px;
+  padding: 18px 16px;
+  border-radius: 14px;
+  border: 0.5px solid var(--tile-accent);
+  background: var(--tile-tint);
+  animation: fadeIn 0.25s ease;
+}
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.phEye {
+  font-family: var(--font-ui);
+  font-size: 9.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--tile-accent);
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+.phTitle {
+  font-family: var(--font-display);
+  font-style: italic;
+  font-size: 19px;
+  color: var(--txt);
+  line-height: 1.2;
+  margin-bottom: 8px;
+}
+.phBody {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--txt2);
+  line-height: 1.5;
+}

@@ -1,4 +1,5 @@
-/* Public Venu surfaces — marketing landing (/venues) + Door B (/venues/start).
+/* Public Venu surfaces — marketing landing (/venues) + Door B capture modal
+ * (StartVenueCta, opened from the landing's "Get started" CTA).
  * Source: 02_Locked_Prototypes/Venu/{EvntCue_Venu_Landing_v3.html,
  * EvntCue_Venu_FrontDoor_v1.html}. Per Lock 14b operational-competence
  * register — Texas-calibrated, no recruitment-to-values copy.
@@ -594,6 +595,102 @@
   font-size: 11px;
   color: var(--txt2);
   line-height: 1.45;
+}
+
+/* ── DOOR B MODAL — "Get started" capture overlay on /venues ─────────────── */
+.modalBg {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  background: rgba(5, 10, 20, 0.7);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: modalFade 160ms ease-out;
+}
+@media (min-width: 640px) {
+  .modalBg {
+    align-items: center;
+    padding: 24px;
+  }
+}
+@keyframes modalFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+.modalCard {
+  position: relative;
+  overflow: hidden;
+  width: 100%;
+  max-width: 440px;
+  background: var(--ink);
+  border: 0.5px solid var(--bdr2);
+  border-radius: 24px 24px 0 0;
+  padding: 34px 24px calc(26px + env(safe-area-inset-bottom));
+  box-shadow: 0 -24px 70px rgba(0, 0, 0, 0.55);
+  animation: modalRise 220ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+@media (min-width: 640px) {
+  .modalCard {
+    border-radius: 22px;
+    box-shadow: 0 24px 80px rgba(42, 107, 219, 0.18), 0 0 0 1px rgba(255, 255, 255, 0.02);
+  }
+}
+@keyframes modalRise {
+  from { transform: translateY(14px); }
+  to { transform: translateY(0); }
+}
+.modalClose {
+  position: absolute;
+  top: 16px;
+  right: 16px;
+  z-index: 2;
+  width: 34px;
+  height: 34px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: none;
+  background: transparent;
+  color: var(--txt2);
+  font-size: 22px;
+  line-height: 1;
+  cursor: pointer;
+  border-radius: 9px;
+}
+.modalClose:hover {
+  color: var(--txt);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Paisley watermark — portal color (bay-blue) at 50% fade, clipped to the
+ * card. currentColor drives the SVG strokes; swap the color to re-skin per
+ * portal. Sits behind .modalInner (z-index). */
+.modalPaisley {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  color: var(--blue);
+  opacity: 0.5;
+  pointer-events: none;
+  z-index: 0;
+}
+.modalInner {
+  position: relative;
+  z-index: 1;
+}
+
+.formError {
+  margin-top: 16px;
+  padding: 10px 12px;
+  background: var(--redl);
+  border: 1px solid var(--redb);
+  border-radius: 11px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.4;
+  color: var(--redt);
 }
 
 .formSubmit {

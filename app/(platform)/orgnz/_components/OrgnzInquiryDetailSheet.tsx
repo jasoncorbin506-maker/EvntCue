@@ -1,9 +1,7 @@
 "use client";
 
-import type {
-  OrgnzInquiry,
-  OrgnzInquiryStatus,
-} from "@/lib/orgnz/inquiries";
+import type { OrgnzInquiry } from "@/lib/orgnz/inquiries";
+import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
 import { OrgnzInquiryThread } from "./OrgnzInquiryThread";
 import s from "./OrgnzInquiries.module.css";
 
@@ -20,16 +18,6 @@ import s from "./OrgnzInquiries.module.css";
 type Props = {
   inquiry: OrgnzInquiry;
   onClose: () => void;
-};
-
-const STATUS_LABEL: Record<OrgnzInquiryStatus, string> = {
-  inquiry: "Sent — awaiting Vndr",
-  reviewing: "Vndr reviewing",
-  quoted: "Vndr quoted",
-  penciled: "Penciled in",
-  inked: "Inked", // Jason 2026-05-17 decision: "Inked" (industry slang) kept over "Signed"
-  booked: "Booked",
-  closed: "Closed",
 };
 
 function formatEventDate(date: string): string {
@@ -62,7 +50,7 @@ export function OrgnzInquiryDetailSheet({ inquiry, onClose }: Props) {
             <div className={s.sheetSubtitle}>
               {formatEventDate(inquiry.eventDate)}
               {" · "}
-              {STATUS_LABEL[inquiry.status]}
+              {inquiryStatusLabel(inquiry.status)}
             </div>
           </div>
           <button
