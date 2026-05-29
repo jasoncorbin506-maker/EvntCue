@@ -5,6 +5,7 @@ import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { postAuthSeed } from "@/lib/auth/post-auth-seed";
+import { getLocale } from "@/i18n/locale";
 
 async function buildCallbackUrl(
   intent: string | null,
@@ -83,36 +84,79 @@ export async function signUpAction(formData: FormData): Promise<AuthResult> {
       .eq("session_token", sessionToken);
   }
 
-  const supabase = await createClient();
-  const emailRedirectTo = await buildCallbackUrl(intent, role, next);
-  const { data, error } = await supabase.auth.signUp({
+  // Create the account + generate a branded verification link. Mirrors
+  // requestRecoveryAction (PR #16): admin.generateLink does NOT send an email —
+  // it returns a hashed_token we deliver ourselves via Resend, so the only
+  // verify email the user gets is the EvntCue-branded one. (GoTrue's built-in
+  // Confirm-signup template is disabled in the dashboard; with generateLink it
+  // wouldn't fire anyway.) postAuthSeed runs at /auth/callback after the user
+  // verifies — not here — since signup always requires confirmation now.
+  const admin = createAdminClient();
+  const callbackUrl = await buildCallbackUrl(intent, role, next);
+  const { data, error } = await admin.auth.admin.generateLink({
+    type: "signup",
     email,
     password,
-    options: { emailRedirectTo },
+    options: { redirectTo: callbackUrl },
   });
 
-  if (error) return { ok: false, error: error.message };
-
-  // With email confirmation enabled, the session is null and Supabase emails
-  // the user a confirmation link → /auth/callback. The cookies (capture
-  // session + calc state) stay on this device, so when the user clicks the
-  // link in the same browser, postAuthSeed runs there and seeds the event.
-  if (!data.session || !data.user) {
-    return {
-      ok: false,
-      error: `We sent a confirmation link to ${email}. Click it to finish setting up your event.`,
-      needsConfirm: true,
-    };
+  // Account-enumeration guard (preserve Phase 1 posture): generateLink errors
+  // for an already-registered email. Swallow it and return the same
+  // "check your inbox" response so the form never discloses whether an account
+  // exists. Same pattern as requestRecoveryAction.
+  const hashedToken = data?.properties?.hashed_token;
+  const confirmMsg = `We sent a verification link to ${email}. Click it to finish setting up your account.`;
+  if (error || !hashedToken) {
+    return { ok: false, error: confirmMsg, needsConfirm: true };
   }
 
-  const seedRedirect = await postAuthSeed({
-    userId: data.user.id,
-    email: data.user.email ?? email,
-    intent,
-    role,
-  });
+  // Build our own action URL straight to /auth/callback with the token_hash +
+  // portal context. intent/role/next ride the URL (buildCallbackUrl set them),
+  // so context survives the signup→verify round-trip, including cross-device.
+  // The callback verifies via verifyOtp({ type: 'signup' }).
+  const actionUrl = new URL(callbackUrl);
+  actionUrl.searchParams.set("token_hash", hashedToken);
+  actionUrl.searchParams.set("type", "signup");
 
-  return { ok: true, redirectTo: next ?? seedRedirect };
+  // Fire-and-forget (Lock 22 — inform, never block): a send failure must not
+  // break account creation. The auth row already exists; the user can recover
+  // via a fresh signup if the email never lands. Resend is lazy-imported in the
+  // helper (heavy-dep rule).
+  const locale = await getLocale();
+  await sendVerifyEmail(email, actionUrl.toString(), locale);
+
+  return { ok: false, error: confirmMsg, needsConfirm: true };
+}
+
+/**
+ * Send the EvntCue-branded verification email. Never throws — a failed send
+ * must not break signup (Lock 22). Resend + the template module are
+ * lazy-imported so they stay out of the auth bundle's eager graph (heavy-dep
+ * rule). Mirrors sendWelcomeEmail in post-auth-seed.ts.
+ */
+async function sendVerifyEmail(
+  email: string,
+  actionUrl: string,
+  locale: "en" | "es",
+): Promise<void> {
+  try {
+    const { renderVerifyEmail } = await import("@/lib/email/templates/transactional");
+    const { sendEmail } = await import("@/lib/email/send");
+    const content = renderVerifyEmail({ actionUrl, email, locale });
+    const result = await sendEmail({
+      to: email,
+      subject: content.subject,
+      text: content.text,
+      html: content.html,
+      tags: [{ name: "kind", value: "verify-email" }],
+    });
+    if (!result.ok) {
+      console.warn(`verify email failed for signup: ${result.error}`);
+    }
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`verify email threw for signup: ${message}`);
+  }
 }
 
 export async function signInAction(formData: FormData): Promise<AuthResult> {

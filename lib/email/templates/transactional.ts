@@ -52,6 +52,20 @@ function joinText(lines: ReadonlyArray<string | null>): string {
   return lines.filter((l): l is string => l !== null).join("\n");
 }
 
+/**
+ * Minimal HTML-entity escape for user-controlled values inserted into the HTML
+ * body (the recipient's own email address). validateEmail() in the auth action
+ * uses a permissive `[^\s@]+` shape that does NOT reject `<`, `>`, `&`, `"`, so
+ * we escape here rather than trust the upstream regex.
+ */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
 // =============================================================================
 // Welcome — sent on first account creation (postAuthSeed, gated on !existingUser)
 // =============================================================================
@@ -226,6 +240,90 @@ export function renderWelcomeEmail(args: {
   });
 
   return { subject: c.subject, text, html };
+}
+
+// =============================================================================
+// Verify email — sent from signUpAction via admin.generateLink({type:'signup'})
+// =============================================================================
+
+// Portal-agnostic accent (Option A, brief §67). Verification happens BEFORE the
+// user lands in a portal, so portal identity isn't established at send time — a
+// single neutral template covers all five portal signups. Matches the reset /
+// password-changed auth family, which share RESET_ACCENT for the same reason.
+const VERIFY_ACCENT = EMAIL_ACCENTS.neutral;
+
+export function renderVerifyEmail(args: {
+  actionUrl: string;
+  /** Recipient's own email — surfaced in the body so they know which address. */
+  email: string;
+  locale: EmailLocale;
+}): EmailContent {
+  const safeEmail = escapeHtml(args.email);
+
+  if (args.locale === "es") {
+    const text = joinText([
+      "Ya casi.",
+      "",
+      `Haz clic abajo para verificar ${args.email} y terminar de configurar tu cuenta de EvntCue.`,
+      "",
+      `Verificar correo: ${args.actionUrl}`,
+      "",
+      "Este enlace vence en 24 horas. Si no intentaste registrarte, puedes ignorar este correo.",
+      "",
+      "— EvntCue",
+    ]);
+    const html = emailShell({
+      lang: "es",
+      preheader: "Un clic y ya estás dentro.",
+      footerNote:
+        "Recibes esto porque alguien usó este correo para registrarse en EvntCue.",
+      children: joinText([
+        eyebrow("Verificar correo", VERIFY_ACCENT),
+        headline("Ya casi."),
+        paragraph(
+          `Haz clic abajo para verificar <b style="color:#1F2533;">${safeEmail}</b> y terminar de configurar tu cuenta de EvntCue.`,
+        ),
+        button({ href: args.actionUrl, label: "Verificar correo", accent: VERIFY_ACCENT }),
+        subtle(
+          "Este enlace vence en 24 horas. Si no intentaste registrarte, puedes ignorar este correo.",
+        ),
+      ]),
+    });
+    return {
+      subject: "Verifica tu correo para terminar de configurar EvntCue",
+      text,
+      html,
+    };
+  }
+
+  const text = joinText([
+    "Almost there.",
+    "",
+    `Click below to verify ${args.email} and finish setting up your EvntCue account.`,
+    "",
+    `Verify email: ${args.actionUrl}`,
+    "",
+    "This link expires in 24 hours. If you didn't try to sign up, you can ignore this email.",
+    "",
+    "— EvntCue",
+  ]);
+  const html = emailShell({
+    lang: "en",
+    preheader: "One click and you're in.",
+    footerNote: "You're receiving this because this email was used to sign up for EvntCue.",
+    children: joinText([
+      eyebrow("Verify email", VERIFY_ACCENT),
+      headline("Almost there."),
+      paragraph(
+        `Click below to verify <b style="color:#1F2533;">${safeEmail}</b> and finish setting up your EvntCue account.`,
+      ),
+      button({ href: args.actionUrl, label: "Verify email", accent: VERIFY_ACCENT }),
+      subtle(
+        "This link expires in 24 hours. If you didn't try to sign up, you can ignore this email.",
+      ),
+    ]),
+  });
+  return { subject: "Verify your email to finish setting up EvntCue", text, html };
 }
 
 // =============================================================================

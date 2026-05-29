@@ -185,6 +185,8 @@
     "swapToSignup": "¿Nuevo en EvntCue?",
     "confirmTitleEm": "Revisa tu correo.",
     "confirmHint": "Abre el enlace en este dispositivo para que podamos terminar de conectar tu evento al espacio de trabajo. El enlace caduca en una hora.",
+    "errorVerifyExpired": "Ese enlace de verificación caducó o ya se usó. Ingresa tus datos abajo para recibir uno nuevo.",
+    "errorGeneric": "Algo salió mal con ese enlace. Ingresa tus datos abajo para intentarlo de nuevo.",
     "footTerms": "Al continuar aceptas los términos de EvntCue.",
     "footBack": "Volver al inicio"
   },
