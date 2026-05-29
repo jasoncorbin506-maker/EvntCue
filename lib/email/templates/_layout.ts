@@ -105,6 +105,39 @@ export function divider(): string {
   return `<div style="height:1px;background:${HAIRLINE};margin:6px 0 22px;"></div>`;
 }
 
+/**
+ * A label/value detail table inside a tinted inset panel (Event / Date / Where /
+ * …). Uppercase Barlow labels, Barlow ink values. Caller pre-formats values
+ * (date strings, money). Values are inserted as HTML — escape any user content.
+ */
+export function linePair(pairs: ReadonlyArray<{ label: string; value: string }>): string {
+  const rows = pairs
+    .map(
+      (p) =>
+        `<tr><td style="padding:7px 14px 7px 0;vertical-align:top;width:32%;font-family:${SANS};font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:${FAINT};">${p.label}</td><td style="padding:7px 0;vertical-align:top;font-family:${SANS};font-size:15px;line-height:1.5;color:${INK};">${p.value}</td></tr>`,
+    )
+    .join("");
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:4px 0 24px;border:1px solid ${HAIRLINE};border-radius:12px;background:${CARD_TINT};">
+<tr><td style="padding:10px 18px;"><table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows}</table></td></tr>
+</table>`;
+}
+
+/**
+ * A contained block of someone's own words (an inquiry message, a decline
+ * reason) in a tinted panel — distinct from quote()'s inline accent-rule pull
+ * quote. Cormorant italic body, optional Barlow attribution. `text` is inserted
+ * as HTML and MUST be pre-escaped by the caller; newlines become <br>.
+ */
+export function quoteBlock(text: string, attribution?: string): string {
+  const body = text.replace(/\r?\n/g, "<br>");
+  const attr = attribution
+    ? `<p style="margin:12px 0 0;font-family:${SANS};font-size:11px;font-weight:600;letter-spacing:0.12em;text-transform:uppercase;color:${FAINT};">${attribution}</p>`
+    : "";
+  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin:0 0 22px;border:1px solid ${HAIRLINE};border-radius:12px;background:${CARD_TINT};"><tr><td style="padding:16px 20px;">
+<p style="margin:0;font-family:${SERIF};font-style:italic;font-size:18px;line-height:1.55;color:#5A5346;">&ldquo;${body}&rdquo;</p>${attr}
+</td></tr></table>`;
+}
+
 // ── Document shell ───────────────────────────────────────────────────────────
 
 function wordmark(size: number, color: string = INK): string {
