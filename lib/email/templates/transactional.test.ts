@@ -15,6 +15,7 @@ import { test, describe } from "node:test";
 import assert from "node:assert/strict";
 import {
   renderWelcomeEmail,
+  renderVerifyEmail,
   renderPasswordResetRequestEmail,
   renderPasswordChangedEmail,
   type EmailLocale,
@@ -89,6 +90,52 @@ describe("renderWelcomeEmail", () => {
     // translated to "proveedores".
     const plnr = renderWelcomeEmail({ portal: "plnr", ctaUrl: "https://x", locale: "es" });
     assert.ok(plnr.text.includes("Vndrs"), "ES Plnr body keeps the canonical plural");
+  });
+});
+
+describe("renderVerifyEmail", () => {
+  for (const locale of LOCALES) {
+    test(`${locale} — well-formed, carries the verify link + email`, () => {
+      const actionUrl =
+        "https://evntcue.com/auth/callback?token_hash=abc&type=signup&role=vndr";
+      const email = "person@example.com";
+      const content = renderVerifyEmail({ actionUrl, email, locale });
+
+      assertWellFormed(content);
+      assertNoBannedJargon(content);
+      assert.ok(content.html.includes(actionUrl), "html must link the verify url");
+      assert.ok(content.text.includes(actionUrl), "text must include the verify url");
+      assert.ok(content.html.includes(email), "html must name the recipient email");
+      assert.ok(content.text.includes(email), "text must name the recipient email");
+      assert.ok(
+        content.html.includes(`<html lang="${locale}"`),
+        "html lang must match locale",
+      );
+      // Portal-agnostic neutral accent (Option A) — never a portal hue.
+      assert.ok(
+        content.html.includes(EMAIL_ACCENTS.neutral),
+        "verify email uses the neutral accent",
+      );
+    });
+  }
+
+  test("EN and ES differ (Lock 9 parity)", () => {
+    const en = renderVerifyEmail({ actionUrl: "https://x", email: "a@b.co", locale: "en" });
+    const es = renderVerifyEmail({ actionUrl: "https://x", email: "a@b.co", locale: "es" });
+    assert.notEqual(en.subject, es.subject);
+    assert.notEqual(en.html, es.html);
+  });
+
+  test("escapes HTML metacharacters in the recipient email", () => {
+    // validateEmail's permissive shape allows `<`/`>`; the template must not
+    // reflect them raw into the HTML body.
+    const content = renderVerifyEmail({
+      actionUrl: "https://x",
+      email: 'a<script>@b.co',
+      locale: "en",
+    });
+    assert.ok(!content.html.includes("<script>"), "must escape angle brackets");
+    assert.ok(content.html.includes("&lt;script&gt;"), "must HTML-escape the email");
   });
 });
 

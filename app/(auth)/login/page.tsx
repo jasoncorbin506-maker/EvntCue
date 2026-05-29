@@ -20,6 +20,16 @@ type SearchParams = {
   intent?: string;
   role?: string;
   next?: string;
+  /** Inform-not-block code set by /auth/callback on a failed verify. */
+  error?: string;
+};
+
+// Map a callback error code → a localized login-block message key. Unknown
+// codes (e.g. a raw Supabase error_description) fall back to the generic key
+// rather than reflecting the raw string at the user.
+const LOGIN_ERROR_KEY: Record<string, string> = {
+  verify_expired: "errorVerifyExpired",
+  missing_code: "errorVerifyExpired",
 };
 
 // Same-origin path guard for `next` — must start with "/" and not "//"
@@ -136,6 +146,13 @@ export default async function LoginPage(props: {
   const otherLabel = mode === "signup" ? t("signIn") : t("createAccount");
   const swapPrompt = mode === "signup" ? t("swapToSignin") : t("swapToSignup");
 
+  // Inform-not-block: surface a recoverable message when an expired/invalid
+  // verification link bounced the user back here (Lock 22). The signup form is
+  // right below — re-submitting issues a fresh link.
+  const errorNotice = sp.error
+    ? t(LOGIN_ERROR_KEY[sp.error] ?? "errorGeneric")
+    : null;
+
   return (
     <main className={styles.page}>
       <div className={styles.wrap}>
@@ -159,6 +176,12 @@ export default async function LoginPage(props: {
         <div className={styles.card}>
           <h1 className={styles.headline}>{headline}</h1>
           <p className={styles.sub}>{sub}</p>
+
+          {errorNotice ? (
+            <div className={`${styles.notice} ${styles.noticeError}`} role="alert">
+              {errorNotice}
+            </div>
+          ) : null}
 
           {/*
             key={mode} forces a remount when the swap link flips between
