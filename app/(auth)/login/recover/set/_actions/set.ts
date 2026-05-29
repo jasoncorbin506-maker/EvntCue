@@ -1,7 +1,9 @@
 "use server";
 
+import { headers } from "next/headers";
 import { redirect } from "next/navigation";
 import { createClient } from "@/lib/supabase/server";
+import { getLocale } from "@/i18n/locale";
 
 export type SetPasswordResult =
   | { ok: true }
@@ -34,5 +36,39 @@ export async function setPasswordAction(formData: FormData): Promise<SetPassword
   const { error } = await supabase.auth.updateUser({ password });
   if (error) return { ok: false, error: error.message };
 
+  // Security confirmation email. Fire-and-forget — a send failure must not
+  // block the password change or the redirect (Lock 22).
+  if (user.email) {
+    await sendPasswordChangedEmail(user.email);
+  }
+
   redirect("/orgnz");
+}
+
+/** Never throws — the password change has already committed by this point. */
+async function sendPasswordChangedEmail(email: string): Promise<void> {
+  try {
+    const h = await headers();
+    const host = h.get("x-forwarded-host") ?? h.get("host") ?? "localhost:3000";
+    const proto =
+      h.get("x-forwarded-proto") ?? (host.startsWith("localhost") ? "http" : "https");
+    const signInUrl = `${proto}://${host}/login`;
+
+    const locale = await getLocale();
+    const { renderPasswordChangedEmail } = await import(
+      "@/lib/email/templates/transactional"
+    );
+    const { sendEmail } = await import("@/lib/email/send");
+    const content = renderPasswordChangedEmail({ signInUrl, locale });
+    await sendEmail({
+      to: email,
+      subject: content.subject,
+      text: content.text,
+      html: content.html,
+      tags: [{ name: "kind", value: "password-changed" }],
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    console.warn(`password-changed email threw: ${message}`);
+  }
 }
