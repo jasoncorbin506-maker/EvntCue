@@ -138,7 +138,7 @@ export default async function VenuDiscover({
             </svg>
           </div>
           <div className={s.tileLabel}>Tools</div>
-          <div className={s.tileSub}>Atmosphere, spaces, preferred vendors.</div>
+          <div className={s.tileSub}>Atmosphere, spaces, preferred Vndrs.</div>
         </Link>
 
         <Link href="/venu/money" className={s.tile}>

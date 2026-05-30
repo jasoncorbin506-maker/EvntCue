@@ -114,7 +114,7 @@ export function AddVendorPopup({
       >
         <div className={s.head}>
           <div className={s.headL}>
-            <div className={s.eye}>Add vendor</div>
+            <div className={s.eye}>Add Vndr</div>
             <h3 className={s.title} id="add-vendor-popup-title">
               Present in <em>{PHASE_LABELS[prefillPhase]}</em>
             </h3>
@@ -131,7 +131,7 @@ export function AddVendorPopup({
 
         <div className={s.body}>
           <label className={s.field}>
-            <span className={s.fieldL}>Vendor name</span>
+            <span className={s.fieldL}>Vndr name</span>
             <input
               type="text"
               className={s.input}

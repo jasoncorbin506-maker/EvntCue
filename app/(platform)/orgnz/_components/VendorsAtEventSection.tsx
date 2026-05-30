@@ -33,11 +33,11 @@ export function VendorsAtEventSection({
 }: Props) {
   return (
     <section className={s.section} data-vendors-section>
-      <div className={s.header}>Vendors</div>
+      <div className={s.header}>Vndrs</div>
 
       {presences.length === 0 ? (
         <div className={s.empty}>
-          No vendors added yet.{" "}
+          No Vndrs added yet.{" "}
           <em>Tap + to add the people making your event happen.</em>
         </div>
       ) : (
@@ -70,7 +70,7 @@ export function VendorsAtEventSection({
         <span className={s.addPlus} aria-hidden="true">
           +
         </span>
-        <span>Add vendor</span>
+        <span>Add Vndr</span>
       </button>
     </section>
   );

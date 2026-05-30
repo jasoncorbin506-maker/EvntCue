@@ -178,8 +178,8 @@ export function RunOfShow({
                   type="button"
                   className={styles.rosPhaseHeadAdd}
                   onClick={() => setPopupPhase(phase)}
-                  aria-label={`Add vendor to ${phaseLabel(eventType, phase)}`}
-                  title={`Add vendor to ${phaseLabel(eventType, phase)}`}
+                  aria-label={`Add Vndr to ${phaseLabel(eventType, phase)}`}
+                  title={`Add Vndr to ${phaseLabel(eventType, phase)}`}
                 >
                   +
                 </button>

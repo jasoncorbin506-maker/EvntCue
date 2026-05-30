@@ -31,7 +31,7 @@ export function VenuSheet({ open, onClose, hasVenu }: Props) {
             <em>No venue locked yet.</em>
           </div>
           <div className={styles.sheetEmptyB}>
-            Per <em>Lock 5a</em>, the date isn&rsquo;t real until the venue confirms. Everything else — vendors, RSVPs, run of show — hangs off this.
+            Per <em>Lock 5a</em>, the date isn&rsquo;t real until the venue confirms. Everything else — Vndrs, RSVPs, run of show — hangs off this.
           </div>
         </div>
 

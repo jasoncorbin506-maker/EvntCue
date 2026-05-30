@@ -78,7 +78,7 @@ function buildWelcomeFeed(args: {
       kind: "cueWarn",
       eyebrow: "Venu first",
       when: "Lock 5a",
-      body: `Vendors get sticky once a date is locked, and a date locks when the <strong>venue</strong> confirms. <em>You can still proceed</em> — just expect quotes to firm up after.`,
+      body: `Vndrs get sticky once a date is locked, and a date locks when the <strong>venue</strong> confirms. <em>You can still proceed</em> — just expect quotes to firm up after.`,
       primaryCta: {
         label: "Browse Venu",
         toast: "Venu sheet opens here in <em>3.2.B</em>.",
@@ -92,7 +92,7 @@ function buildWelcomeFeed(args: {
       kind: "cueWarn",
       eyebrow: "Tight window",
       when: `${args.daysOut} days out`,
-      body: `Most ${args.eventType.toLowerCase()} vendors prefer 90+ days. <em>You can still proceed</em>, but expect rush fees on a few categories.`,
+      body: `Most ${args.eventType.toLowerCase()} Vndrs prefer 90+ days. <em>You can still proceed</em>, but expect rush fees on a few categories.`,
     });
   }
 
@@ -193,14 +193,14 @@ export default async function OrgnzDashboardPage() {
         {
           ico: allConfirmed ? "check" : "users",
           t: allConfirmed
-            ? `All ${totalCount} vendors confirmed`
+            ? `All ${totalCount} Vndrs confirmed`
             : `${confirmedCount} of ${totalCount} confirmed · ${totalCount - confirmedCount} pending`,
           d: vendorNames,
         },
         {
           ico: "note",
-          t: "Vendor lock",
-          d: "By this date, you should have your core vendors booked. Tap a vendor on the Run of Show to view their booking or open the conversation.",
+          t: "Vndr lock",
+          d: "By this date, you should have your core Vndrs booked. Tap a Vndr on the Run of Show to view their booking or open the conversation.",
         },
       ];
     }

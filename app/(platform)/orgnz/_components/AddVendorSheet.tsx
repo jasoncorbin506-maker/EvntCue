@@ -95,7 +95,7 @@ export function AddVendorSheet({ open, eventId, onClose, onAdded }: Props) {
         return;
       }
       showToast(
-        `<em>${roleLabel.trim() || vendorName.trim()}</em> added to your vendors.`,
+        `<em>${roleLabel.trim() || vendorName.trim()}</em> added to your Vndrs.`,
       );
       onAdded?.(res.id);
       onClose();
@@ -116,7 +116,7 @@ export function AddVendorSheet({ open, eventId, onClose, onAdded }: Props) {
           <div className={orgnzStyles.drawerHeadL}>
             <div className={orgnzStyles.drawerEye}>Add to event</div>
             <h3 className={orgnzStyles.drawerTitle} id="add-vendor-title">
-              <em>Add a vendor</em>
+              <em>Add a Vndr</em>
             </h3>
           </div>
           <button
@@ -155,7 +155,7 @@ export function AddVendorSheet({ open, eventId, onClose, onAdded }: Props) {
 
           {/* Manual vendor entry */}
           <label className={s.field}>
-            <span className={s.fieldL}>Vendor name</span>
+            <span className={s.fieldL}>Vndr name</span>
             <input
               type="text"
               className={s.input}

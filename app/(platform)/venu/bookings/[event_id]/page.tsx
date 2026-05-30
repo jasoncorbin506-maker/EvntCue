@@ -54,7 +54,7 @@ export default async function VenuEventDetail({
     { key: "beo",       name: "BEO acknowledgment",          sub: "Sign off on the banquet event order",   iconPath: ICON_BEO },
     { key: "seat",      name: "Seat chart",                  sub: "Builds when the floor-plan feature lands", iconPath: ICON_SEAT },
     { key: "timeline",  name: "Timeline",                    sub: "Day-of run of show — coming with Plnr cockpit", iconPath: ICON_TIMELINE },
-    { key: "vendors",   name: "Vendor roster",               sub: "Confirmed vendors + COI status — coming with Vndr portal", iconPath: ICON_VENDORS },
+    { key: "vendors",   name: "Vndr roster",                 sub: "Confirmed Vndrs + COI status — coming with Vndr portal", iconPath: ICON_VENDORS },
     { key: "money",     name: "Money for this event",        sub: "Rental · fees · payout previews",         iconPath: ICON_MONEY, statusLabel: `${formatUSDCents(booking.netRevenueCents)} net`, state: "done" as const },
     { key: "messages",  name: "Messages with the Orgnz",     sub: "Threads land with the message-center build", iconPath: ICON_MESSAGES },
   ];
