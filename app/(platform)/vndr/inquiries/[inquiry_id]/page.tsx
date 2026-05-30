@@ -6,6 +6,7 @@ import { getVndrInquiry, type VndrInquiryStatus } from "@/lib/vndr/inquiries";
 import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
 
 import { Chrome, ChromeSignOut } from "../../_components/Chrome";
+import { InquiryQuotePanel } from "../../_components/InquiryQuotePanel";
 import { InquiryThread } from "../../_components/InquiryThread";
 import s from "../../vndr.module.css";
 
@@ -46,11 +47,6 @@ function formatEventDate(date: string): string {
   });
 }
 
-function formatPrice(cents: number | null): string | null {
-  if (cents === null) return null;
-  return `$${(cents / 100).toLocaleString("en-US", { maximumFractionDigits: 0 })}`;
-}
-
 export default async function VndrInquiryDetail({
   params,
 }: {
@@ -63,8 +59,6 @@ export default async function VndrInquiryDetail({
 
   const inquiry = await getVndrInquiry(inquiry_id);
   if (!inquiry) notFound();
-
-  const price = formatPrice(inquiry.proposedPriceCents);
 
   return (
     <>
@@ -96,12 +90,6 @@ export default async function VndrInquiryDetail({
               {inquiry.guestCount > 0 ? inquiry.guestCount : "TBD"}
             </div>
           </div>
-          {price && (
-            <div className={s.dcChangeRow}>
-              <span className={s.dcChangeLbl}>Quote</span>
-              <div className={s.dcChangeValue}>{price}</div>
-            </div>
-          )}
         </div>
 
         {inquiry.message && (
@@ -110,6 +98,13 @@ export default async function VndrInquiryDetail({
             <div className={s.dcReasonText}>&ldquo;{inquiry.message}&rdquo;</div>
           </div>
         )}
+
+        <InquiryQuotePanel
+          inquiryId={inquiry.id}
+          status={inquiry.status}
+          quotedPriceCents={inquiry.proposedPriceCents}
+          buyerRole={inquiry.buyerRole}
+        />
 
         <InquiryThread inquiryId={inquiry.id} buyerRole={inquiry.buyerRole} />
       </div>

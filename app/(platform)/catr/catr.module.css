@@ -644,3 +644,74 @@
   font-size: 11px;
   margin-top: 8px;
 }
+
+.quotePanel {
+  margin: 18px 16px 0;
+  padding-top: 14px;
+  border-top: 0.5px solid var(--bdr);
+}
+
+.quoteRow {
+  display: flex;
+  align-items: stretch;
+  gap: 6px;
+}
+
+.quoteDollar {
+  display: flex;
+  align-items: center;
+  padding-left: 2px;
+  font-family: var(--font-ui);
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--txt2);
+}
+
+.quoteInput {
+  flex: 1;
+  min-width: 0;
+  background: var(--ink);
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: var(--font-body);
+  font-size: 15px;
+  color: #fff;
+  outline: none;
+}
+
+.quoteInput:focus {
+  border-color: var(--prime);
+}
+
+.quoteSend {
+  padding: 0 14px;
+  border-radius: 8px;
+  border: 0.5px solid var(--prime);
+  background: var(--prime);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.quoteSend:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quoteHint {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--txt3);
+  margin-top: 8px;
+}
+
+.quoteReadonly {
+  font-family: var(--font-ui);
+  font-size: 22px;
+  font-weight: 600;
+  color: var(--txt1, #fff);
+}

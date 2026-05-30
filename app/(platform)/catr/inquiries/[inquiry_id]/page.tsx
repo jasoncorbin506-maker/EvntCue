@@ -6,6 +6,7 @@ import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
 
 import { Chrome, ChromeSignOut } from "../../_components/Chrome";
 import { CatrInquiryThread } from "../../_components/CatrInquiryThread";
+import { CatrQuotePanel } from "../../_components/CatrQuotePanel";
 import { formatEventDateLong, formatUSDCents } from "../../_lib/format";
 import s from "../../catr.module.css";
 
@@ -73,6 +74,13 @@ export default async function CatrInquiryDetail({
           <div className={s.messageText}>&ldquo;{inquiry.message}&rdquo;</div>
         </div>
       )}
+
+      <CatrQuotePanel
+        inquiryId={inquiry.id}
+        status={inquiry.status}
+        quotedPriceCents={inquiry.quotedPriceCents}
+        buyerRole={inquiry.buyerRole}
+      />
 
       <CatrInquiryThread inquiryId={inquiry.id} buyerRole={inquiry.buyerRole} />
     </>

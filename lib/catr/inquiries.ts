@@ -21,6 +21,8 @@ export type CatrInquiry = {
   eventDate: string;
   guestCount: number;
   budgetCents: number;
+  /** Caterer's quoted price (proposed_price_cents); null until they respond. */
+  quotedPriceCents: number | null;
   message: string | null;
   status: InquiryStatus;
   hoursSinceCreated: number;
@@ -29,7 +31,7 @@ export type CatrInquiry = {
 };
 
 const COLS =
-  "id, client_name, event_date, guest_count, est_revenue_cents, message, status, created_at, buyer_role";
+  "id, client_name, event_date, guest_count, est_revenue_cents, proposed_price_cents, message, status, created_at, buyer_role";
 
 function shape(row: Record<string, unknown>, now: number): CatrInquiry {
   const createdMs = new Date(row.created_at as string).getTime();
@@ -40,6 +42,7 @@ function shape(row: Record<string, unknown>, now: number): CatrInquiry {
     eventDate: (row.event_date as string | null) ?? "",
     guestCount: (row.guest_count as number | null) ?? 0,
     budgetCents: (row.est_revenue_cents as number | null) ?? 0,
+    quotedPriceCents: (row.proposed_price_cents as number | null) ?? null,
     message: (row.message as string | null) ?? null,
     status: row.status as InquiryStatus,
     hoursSinceCreated,
