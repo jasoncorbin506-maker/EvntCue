@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { InquiryStatus } from "@/lib/labels/inquiry-status";
+import type { InquiryBuyerRole } from "@/lib/messaging/inquiry-thread-shared";
 
 /**
  * Caterer-side reads against the unified `inquiries` table. Catr is an
@@ -23,10 +24,12 @@ export type CatrInquiry = {
   message: string | null;
   status: InquiryStatus;
   hoursSinceCreated: number;
+  /** Buyer side of the thread. External leads (buyer_role null) default to orgnz for labeling. */
+  buyerRole: InquiryBuyerRole;
 };
 
 const COLS =
-  "id, client_name, event_date, guest_count, est_revenue_cents, message, status, created_at";
+  "id, client_name, event_date, guest_count, est_revenue_cents, message, status, created_at, buyer_role";
 
 function shape(row: Record<string, unknown>, now: number): CatrInquiry {
   const createdMs = new Date(row.created_at as string).getTime();
@@ -40,6 +43,7 @@ function shape(row: Record<string, unknown>, now: number): CatrInquiry {
     message: (row.message as string | null) ?? null,
     status: row.status as InquiryStatus,
     hoursSinceCreated,
+    buyerRole: (row.buyer_role as InquiryBuyerRole | null) ?? "orgnz",
   };
 }
 

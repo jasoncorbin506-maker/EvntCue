@@ -6,6 +6,7 @@ import { getVndrInquiry, type VndrInquiryStatus } from "@/lib/vndr/inquiries";
 import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
 
 import { Chrome, ChromeSignOut } from "../../_components/Chrome";
+import { InquiryThread } from "../../_components/InquiryThread";
 import s from "../../vndr.module.css";
 
 // Status → pill color modifier. `.statusPill` is colorless on its own; the
@@ -110,12 +111,7 @@ export default async function VndrInquiryDetail({
           </div>
         )}
 
-        <div className={s.placeholder}>
-          <div className={s.placeholderTitle}>Reply · Quote · Hold</div>
-          <div className={s.placeholderBody}>
-            Reply / quote / hold actions land in a later chunk.
-          </div>
-        </div>
+        <InquiryThread inquiryId={inquiry.id} buyerRole={inquiry.buyerRole} />
       </div>
     </>
   );

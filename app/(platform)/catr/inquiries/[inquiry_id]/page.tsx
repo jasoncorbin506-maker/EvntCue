@@ -5,6 +5,7 @@ import { getCatrInquiry } from "@/lib/catr/inquiries";
 import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
 
 import { Chrome, ChromeSignOut } from "../../_components/Chrome";
+import { CatrInquiryThread } from "../../_components/CatrInquiryThread";
 import { formatEventDateLong, formatUSDCents } from "../../_lib/format";
 import s from "../../catr.module.css";
 
@@ -73,12 +74,7 @@ export default async function CatrInquiryDetail({
         </div>
       )}
 
-      <div className={s.placeholder}>
-        <div className={s.placeholderTitle}>Reply · Quote · Hold</div>
-        <div className={s.placeholderBody}>
-          Reply / quote / hold actions land in a later chunk.
-        </div>
-      </div>
+      <CatrInquiryThread inquiryId={inquiry.id} buyerRole={inquiry.buyerRole} />
     </>
   );
 }
