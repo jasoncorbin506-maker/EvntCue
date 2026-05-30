@@ -51,7 +51,7 @@ export async function getVndrActivePipeline(
   const inquiriesPromise = supabase
     .from("inquiries")
     .select(
-      "id, event_date, guest_count, proposed_price_cents, status, created_at, responded_at, events!booking_inquiries_event_id_fkey(name)",
+      "id, event_date, guest_count, proposed_price_cents, status, created_at, responded_at, events!event_id(name)",
     )
     .eq("recipient_tenant_id", vendorTenantId)
     .in("status", ["inquiry", "reviewing", "quoted"])
