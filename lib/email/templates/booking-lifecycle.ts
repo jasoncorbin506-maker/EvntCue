@@ -101,7 +101,7 @@ export function renderInquiryReceivedEmail(args: {
   buyerRole: BuyerRole;
   eventName: string;
   eventDate: string; // caller-formatted (e.g. "Saturday, May 1, 2027 · 4:30 PM")
-  city: string;
+  city?: string; // omit when there's no honest source (events carry no location yet)
   budget?: string; // caller-formatted (e.g. "$8,000–$12,000"); omit if undisclosed
   message: string; // raw inquiry body
   ctaUrl: string;
@@ -111,12 +111,15 @@ export function renderInquiryReceivedEmail(args: {
   const accent = EMAIL_ACCENTS[args.sellerPortal];
   const nameHtml = buyerNameHtml(args.buyerName, args.buyerRole);
   const msg = truncate(args.message);
+  const city = args.city?.trim() || null;
 
   const pairs: { label: string; value: string }[] = [
     { label: es ? "Evento" : "Event", value: esc(args.eventName) },
     { label: es ? "Fecha" : "Date", value: esc(args.eventDate) },
-    { label: es ? "Dónde" : "Where", value: esc(args.city) },
   ];
+  if (city) {
+    pairs.push({ label: es ? "Dónde" : "Where", value: esc(city) });
+  }
   if (args.budget) {
     pairs.push({ label: es ? "Presupuesto" : "Budget", value: esc(args.budget) });
   }
@@ -129,20 +132,27 @@ export function renderInquiryReceivedEmail(args: {
     ? "Revisa y responde dentro de 7 días."
     : "Review and respond within 7 days.";
 
+  // The "planning X on DATE [in CITY]" sentence drops the location clause when
+  // city is absent (events carry no location field yet).
+  const introText = es
+    ? `Está planeando ${args.eventName} el ${args.eventDate}${city ? ` en ${city}` : ""}. Esto fue lo que compartió:`
+    : `They're planning ${args.eventName} on ${args.eventDate}${city ? ` in ${city}` : ""}. Here's what they shared:`;
+  const introHtml = es
+    ? `Está planeando <b style="color:#1F2533;">${esc(args.eventName)}</b> el ${esc(args.eventDate)}${city ? ` en ${esc(city)}` : ""}. Esto fue lo que compartió:`
+    : `They're planning <b style="color:#1F2533;">${esc(args.eventName)}</b> on ${esc(args.eventDate)}${city ? ` in ${esc(city)}` : ""}. Here's what they shared:`;
+
   const text = joinText([
     es
       ? `${args.buyerName} quiere trabajar contigo.`
       : `${args.buyerName} would like to work with you.`,
     "",
-    es
-      ? `Está planeando ${args.eventName} el ${args.eventDate} en ${args.city}. Esto fue lo que compartió:`
-      : `They're planning ${args.eventName} on ${args.eventDate} in ${args.city}. Here's what they shared:`,
+    introText,
     "",
     `“${msg}”`,
     "",
     `${es ? "Evento" : "Event"}: ${args.eventName}`,
     `${es ? "Fecha" : "Date"}: ${args.eventDate}`,
-    `${es ? "Dónde" : "Where"}: ${args.city}`,
+    city ? `${es ? "Dónde" : "Where"}: ${city}` : null,
     args.budget ? `${es ? "Presupuesto" : "Budget"}: ${args.budget}` : null,
     "",
     window,
@@ -164,11 +174,7 @@ export function renderInquiryReceivedEmail(args: {
       headline(
         es ? `${nameHtml} quiere trabajar contigo.` : `${nameHtml} would like to work with you.`,
       ),
-      paragraph(
-        es
-          ? `Está planeando <b style="color:#1F2533;">${esc(args.eventName)}</b> el ${esc(args.eventDate)} en ${esc(args.city)}. Esto fue lo que compartió:`
-          : `They're planning <b style="color:#1F2533;">${esc(args.eventName)}</b> on ${esc(args.eventDate)} in ${esc(args.city)}. Here's what they shared:`,
-      ),
+      paragraph(introHtml),
       quoteBlock(esc(msg)),
       linePair(pairs),
       subtle(window),

@@ -78,9 +78,9 @@ export async function getVndrCalendarMonth(
     .lte("events.start_date", end);
 
   const inquiriesPromise = supabase
-    .from("booking_inquiries")
+    .from("inquiries")
     .select("event_date, status")
-    .eq("vndr_tenant_id", vendorTenantId)
+    .eq("recipient_tenant_id", vendorTenantId)
     .in("status", ["inquiry", "reviewing", "quoted"])
     .gte("event_date", start)
     .lte("event_date", end);

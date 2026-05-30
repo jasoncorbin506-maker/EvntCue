@@ -29,12 +29,18 @@ function shape(row: Record<string, unknown>, now: number): VenuInquiry {
 
 const COLS = "id, client_name, event_date, guest_count, est_revenue_cents, status, created_at";
 
+// Post-070 the venue inquiry rows live on the unified `inquiries` table; venue
+// rows are those with recipient_type='venu' (the venue is the recipient). Both
+// filters are needed: recipient_tenant_id scopes to this venue, recipient_type
+// keeps a venue-operator who is also a vndr seller from seeing their vndr leads
+// here.
 export async function getVenueInquiries(tenantId: string): Promise<VenuInquiry[]> {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("venue_inquiries")
+    .from("inquiries")
     .select(COLS)
-    .eq("venue_tenant_id", tenantId)
+    .eq("recipient_tenant_id", tenantId)
+    .eq("recipient_type", "venu")
     .order("created_at", { ascending: false });
 
   const now = Date.now();
@@ -50,9 +56,10 @@ export async function getVenueInquiries(tenantId: string): Promise<VenuInquiry[]
 export async function getVenueNewInquiryCount(tenantId: string): Promise<number> {
   const supabase = await createClient();
   const { count } = await supabase
-    .from("venue_inquiries")
+    .from("inquiries")
     .select("id", { count: "exact", head: true })
-    .eq("venue_tenant_id", tenantId)
+    .eq("recipient_tenant_id", tenantId)
+    .eq("recipient_type", "venu")
     .in("status", ["inquiry", "reviewing"]);
   return count ?? 0;
 }
@@ -60,9 +67,10 @@ export async function getVenueNewInquiryCount(tenantId: string): Promise<number>
 export async function getVenueInquiry(id: string): Promise<VenuInquiry | null> {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("venue_inquiries")
+    .from("inquiries")
     .select(COLS)
     .eq("id", id)
+    .eq("recipient_type", "venu")
     .maybeSingle();
 
   if (!data) return null;

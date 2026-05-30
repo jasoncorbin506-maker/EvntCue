@@ -9,7 +9,7 @@ import { getCurrentVendor } from "@/lib/vndr/current-vendor";
  * thread. RLS enforces:
  *   - sender_user_id = auth.uid()
  *   - sender_tenant_id IN current_user_tenants()
- *   - sender_role='vndr' requires inquiry.vndr_tenant_id = sender_tenant_id
+ *   - sender_role='vndr' requires inquiry.recipient_tenant_id = sender_tenant_id
  *
  * App-layer validation: body trim + length 1..4000. Body length is also
  * CHECK-constrained in the DB; the app check gives a clearer error.
@@ -48,7 +48,7 @@ export async function sendInquiryMessage(
   const { data, error } = await supabase
     .from("inquiry_messages")
     .insert({
-      inquiry_table: "booking_inquiries",
+      inquiry_table: "inquiries",
       inquiry_id: input.inquiryId,
       sender_user_id: user.id,
       sender_tenant_id: vendor.tenantId,

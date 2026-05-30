@@ -27,7 +27,7 @@ export async function markInquiryMessagesRead(
   const { error, count } = await supabase
     .from("inquiry_messages")
     .update({ read_at: new Date().toISOString() }, { count: "exact" })
-    .eq("inquiry_table", "booking_inquiries")
+    .eq("inquiry_table", "inquiries")
     .eq("inquiry_id", inquiryId)
     .eq("sender_role", "vndr")
     .is("read_at", null);

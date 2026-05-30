@@ -11,7 +11,7 @@ import { createClient } from "@/lib/supabase/server";
  * SLA window: global 24h per Jason's V-2b open-question lock 2026-05-24.
  * Per-event SLA variation is a future scope.
  *
- * "Unresponded" = `responded_at IS NULL` (the canonical `booking_inquiries`
+ * "Unresponded" = `responded_at IS NULL` (the canonical `inquiries`
  * schema; brief said `first_response_at` which is the conceptual name — the
  * actual column is `responded_at`).
  */
@@ -32,11 +32,11 @@ export async function getOldestUnrespondedInquiry(
 ): Promise<OldestUnrespondedInquiry | null> {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("booking_inquiries")
+    .from("inquiries")
     .select(
       "id, event_id, event_date, created_at, events!booking_inquiries_event_id_fkey(name)",
     )
-    .eq("vndr_tenant_id", vendorTenantId)
+    .eq("recipient_tenant_id", vendorTenantId)
     .eq("status", "inquiry")
     .is("responded_at", null)
     .order("created_at", { ascending: true })

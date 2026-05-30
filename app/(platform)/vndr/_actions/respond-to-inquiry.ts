@@ -14,7 +14,7 @@ import { createClient } from "@/lib/supabase/server";
  *
  * Allowed transitions: inquiry → quoted, reviewing → quoted. Any other
  * source status is rejected (already responded / terminal state). The DB
- * RLS enforces the vndr_tenant_id ownership; no need to re-verify here.
+ * RLS enforces the recipient_tenant_id ownership; no need to re-verify here.
  */
 
 export type RespondToInquiryInput = {
@@ -40,7 +40,7 @@ export async function respondToInquiry(
 
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("booking_inquiries")
+    .from("inquiries")
     .update({
       proposed_price_cents: input.quotedPriceCents,
       responded_at: new Date().toISOString(),

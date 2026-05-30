@@ -231,7 +231,7 @@ async function clearSeedPublicRows() {
     ["event_notifications", admin.from("event_notifications").delete().eq("event_id", EVENT_ID)],
     ["event_vendor_presence", admin.from("event_vendor_presence").delete().eq("event_id", EVENT_ID)],
     ["inquiry_messages", admin.from("inquiry_messages").delete().in("inquiry_id", inquiryIds)],
-    ["booking_inquiries", admin.from("booking_inquiries").delete().in("id", inquiryIds)],
+    ["inquiries", admin.from("inquiries").delete().in("id", inquiryIds)],
     ["bookings", admin.from("bookings").delete().in("id", bookingIds)],
     ["events", admin.from("events").delete().eq("id", EVENT_ID)],
     ["vndr_packages", admin.from("vndr_packages").delete().in("id", packageIds)],
@@ -378,15 +378,17 @@ async function main() {
     });
     if (presErr) fail(`insert event_vendor_presence(${v.email})`, presErr);
 
-    // booking_inquiries + inquiry_messages — gives VendorDetailSheet's
-    // Quick connect button a real thread to deep-link to. Inquiry is in
-    // 'booked' status since the seeded booking is already confirmed.
-    const { error: inqErr } = await admin.from("booking_inquiries").insert({
+    // inquiries + inquiry_messages — gives VendorDetailSheet's Quick connect
+    // button a real thread to deep-link to. Inquiry is in 'booked' status since
+    // the seeded booking is already confirmed. recipient_type='vndr' (post-070
+    // unified table: these are vndr-recipient leads).
+    const { error: inqErr } = await admin.from("inquiries").insert({
       id: v.inquiryId,
       event_id: EVENT_ID,
       buyer_tenant_id: ORGNZ.tenantId,
       buyer_role: "orgnz",
-      vndr_tenant_id: v.tenantId,
+      recipient_tenant_id: v.tenantId,
+      recipient_type: "vndr",
       event_date: EVENT_START_DATE,
       guest_count: 150,
       message: v.inquiryMessage,
@@ -395,12 +397,12 @@ async function main() {
       responded_at: nowIso,
       resulting_booking_id: v.bookingId,
     });
-    if (inqErr) fail(`insert booking_inquiries(${v.email})`, inqErr);
+    if (inqErr) fail(`insert inquiries(${v.email})`, inqErr);
 
     const { error: msgErr } = await admin.from("inquiry_messages").insert([
       {
         inquiry_id: v.inquiryId,
-        inquiry_table: "booking_inquiries",
+        inquiry_table: "inquiries",
         sender_user_id: orgnzAuth.id,
         sender_tenant_id: ORGNZ.tenantId,
         sender_role: "orgnz",
@@ -408,7 +410,7 @@ async function main() {
       },
       {
         inquiry_id: v.inquiryId,
-        inquiry_table: "booking_inquiries",
+        inquiry_table: "inquiries",
         sender_user_id: vAuth.id,
         sender_tenant_id: v.tenantId,
         sender_role: "vndr",
@@ -434,7 +436,7 @@ async function main() {
     admin.from("vndr_packages").select("id", { count: "exact", head: true }).in("id", [PKG_1_ID, PKG_2_ID, PKG_3_ID]),
     admin.from("event_notifications").select("id", { count: "exact", head: true }).eq("event_id", EVENT_ID),
     admin.from("event_vendor_presence").select("id", { count: "exact", head: true }).eq("event_id", EVENT_ID),
-    admin.from("booking_inquiries").select("id", { count: "exact", head: true }).eq("event_id", EVENT_ID),
+    admin.from("inquiries").select("id", { count: "exact", head: true }).eq("event_id", EVENT_ID),
     admin.from("inquiry_messages").select("id", { count: "exact", head: true }).in("inquiry_id", [INQ_1_ID, INQ_2_ID, INQ_3_ID]),
   ]);
   const [tenantsR, eventsR, bookingsR, vendorsR, packagesR, notifR, presenceR, inqR, msgR] = checks;
@@ -444,7 +446,7 @@ async function main() {
   console.log(`  seed vndr_packages:   ${packagesR.count}  (expect 3)`);
   console.log(`  seed bookings:        ${bookingsR.count}  (expect 3)`);
   console.log(`  event_vendor_presence:${presenceR.count}  (expect 3 — surfaces on orgnz dashboard)`);
-  console.log(`  booking_inquiries:    ${inqR.count}  (expect 3 — Quick connect deep-link)`);
+  console.log(`  inquiries:            ${inqR.count}  (expect 3 — Quick connect deep-link)`);
   console.log(`  inquiry_messages:     ${msgR.count}  (expect 6 — 2 per thread)`);
   console.log(`  event_notifications:  ${notifR.count}  (0 unless a date-change already fired)`);
 

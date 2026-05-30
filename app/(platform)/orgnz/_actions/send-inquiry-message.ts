@@ -39,7 +39,7 @@ export async function sendInquiryMessage(
   const { data, error } = await supabase
     .from("inquiry_messages")
     .insert({
-      inquiry_table: "booking_inquiries",
+      inquiry_table: "inquiries",
       inquiry_id: input.inquiryId,
       sender_user_id: organizer.userId,
       sender_tenant_id: organizer.tenantId,
