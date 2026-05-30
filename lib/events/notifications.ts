@@ -312,6 +312,17 @@ export async function writeEventNotification(args: {
           { name: "kind", value: "date-change-initial" },
           { name: "notification_id", value: newRow.id as string },
         ],
+        // Generic delivery audit alongside the Lock 24 notification_id branch.
+        // template_kind is NOT cross-party-eligible: a date-change bounce already
+        // surfaces via Lock 24's email_delivery_failed flag (orgnz EXPIRED card),
+        // so W2 must not also fire. This row adds delivery/complaint visibility.
+        audit: {
+          templateKind: "date-change-initial",
+          recipientTenantId: tenantId,
+          relatedEntityKind: "event_notification",
+          relatedEntityId: newRow.id as string,
+          payload: { locale },
+        },
       });
       if (!result.ok) {
         console.warn(

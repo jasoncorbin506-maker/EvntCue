@@ -286,7 +286,7 @@ export async function postAuthSeed(args: {
   // never block account creation (Lock 22 — inform, never block). Resend is a
   // heavy dep, so sendEmail is lazy-imported here rather than at module top.
   if (isNewUser && desiredRole !== "admin") {
-    await sendWelcomeEmail(desiredRole, args.email, locale);
+    await sendWelcomeEmail(desiredRole, args.email, locale, tenantId);
   }
 
   // Make sure auth session is hydrated for the redirect target
@@ -320,6 +320,7 @@ async function sendWelcomeEmail(
   role: "orgnz" | "vndr" | "venue" | "plnr" | "catr",
   email: string,
   locale: "en" | "es",
+  tenantId: string,
 ): Promise<void> {
   const portal = role === "venue" ? "venu" : role;
   try {
@@ -340,6 +341,12 @@ async function sendWelcomeEmail(
         { name: "kind", value: "welcome" },
         { name: "portal", value: portal },
       ],
+      audit: {
+        templateKind: "welcome",
+        recipientTenantId: tenantId,
+        relatedEntityKind: "user",
+        payload: { locale, portal },
+      },
     });
     if (!result.ok) {
       console.warn(`welcome email failed for ${portal} signup: ${result.error}`);

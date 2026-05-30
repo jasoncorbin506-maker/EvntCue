@@ -254,6 +254,15 @@ async function sendInquiryReceivedEmail(args: {
         { name: "kind", value: "inquiry-received" },
         { name: "inquiry_id", value: args.inquiryId },
       ],
+      // Seller-recipient send → its bounce triggers the W2 cross-party notice
+      // to the buyer (template_kind drives that eligibility in the webhook).
+      audit: {
+        templateKind: "inquiry-received",
+        recipientTenantId: args.sellerTenantId,
+        relatedEntityKind: "inquiry",
+        relatedEntityId: args.inquiryId,
+        payload: { locale, sellerPortal: args.sellerPortal },
+      },
     });
     if (!result.ok) {
       console.warn(

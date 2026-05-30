@@ -181,6 +181,15 @@ async function sendDeclineEmail(args: {
         { name: "kind", value: "decline" },
         { name: "inquiry_id", value: args.inquiryId },
       ],
+      // Buyer-recipient send → NOT cross-party-eligible (the buyer is the one we
+      // failed to reach). A hard bounce here surfaces via W3 self-recovery.
+      audit: {
+        templateKind: "decline",
+        recipientTenantId: args.buyerTenantId,
+        relatedEntityKind: "inquiry",
+        relatedEntityId: args.inquiryId,
+        payload: { locale, buyerRole: args.buyerRole },
+      },
     });
     if (!result.ok) {
       console.warn(

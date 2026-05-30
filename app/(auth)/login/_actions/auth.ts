@@ -149,6 +149,12 @@ async function sendVerifyEmail(
       text: content.text,
       html: content.html,
       tags: [{ name: "kind", value: "verify-email" }],
+      // Pre-signup: no tenant yet (recipient_tenant_id nullable by design).
+      audit: {
+        templateKind: "verify-email",
+        relatedEntityKind: "user",
+        payload: { locale },
+      },
     });
     if (!result.ok) {
       console.warn(`verify email failed for signup: ${result.error}`);

@@ -66,6 +66,11 @@ async function sendPasswordChangedEmail(email: string): Promise<void> {
       text: content.text,
       html: content.html,
       tags: [{ name: "kind", value: "password-changed" }],
+      audit: {
+        templateKind: "password-changed",
+        relatedEntityKind: "user",
+        payload: { locale },
+      },
     });
   } catch (err) {
     const message = err instanceof Error ? err.message : String(err);

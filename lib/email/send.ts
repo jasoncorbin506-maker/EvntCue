@@ -2,6 +2,12 @@ import "server-only";
 
 import { Resend } from "resend";
 
+import {
+  backpatchResendId,
+  recordSendAudit,
+  type SendAuditArgs,
+} from "./audit.ts";
+
 /**
  * Resend SDK wrapper (Lock 24 Chunk E — Gate 5 prerequisite for the
  * `email_delivery_failed` flag from UX critique pass #2.4).
@@ -33,6 +39,14 @@ export type SendEmailArgs = {
    * `lock-24:date-change-notification` to group related sends.
    */
   tags?: ReadonlyArray<{ name: string; value: string }>;
+  /**
+   * Optional delivery-audit context (Phase 3). When present, `sendEmail` writes
+   * an `email_send_audit` row before the Resend call, tags the send with
+   * `email_send_audit_id`, and back-patches the Resend message id on success —
+   * so the webhook can stamp delivery/bounce/complaint state onto the row. The
+   * recipient email is taken from `to`. Omit for sends that don't need tracking.
+   */
+  audit?: Omit<SendAuditArgs, "recipientEmail" | "admin">;
 };
 
 export type SendEmailResult =
@@ -67,6 +81,16 @@ export async function sendEmail(args: SendEmailArgs): Promise<SendEmailResult> {
     };
   }
 
+  // Delivery-audit row first (Phase 3). Best-effort: a null id just means the
+  // send proceeds untagged and isn't delivery-tracked — never blocks the send.
+  const auditId = args.audit
+    ? await recordSendAudit({ ...args.audit, recipientEmail: args.to })
+    : null;
+
+  const tags = auditId
+    ? [...(args.tags ?? []), { name: "email_send_audit_id", value: auditId }]
+    : args.tags;
+
   try {
     const result = await c.emails.send({
       from: "EvntCue <noreply@evntcue.com>",
@@ -74,7 +98,7 @@ export async function sendEmail(args: SendEmailArgs): Promise<SendEmailResult> {
       subject: args.subject,
       text: args.text,
       html: args.html,
-      tags: args.tags as Array<{ name: string; value: string }> | undefined,
+      tags: tags as Array<{ name: string; value: string }> | undefined,
     });
 
     if (result.error) {
@@ -82,6 +106,9 @@ export async function sendEmail(args: SendEmailArgs): Promise<SendEmailResult> {
     }
     if (!result.data?.id) {
       return { ok: false, error: "Resend returned no message id" };
+    }
+    if (auditId) {
+      await backpatchResendId(auditId, result.data.id);
     }
     return { ok: true, id: result.data.id };
   } catch (err) {

@@ -70,6 +70,13 @@ export async function requestRecoveryAction(formData: FormData): Promise<Recover
     text: content.text,
     html: content.html,
     tags: [{ name: "kind", value: "password-reset" }],
+    // Enumeration guard: we don't look up the tenant here, so tenant id stays
+    // null. recipient_email still records the send for ops/complaint tracking.
+    audit: {
+      templateKind: "password-reset",
+      relatedEntityKind: "user",
+      payload: { locale },
+    },
   });
 
   return { ok: true };
