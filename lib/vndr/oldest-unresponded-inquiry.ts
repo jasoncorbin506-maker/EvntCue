@@ -34,7 +34,7 @@ export async function getOldestUnrespondedInquiry(
   const { data } = await supabase
     .from("inquiries")
     .select(
-      "id, event_id, event_date, created_at, events!booking_inquiries_event_id_fkey(name)",
+      "id, event_id, event_date, created_at, events!event_id(name)",
     )
     .eq("recipient_tenant_id", vendorTenantId)
     .eq("status", "inquiry")
