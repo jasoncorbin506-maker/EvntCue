@@ -66,3 +66,19 @@ export async function getVndrInquiries(vendorTenantId: string): Promise<VndrInqu
     .order("created_at", { ascending: false });
   return (data ?? []).map((row) => shape(row as Record<string, unknown>));
 }
+
+/**
+ * Single inquiry by id, RLS-scoped to the vendor receiver. Backs the
+ * `/vndr/inquiries/[inquiry_id]` detail route (the inquiry-received email CTA
+ * target). `inq_select` already restricts visibility to the recipient tenant;
+ * no extra ownership filter needed. Returns null when not found / not visible.
+ */
+export async function getVndrInquiry(inquiryId: string): Promise<VndrInquiry | null> {
+  const supabase = await createClient();
+  const { data } = await supabase
+    .from("inquiries")
+    .select(COLS)
+    .eq("id", inquiryId)
+    .maybeSingle();
+  return data ? shape(data as Record<string, unknown>) : null;
+}
