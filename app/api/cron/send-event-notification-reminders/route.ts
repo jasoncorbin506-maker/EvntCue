@@ -140,6 +140,15 @@ export async function GET(request: Request): Promise<NextResponse> {
         { name: "kind", value: "date-change-reminder" },
         { name: "notification_id", value: notificationId },
       ],
+      // Generic delivery audit alongside Lock 24. Not cross-party-eligible —
+      // date-change bounces surface via the email_delivery_failed flag.
+      audit: {
+        templateKind: "date-change-reminder",
+        recipientTenantId: row.vendor_tenant_id as string,
+        relatedEntityKind: "event_notification",
+        relatedEntityId: notificationId,
+        payload: { locale },
+      },
     });
 
     // Stamp reminder_sent_at regardless of send outcome — see header
