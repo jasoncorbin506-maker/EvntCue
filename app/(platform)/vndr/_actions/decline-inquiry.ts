@@ -89,7 +89,7 @@ export async function declineInquiry(
  *   - no deliverable buyer address
  *
  * Lock 27 activation gate: if the parent event is no longer active, the send is
- * skipped and recorded to email_send_audit (logSkippedSend) — the decline path
+ * skipped and recorded to email_send_skips (logSkippedSend) — the decline path
  * has no upstream gate, so this is the real enforcement site.
  */
 async function sendDeclineEmail(args: {

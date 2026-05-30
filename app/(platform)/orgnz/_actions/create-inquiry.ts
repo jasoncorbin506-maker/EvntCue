@@ -175,7 +175,7 @@ export async function createInquiry(
  * Lock 27 activation-gate defensive check: this path is already gated upstream
  * (createInquiry returns EVENT_NOT_ACTIVATED before any row/email on a draft),
  * so the guard below is belt-and-suspenders — it makes the send-site honor the
- * gate independently and records any skip to email_send_audit, matching the
+ * gate independently and records any skip to email_send_skips, matching the
  * decline path which has no upstream gate.
  */
 async function sendInquiryReceivedEmail(args: {
