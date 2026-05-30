@@ -18,9 +18,10 @@ import type { CalendarFeed, FeedSyncSummary } from "./calendar-feeds-shared";
  * 2. For each parsed event, check manual-wins: if a manual block exists for
  *    the same (tenant, space, date), skip writing the ical block for that
  *    event. Counted in `skippedManualWins` for operator-visible reporting.
- * 3. Upsert remaining events via the dedup unique index on
- *    (venue_tenant_id, venue_space_id, blocked_date, source, source_ref).
- *    Counts new inserts vs unchanged rows.
+ * 3. Read this feed's existing ical blocks once; skip events already present
+ *    (dedup key = blocked_date + UID) and plain-insert the remainder. We do
+ *    NOT use upsert/onConflict because idx_vab_dedup is a COALESCE expression
+ *    index PostgREST cannot target. Counts new inserts vs unchanged rows.
  * 4. Hard-delete any existing ical blocks for this source_feed_id whose
  *    source_ref is NOT in the current parsed UID set — these are events
  *    cancelled in the external system. Source-of-truth flows external → us.
@@ -105,69 +106,84 @@ export async function syncFeed(
     eventsToWrite.push(ev);
   }
 
-  // Step 2: upsert ical blocks by the dedup unique-index key. The created_by
-  // column is NOT NULL — carry the feed's creator forward as the audit trail.
+  // Read this feed's existing ical blocks ONCE — reused for both the Step 2
+  // dedup pre-filter and the Step 3 vanished-UID delete. idx_vab_dedup is a
+  // COALESCE *expression* unique index, which supabase-js .upsert({onConflict})
+  // cannot target (PostgREST can't infer expression indexes — it throws 42P10
+  // "no unique or exclusion constraint matching the ON CONFLICT specification").
+  // So we skip events already present and plain-insert only the remainder; the
+  // unique index stays the backstop against a concurrent double-sync (23505).
+  const { data: existingIcalBlocks } = await client
+    .from("venue_availability_blocks")
+    .select("id, source_ref, blocked_date")
+    .eq("source_feed_id", feed.id);
+  const existingRows = (existingIcalBlocks ?? []) as Array<Record<string, unknown>>;
+
+  // Dedup natural key: blocked_date + UID. A recurring event shares ONE UID
+  // across many dates, so UID alone would wrongly collapse a series — the date
+  // must be part of the key.
+  const existingKeys = new Set(
+    existingRows.map(
+      (r) => `${r.blocked_date as string}|${(r.source_ref as string | null) ?? ""}`,
+    ),
+  );
+
+  // Step 2: insert NEW ical blocks. The created_by column is NOT NULL — carry
+  // the feed's creator forward as the audit trail.
   let inserted = 0;
   let unchanged = 0;
   if (eventsToWrite.length > 0) {
-    const rows = eventsToWrite.map((ev) => ({
-      venue_tenant_id: feed.venueTenantId,
-      venue_space_id: feed.venueSpaceId,
-      blocked_date: ev.blockedDate,
-      start_time: ev.startTime,
-      end_time: ev.endTime,
-      reason: ev.reason,
-      source: "ical_feed" as const,
-      source_ref: ev.uid,
-      source_feed_id: feed.id,
-      created_by: feed.createdBy || FEED_OWNER_USER_ID_FALLBACK,
-    }));
-    const { data, error } = await client
-      .from("venue_availability_blocks")
-      .upsert(rows, {
-        // Postgres treats COALESCE in the unique index — but supabase-js
-        // upsert needs explicit conflict targets. We use the dedup key by
-        // its index expression isn't directly addressable; instead use
-        // ignoreDuplicates so existing rows are left alone, and the diff
-        // between inputs and inserted-id count gives us the new-vs-unchanged
-        // split.
-        onConflict: "venue_tenant_id,venue_space_id,blocked_date,source,source_ref",
-        ignoreDuplicates: false,
-      })
-      .select("id");
-    if (error) {
-      // Treat as an ical-feed-side issue, not a hard failure — update last_error
-      // but don't blow away the historical sync state.
-      await client
-        .from("venue_calendar_feeds")
-        .update({ last_error: error.message, last_error_at: new Date().toISOString() })
-        .eq("id", feed.id);
-      return {
-        feedId: feed.id,
-        ok: false,
-        inserted: 0,
-        unchanged: 0,
-        deleted: 0,
-        skippedManualWins,
-        error: error.message,
-      };
+    const newEvents = eventsToWrite.filter(
+      (ev) => !existingKeys.has(`${ev.blockedDate}|${ev.uid}`),
+    );
+    unchanged = eventsToWrite.length - newEvents.length;
+
+    if (newEvents.length > 0) {
+      const rows = newEvents.map((ev) => ({
+        venue_tenant_id: feed.venueTenantId,
+        venue_space_id: feed.venueSpaceId,
+        blocked_date: ev.blockedDate,
+        start_time: ev.startTime,
+        end_time: ev.endTime,
+        reason: ev.reason,
+        source: "ical_feed" as const,
+        source_ref: ev.uid,
+        source_feed_id: feed.id,
+        created_by: feed.createdBy || FEED_OWNER_USER_ID_FALLBACK,
+      }));
+      const { data, error } = await client
+        .from("venue_availability_blocks")
+        .insert(rows)
+        .select("id");
+      if (error) {
+        // Treat as an ical-feed-side issue, not a hard failure — update
+        // last_error but don't blow away the historical sync state. A 23505
+        // here means a concurrent sync beat us to the same rows; that's benign
+        // (the rows exist), but we surface it rather than silently swallow.
+        await client
+          .from("venue_calendar_feeds")
+          .update({ last_error: error.message, last_error_at: new Date().toISOString() })
+          .eq("id", feed.id);
+        return {
+          feedId: feed.id,
+          ok: false,
+          inserted: 0,
+          unchanged: 0,
+          deleted: 0,
+          skippedManualWins,
+          error: error.message,
+        };
+      }
+      inserted = data?.length ?? 0;
     }
-    // supabase upsert with onConflict returns rows for both inserted + updated;
-    // for the inserted-vs-unchanged split we'd need to compare timestamps. The
-    // distinction is operator-cosmetic; report total written as `inserted`.
-    inserted = data?.length ?? 0;
-    unchanged = eventsToWrite.length - inserted;
   }
 
   // Step 3: hard-delete vanished UIDs (events cancelled in the source system).
+  // Reuses existingRows read above — no second round-trip.
   const currentUids = new Set(parsed.map((e) => e.uid));
   let deleted = 0;
-  const { data: existingIcalBlocks } = await client
-    .from("venue_availability_blocks")
-    .select("id, source_ref")
-    .eq("source_feed_id", feed.id);
-  if (existingIcalBlocks && existingIcalBlocks.length > 0) {
-    const idsToDelete = (existingIcalBlocks as Array<Record<string, unknown>>)
+  if (existingRows.length > 0) {
+    const idsToDelete = existingRows
       .filter((r) => {
         const ref = r.source_ref as string | null;
         return ref !== null && !currentUids.has(ref);

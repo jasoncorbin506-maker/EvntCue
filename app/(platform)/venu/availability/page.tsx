@@ -12,6 +12,7 @@ import { AddBlockButton } from "./_components/AddBlockButton";
 import { BlockRow } from "./_components/BlockRow";
 import { AttestButton } from "./_components/AttestButton";
 import { ConnectedCalendarsSection } from "./_components/ConnectedCalendarsSection";
+import { ImportCsvButton } from "./_components/ImportCsvButton";
 import s from "./availability.module.css";
 
 /**
@@ -77,6 +78,7 @@ export default async function VenuAvailability() {
 
   const manualBlocks = blocks.filter((b) => b.source === "manual");
   const groups = groupByMonth(manualBlocks);
+  const csvImportedCount = blocks.filter((b) => b.source === "csv_import").length;
   const showAttestation = !attached && !attestation;
 
   const spaceNameById = new Map(spaces.map((sp) => [sp.id, sp.name]));
@@ -95,9 +97,9 @@ export default async function VenuAvailability() {
           <div className={s.attestTitle}>Connect your calendar</div>
           <p className={s.attestBody}>
             Organizers will see your real availability once you tell us when
-            you&apos;re booked. Subscribe a calendar or upload a CSV when those
-            tools ship — or, if you have no existing reservations elsewhere,
-            confirm below to get listed today.
+            you&apos;re booked. Subscribe a calendar, upload a CSV of your booked
+            dates — or, if you have no existing reservations elsewhere, confirm
+            below to get listed today.
           </p>
           <AttestButton />
           <div className={s.attestFootnote}>
@@ -107,6 +109,19 @@ export default async function VenuAvailability() {
       )}
 
       <ConnectedCalendarsSection feeds={feeds} spaces={spaces} />
+
+      <section className={s.section}>
+        <div className={s.sectionHead}>
+          <h2 className={s.sectionTitle}>Import from CSV</h2>
+          <ImportCsvButton spaces={spaces} />
+        </div>
+        <p className={s.sectionHint}>
+          Have a spreadsheet of booked dates? Upload it to block them all at
+          once.
+          {csvImportedCount > 0 &&
+            ` ${csvImportedCount} ${csvImportedCount === 1 ? "date" : "dates"} imported so far.`}
+        </p>
+      </section>
 
       <section className={s.section}>
         <div className={s.sectionHead}>
