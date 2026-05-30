@@ -66,7 +66,7 @@ export async function submitClaimAction(formData: FormData): Promise<ClaimResult
     return { ok: false, error: "This claim link has already been used." };
   }
   if (vendor.tenant_id) {
-    return { ok: false, error: "This vendor profile has already been claimed." };
+    return { ok: false, error: "This Vndr profile has already been claimed." };
   }
   if (
     !vendor.invite_token_expires_at ||

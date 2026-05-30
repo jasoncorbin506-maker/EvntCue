@@ -78,7 +78,7 @@ function CrisisCard() {
         <em>Twelve minutes is enough.</em>
       </h1>
       <p className={styles.crisisCue}>
-        <em>Cue is here.</em> Pick what&rsquo;s happening — vendor trouble, you need a minute, or
+        <em>Cue is here.</em> Pick what&rsquo;s happening — Vndr trouble, you need a minute, or
         you need to slide the timeline. One tap and we move.
       </p>
 
@@ -124,7 +124,7 @@ function CrisisCard() {
           </div>
 
           <div className={styles.crisisSection}>
-            <div className={styles.crisisSl}>Vendors on site</div>
+            <div className={styles.crisisSl}>Vndrs on site</div>
             {CRISIS_VENDORS.map((v) => (
               <div key={v.name} className={styles.crisisVendor}>
                 <span
@@ -227,7 +227,7 @@ function CrisisCard() {
       {tab === "shift" && (
         <div className={styles.crisisPane}>
           <div className={styles.shiftCard}>
-            <div className={styles.shiftCardL}>Slide the day · cascade to vendors</div>
+            <div className={styles.shiftCardL}>Slide the day · cascade to Vndrs</div>
             <div className={styles.shiftCardT}>Push the next milestone by:</div>
             <div className={styles.shiftOptions}>
               {SHIFT_OPTIONS.map((mins) => (

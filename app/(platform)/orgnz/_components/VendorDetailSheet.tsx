@@ -135,7 +135,7 @@ export function VendorDetailSheet({ presence, detail, onClose }: Props) {
         <div className={orgnzStyles.drawerHandle} />
         <div className={orgnzStyles.drawerHead}>
           <div className={orgnzStyles.drawerHeadL}>
-            <div className={orgnzStyles.drawerEye}>Vendor</div>
+            <div className={orgnzStyles.drawerEye}>Vndr</div>
             <h3 className={orgnzStyles.drawerTitle} id="vendor-detail-title">
               <em>{primary}</em>
             </h3>
@@ -193,7 +193,7 @@ export function VendorDetailSheet({ presence, detail, onClose }: Props) {
                 <dd className={s.kvCapitalize}>{booking.status.replace(/_/g, " ")}</dd>
               </dl>
             ) : (
-              <p className={s.empty}>No booking on file for this vendor yet.</p>
+              <p className={s.empty}>No booking on file for this Vndr yet.</p>
             )}
           </div>
 
@@ -211,7 +211,7 @@ export function VendorDetailSheet({ presence, detail, onClose }: Props) {
                 Quick connect — email {contactEmail} →
               </a>
             ) : (
-              <p className={s.empty}>No contact info on file for this vendor.</p>
+              <p className={s.empty}>No contact info on file for this Vndr.</p>
             )}
           </div>
 

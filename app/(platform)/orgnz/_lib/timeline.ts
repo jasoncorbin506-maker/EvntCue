@@ -104,7 +104,7 @@ function pickIcon(label: string): string {
   const lower = label.toLowerCase();
   if (lower.includes("save")) return "send";
   if (lower.includes("counsel") || lower.includes("cana")) return "heart";
-  if (lower.includes("vendor")) return "users";
+  if (lower.includes("vndr")) return "users";
   if (lower.includes("invitation")) return "send";
   if (lower.includes("guest count") || lower.includes("rsvp")) return "users";
   if (lower.includes("rehearsal")) return "plate";

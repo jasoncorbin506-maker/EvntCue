@@ -137,7 +137,7 @@ export function BudgetSheet({ open, onClose, data }: Props) {
             <div className={styles.cueBenchRowL}>
               <div className={styles.cueBenchRowCat}>Cue · EvntCue platform</div>
               <div className={styles.cueBenchRowSub}>
-                2.5% of vendor flow · $19.99/mo Cue Premium · <em>placeholder pricing</em>
+                2.5% of Vndr flow · $19.99/mo Cue Premium · <em>placeholder pricing</em>
               </div>
             </div>
             <div className={styles.cueBenchBar}>

@@ -110,7 +110,7 @@ export function assembleVndrHomeCue(args: {
     } else {
       branches.push({
         key: "open_inquiry",
-        text: `You have an open inquiry from ${oldestUnresponded.eventName}. Responding within 24h boosts conversion by ~40% on similar vendors.`,
+        text: `You have an open inquiry from ${oldestUnresponded.eventName}. Responding within 24h boosts conversion by ~40% on similar Vndrs.`,
         action: { label: "View inquiry", href: "/vndr/inquiries" },
       });
     }
@@ -120,7 +120,7 @@ export function assembleVndrHomeCue(args: {
   if (trustScore.subMetrics.profileCompleteness < 75) {
     branches.push({
       key: "low_profile",
-      text: `Your profile reads ${trustScore.subMetrics.profileCompleteness}% complete. Vendors with full profiles surface higher in Cue's matches — even one more photo helps.`,
+      text: `Your profile reads ${trustScore.subMetrics.profileCompleteness}% complete. Vndrs with full profiles surface higher in Cue's matches — even one more photo helps.`,
       action: { label: "Edit profile", href: "/vndr/profile" },
     });
   }
@@ -158,7 +158,7 @@ export function assembleVndrHomeCue(args: {
   if (metrics.bookingsThisMonth === 0 && metrics.conversionRatePct === 0) {
     branches.push({
       key: "quiet_calendar",
-      text: "You're set up but the calendar's quiet. Cue surfaces vendors when planners search — the more complete your profile, the faster the first match.",
+      text: "You're set up but the calendar's quiet. Cue surfaces Vndrs when planners search — the more complete your profile, the faster the first match.",
       action: { label: "Edit profile", href: "/vndr/profile" },
     });
   }

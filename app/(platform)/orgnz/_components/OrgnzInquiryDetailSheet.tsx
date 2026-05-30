@@ -49,7 +49,7 @@ export function OrgnzInquiryDetailSheet({ inquiry, onClose }: Props) {
         <div className={s.sheetHeader}>
           <div>
             <div className={s.sheetTitle}>
-              {inquiry.vendorDisplayName ?? "Vendor"}
+              {inquiry.vendorDisplayName ?? "Vndr"}
             </div>
             <div className={s.sheetSubtitle}>
               {formatEventDate(inquiry.eventDate)}
@@ -76,7 +76,7 @@ export function OrgnzInquiryDetailSheet({ inquiry, onClose }: Props) {
 
         {inquiry.proposedPriceCents !== null && (
           <>
-            <div className={s.sectionLbl}>Vendor&rsquo;s quote</div>
+            <div className={s.sectionLbl}>Vndr&rsquo;s quote</div>
             <div className={s.priceReadonly}>
               {formatPriceDisplay(inquiry.proposedPriceCents)}
             </div>

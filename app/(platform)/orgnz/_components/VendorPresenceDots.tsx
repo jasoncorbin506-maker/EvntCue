@@ -41,7 +41,7 @@ export function VendorPresenceDots({ presencesInPhase, onDotTap }: Props) {
   const overflowCount = presencesInPhase.length - visibleCount;
 
   return (
-    <div className={s.row} aria-label={`${presencesInPhase.length} vendors present in this phase`}>
+    <div className={s.row} aria-label={`${presencesInPhase.length} Vndrs present in this phase`}>
       {visiblePresences.map((presence) => (
         <button
           key={presence.id}
@@ -54,7 +54,7 @@ export function VendorPresenceDots({ presencesInPhase, onDotTap }: Props) {
         </button>
       ))}
       {overflowCount > 0 && (
-        <span className={s.overflow} aria-label={`${overflowCount} more vendors`}>
+        <span className={s.overflow} aria-label={`${overflowCount} more Vndrs`}>
           +{overflowCount}
         </span>
       )}
