@@ -105,6 +105,9 @@ export type CanvasLabels = {
   shareCopied: string;
   shareTitleTemplate: string;
   shareText: string;
+  // Mood-board polish — chip selected-state affordances
+  selected: string;
+  chipOnBoard: string;
 };
 
 type Props = {
@@ -189,6 +192,19 @@ export function MoodBoardCanvas({
     for (const c of palette.typography) map.set(c.key, c);
     return map;
   }, [palette]);
+
+  // Per-chip count of pins currently on the board — drives the drop-chips'
+  // "added" feedback. Chip pins encode their key in image_path as chip://<key>.
+  const chipPinCounts = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const pin of pins) {
+      if (pin.image_path.startsWith("chip://")) {
+        const key = pin.image_path.slice("chip://".length);
+        counts[key] = (counts[key] ?? 0) + 1;
+      }
+    }
+    return counts;
+  }, [pins]);
 
   // Debounced save batch.
   const saveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
@@ -677,6 +693,7 @@ export function MoodBoardCanvas({
             labels={labels}
             palette={palette}
             activeFabricKey={fabric?.chipKey ?? null}
+            chipPinCounts={chipPinCounts}
             onUpload={handleUpload}
             onPaletteChipClick={handlePaletteChipClick}
             onChipClick={handleChipClick}
