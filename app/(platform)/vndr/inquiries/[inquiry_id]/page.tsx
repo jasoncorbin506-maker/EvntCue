@@ -2,11 +2,25 @@ import Link from "next/link";
 import { notFound, redirect } from "next/navigation";
 
 import { getCurrentVendor } from "@/lib/vndr/current-vendor";
-import { getVndrInquiry } from "@/lib/vndr/inquiries";
+import { getVndrInquiry, type VndrInquiryStatus } from "@/lib/vndr/inquiries";
 import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
 
 import { Chrome, ChromeSignOut } from "../../_components/Chrome";
 import s from "../../vndr.module.css";
+
+// Status → pill color modifier. `.statusPill` is colorless on its own; the
+// pill* class supplies the background + text color. Mirrors the list's
+// STATUS_PILL mapping (vndr/_components/InquiriesList.tsx) so the detail
+// surface reads identically to the row a vendor tapped from.
+const STATUS_PILL_CLASS: Record<VndrInquiryStatus, string | undefined> = {
+  inquiry: s.pillNew,
+  reviewing: s.pillReviewing,
+  quoted: s.pillQuoted,
+  penciled: s.pillQuoted,
+  inked: s.pillBooked,
+  booked: s.pillBooked,
+  closed: s.pillLost,
+};
 
 /**
  * Vendor-side inquiry detail — the inquiry-received email CTA target
@@ -68,7 +82,9 @@ export default async function VndrInquiryDetail({
           <div className={s.dcEyebrow}>Inquiry · #{inquiry.id.slice(0, 8)}</div>
           <h1 className={s.dcEventName}>{formatEventDate(inquiry.eventDate)}</h1>
           <div className={s.dcEventMeta}>
-            <span className={s.statusPill}>{inquiryStatusLabel(inquiry.status)}</span>
+            <span className={`${s.statusPill} ${STATUS_PILL_CLASS[inquiry.status] ?? ""}`.trim()}>
+              {inquiryStatusLabel(inquiry.status)}
+            </span>
           </div>
         </div>
 
