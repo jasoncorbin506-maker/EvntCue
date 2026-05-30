@@ -38,6 +38,7 @@ function formatTimestamp(iso: string): string {
 function whoLabel(role: InquirySenderRole, isMine: boolean): string {
   if (isMine) return "You";
   if (role === "vndr") return "Vndr";
+  if (role === "catr") return "Catr";
   if (role === "venue") return "Venu";
   if (role === "plnr") return "Plnr";
   return "Orgnz";
