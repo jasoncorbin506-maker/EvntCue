@@ -1,0 +1,324 @@
+/* CSV import wizard drawer — mirrors SubscribeCalendarFeedSheet/AvailabilityBlockSheet
+   chrome with venu (bay-blue) accents. */
+
+.scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.4);
+  z-index: 1000;
+}
+
+.drawer {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--bg, #fff);
+  border-radius: 18px 18px 0 0;
+  padding: 18px 18px 24px;
+  z-index: 1001;
+  max-height: 92vh;
+  overflow-y: auto;
+  box-shadow: 0 -10px 30px rgba(0, 0, 0, 0.18);
+}
+
+.header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  margin-bottom: 12px;
+}
+
+.title {
+  font-family: Cormorant, serif;
+  font-style: italic;
+  font-size: 22px;
+  color: var(--txt);
+}
+
+.subtitle {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 12px;
+  color: var(--txt2);
+  letter-spacing: 0.04em;
+  margin-top: 2px;
+}
+
+.close {
+  background: transparent;
+  border: none;
+  font-size: 28px;
+  color: var(--txt2);
+  cursor: pointer;
+  line-height: 1;
+  padding: 2px 8px;
+}
+
+.steps {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 16px;
+}
+
+.step,
+.stepOn {
+  flex: 1;
+  text-align: center;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  padding: 6px 4px;
+  border-radius: 999px;
+  border: 0.5px solid var(--bdr);
+  color: var(--txt2);
+}
+
+.stepOn {
+  background: var(--blue, #2a6bdb);
+  color: white;
+  border-color: var(--blue, #2a6bdb);
+}
+
+/* ── Step 1: upload ── */
+
+.dropzone {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  text-align: center;
+  border: 1px dashed var(--bdr);
+  border-radius: 12px;
+  padding: 24px 16px;
+  cursor: pointer;
+  margin-bottom: 12px;
+}
+
+.fileInput {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.dropTitle {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 15px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--txt);
+}
+
+.dropHint {
+  font-size: 12px;
+  color: var(--txt2);
+}
+
+/* ── Shared fields ── */
+
+.fieldRow {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 12px;
+}
+
+.fieldLbl {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--txt2);
+  width: 96px;
+  flex-shrink: 0;
+}
+
+.req {
+  color: var(--blue, #2a6bdb);
+}
+
+.input {
+  flex: 1;
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  padding: 10px 12px;
+  font-family: inherit;
+  font-size: 14px;
+  color: var(--txt);
+  background: var(--bg);
+}
+
+/* ── Step 2: map ── */
+
+.mapHint {
+  font-size: 13px;
+  color: var(--txt2);
+  margin-bottom: 14px;
+  line-height: 1.4;
+}
+
+/* ── Step 3: preview ── */
+
+.summaryRow {
+  display: flex;
+  gap: 10px;
+  margin-bottom: 14px;
+}
+
+.summaryStat {
+  flex: 1;
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+  padding: 10px 8px;
+  text-align: center;
+}
+
+.statNum {
+  font-family: Cormorant, serif;
+  font-size: 26px;
+  color: var(--txt);
+  line-height: 1;
+}
+
+.statWarn {
+  color: #b87503;
+}
+
+.statLbl {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--txt2);
+  margin-top: 4px;
+}
+
+.emptyPreview {
+  font-size: 13px;
+  color: var(--txt2);
+  padding: 16px;
+  text-align: center;
+  border: 0.5px dashed var(--bdr);
+  border-radius: 10px;
+}
+
+.sampleTable {
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+  overflow: hidden;
+  margin-bottom: 12px;
+}
+
+.sampleRow {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 8px 12px;
+  border-bottom: 0.5px solid var(--bdr);
+  font-size: 13px;
+}
+
+.sampleRow:last-child {
+  border-bottom: none;
+}
+
+.sampleDate {
+  font-variant-numeric: tabular-nums;
+  color: var(--txt);
+  flex-shrink: 0;
+}
+
+.sampleTime {
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 12px;
+  color: var(--txt2);
+  flex-shrink: 0;
+  width: 76px;
+}
+
+.sampleReason {
+  color: var(--txt2);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sampleMore {
+  padding: 8px 12px;
+  font-size: 12px;
+  color: var(--txt2);
+  background: rgba(0, 0, 0, 0.02);
+}
+
+.issues {
+  margin-bottom: 12px;
+  font-size: 12px;
+  color: var(--txt2);
+}
+
+.issues summary {
+  cursor: pointer;
+  font-family: "Barlow Condensed", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #b87503;
+}
+
+.issueRow {
+  padding: 4px 0 0 8px;
+}
+
+/* ── Messages + footer ── */
+
+.errMsg {
+  background: rgba(179, 51, 51, 0.08);
+  color: #b33;
+  border: 0.5px solid rgba(179, 51, 51, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.okMsg {
+  background: rgba(42, 107, 219, 0.08);
+  color: var(--blue, #2a6bdb);
+  border: 0.5px solid rgba(42, 107, 219, 0.3);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 13px;
+  margin-top: 8px;
+}
+
+.footer {
+  display: flex;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.btn {
+  flex: 1;
+  padding: 12px 16px;
+  border-radius: 999px;
+  font-family: "Barlow Condensed", sans-serif;
+  font-size: 13px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  cursor: pointer;
+  border: 0.5px solid var(--bdr);
+  background: transparent;
+  color: var(--txt);
+}
+
+.btnPrimary {
+  background: var(--blue, #2a6bdb);
+  color: white;
+  border-color: var(--blue, #2a6bdb);
+}
+
+.btnPrimary:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

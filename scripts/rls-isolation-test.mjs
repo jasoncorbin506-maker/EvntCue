@@ -2970,6 +2970,77 @@ async function testManualAndIcalFeedDedupCoexistence() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST T-42: csv_import block isolation + dedup idempotency (migration 066,
+// venue-calendar arc Session C). A venue bulk-imports booked dates via CSV
+// (source='csv_import' with a deterministic source_ref). Assert:
+//   (1) Venue A CAN insert a csv_import block under their own tenant — RLS
+//       venue_vab_insert WITH CHECK + the source CHECK both accept it.
+//   (2) Re-inserting the SAME (tenant, space, date, source, source_ref) is
+//       rejected by idx_vab_dedup — the basis for idempotent re-upload
+//       (commit-csv-import.ts pre-filters, but the index is the backstop).
+//   (3) Venue B cannot SELECT venue A's csv_import block (tenant-private).
+// -----------------------------------------------------------------------------
+async function testCsvImportBlocksIsolationAndDedup() {
+  const venueA = await seedTestUser("venue");
+  const venueB = await seedTestUser("venue");
+
+  const sourceRef = `csv:2026-11-20:-`;
+
+  // (1) Positive: A inserts a csv_import block as themselves (authed → RLS).
+  const { data: aBlock, error: aErr } = await venueA.authedClient
+    .from("venue_availability_blocks")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      venue_space_id: null,
+      blocked_date: "2026-11-20",
+      start_time: null,
+      end_time: null,
+      reason: `T-42 csv ${TEST_RUN_ID}`,
+      source: "csv_import",
+      source_ref: sourceRef,
+      created_by: venueA.userId,
+    })
+    .select("id")
+    .single();
+  if (aErr || !aBlock) {
+    throw new Error(`venue csv_import insert failed (RLS/source CHECK): ${aErr?.message}`);
+  }
+
+  // (2) Dedup: same key again must be rejected (idempotent re-upload basis).
+  const { data: dup, error: dupErr } = await venueA.authedClient
+    .from("venue_availability_blocks")
+    .insert({
+      venue_tenant_id: venueA.tenantId,
+      venue_space_id: null,
+      blocked_date: "2026-11-20",
+      start_time: null,
+      end_time: null,
+      source: "csv_import",
+      source_ref: sourceRef,
+      created_by: venueA.userId,
+    })
+    .select("id");
+  if (!dupErr && dup && dup.length > 0) {
+    throw new Error(
+      `DEDUP REGRESSION: idx_vab_dedup allowed a duplicate csv_import source_ref. ` +
+        `Re-uploading the same CSV would double-write blocks.`,
+    );
+  }
+
+  // (3) Isolation: B cannot read A's csv_import block.
+  const { data: bView, error: bErr } = await venueB.authedClient
+    .from("venue_availability_blocks")
+    .select("id")
+    .eq("id", aBlock.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-venue csv_import SELECT: ${bErr.message}`);
+  }
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: venue B saw venue A's csv_import block`);
+  }
+}
+
+// -----------------------------------------------------------------------------
 // TEST T-32: inquiry_messages RLS for venue-as-buyer (migration 059+061 / Option B).
 // Covers the cross-cutting wrinkle that motivated the whole inquiry-primitive
 // redesign: a venue can author an inquiry to a vendor (buyer_role='venue',
@@ -3635,6 +3706,7 @@ const TESTS = [
   { name: "T-39 venue_calendar_feeds + ical_feed block isolation (migration 067 — venue A vs B)", fn: testCrossTenantVenueCalendarFeedsIsolation },
   { name: "T-40 manual + ical_feed coexistence in dedup index (migration 066 — schema invariant for manual-wins)", fn: testManualAndIcalFeedDedupCoexistence },
   { name: "T-41 event_notifications RLS (migration 068, Lock 24)", fn: testEventNotificationsRLS },
+  { name: "T-42 csv_import block isolation + dedup idempotency (migration 066 — venue-calendar Session C)", fn: testCsvImportBlocksIsolationAndDedup },
 ];
 
 // -----------------------------------------------------------------------------
