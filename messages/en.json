@@ -276,7 +276,9 @@
       "pinRestore": "Restore",
       "pinRemovedToast": "Pin removed",
       "undo": "Undo",
-      "close": "Close"
+      "close": "Close",
+      "selected": "Selected",
+      "chipOnBoard": "{count} on your board"
     },
     "heroEyebrow": "Your celebration",
     "chromeEventDefault": "Your celebration",

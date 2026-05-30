@@ -125,6 +125,10 @@ export default async function MoodBoardPage() {
         shareCopied: t("shareCopied"),
         shareTitleTemplate: t.raw("shareTitleTemplate"),
         shareText: t("shareText"),
+        // Mood-board polish — chip selected-state affordances
+        selected: t("selected"),
+        // t.raw — {count} placeholder filled client-side in the Drawer.
+        chipOnBoard: t.raw("chipOnBoard"),
       }}
     />
   );

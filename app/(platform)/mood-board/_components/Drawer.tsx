@@ -24,6 +24,9 @@ type Props = {
   labels: CanvasLabels;
   palette: ChipPalette;
   activeFabricKey: string | null;
+  /** Per-chip count of pins currently on the board (keyed by chip.key). Drives
+   *  the "added" feedback on the drop-chip rows. */
+  chipPinCounts: Record<string, number>;
   onUpload: (file: File, slotTag: string | null) => void;
   onPaletteChipClick: (chip: PaletteChip) => void;
   onChipClick: (chip: MaterialChip | MoodChip | FloralsChip | TypographyChip) => void;
@@ -48,6 +51,7 @@ export function Drawer({
   labels,
   palette,
   activeFabricKey,
+  chipPinCounts,
   onUpload,
   onPaletteChipClick,
   onChipClick,
@@ -55,6 +59,9 @@ export function Drawer({
   importStatus,
   uploadError,
 }: Props) {
+  // "{count} on your board" — fill the i18n placeholder client-side.
+  const onBoardLabel = (count: number) =>
+    labels.chipOnBoard.replace("{count}", String(count));
   const fileInputRef = useRef<HTMLInputElement>(null);
   const pendingSlotRef = useRef<string | null>(null);
   const [urlValue, setUrlValue] = useState("");
@@ -189,6 +196,9 @@ export function Drawer({
               aria-hidden
             />
             <span className={s.paletteChipLabel}>{chip.labelEn}</span>
+            {activeFabricKey === chip.key && (
+              <span className={s.paletteChipSelectedTag}>{`✓ ${labels.selected}`}</span>
+            )}
           </button>
         ))}
       </div>
@@ -198,77 +208,113 @@ export function Drawer({
       {/* ───── MOOD ───── */}
       <h3 className={s.drawerHeading}>{labels.moodHeading}</h3>
       <div className={s.chipRow}>
-        {palette.mood.map((chip) => (
-          <button
-            key={chip.key}
-            type="button"
-            className={s.chip}
-            onClick={() => onChipClick(chip)}
-          >
-            <span
-              className={s.chipDot}
-              style={{ background: chip.swatchHex }}
-              aria-hidden
-            />
-            {chip.labelEn}
-          </button>
-        ))}
+        {palette.mood.map((chip) => {
+          const count = chipPinCounts[chip.key] ?? 0;
+          return (
+            <button
+              key={chip.key}
+              type="button"
+              className={`${s.chip} ${count > 0 ? s.chipActive : ""}`.trim()}
+              onClick={() => onChipClick(chip)}
+              aria-label={count > 0 ? `${chip.labelEn} — ${onBoardLabel(count)}` : undefined}
+            >
+              <span
+                className={s.chipDot}
+                style={{ background: chip.swatchHex }}
+                aria-hidden
+              />
+              {chip.labelEn}
+              {count > 0 && (
+                <span className={s.chipCount} aria-hidden>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* ───── MATERIAL ───── */}
       <h3 className={s.drawerHeading}>{labels.materialHeading}</h3>
       <div className={s.chipRow}>
-        {palette.material.map((chip) => (
-          <button
-            key={chip.key}
-            type="button"
-            className={s.chip}
-            onClick={() => onChipClick(chip)}
-          >
-            <span
-              className={s.chipDot}
-              style={{ background: chip.swatchHex }}
-              aria-hidden
-            />
-            {chip.labelEn}
-          </button>
-        ))}
+        {palette.material.map((chip) => {
+          const count = chipPinCounts[chip.key] ?? 0;
+          return (
+            <button
+              key={chip.key}
+              type="button"
+              className={`${s.chip} ${count > 0 ? s.chipActive : ""}`.trim()}
+              onClick={() => onChipClick(chip)}
+              aria-label={count > 0 ? `${chip.labelEn} — ${onBoardLabel(count)}` : undefined}
+            >
+              <span
+                className={s.chipDot}
+                style={{ background: chip.swatchHex }}
+                aria-hidden
+              />
+              {chip.labelEn}
+              {count > 0 && (
+                <span className={s.chipCount} aria-hidden>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* ───── FLORALS ───── */}
       <h3 className={s.drawerHeading}>{labels.floralsHeading}</h3>
       <div className={s.chipRow}>
-        {palette.florals.map((chip) => (
-          <button
-            key={chip.key}
-            type="button"
-            className={s.chip}
-            onClick={() => onChipClick(chip)}
-          >
-            <span
-              className={s.chipDot}
-              style={{ background: chip.swatchHex }}
-              aria-hidden
-            />
-            {chip.labelEn}
-          </button>
-        ))}
+        {palette.florals.map((chip) => {
+          const count = chipPinCounts[chip.key] ?? 0;
+          return (
+            <button
+              key={chip.key}
+              type="button"
+              className={`${s.chip} ${count > 0 ? s.chipActive : ""}`.trim()}
+              onClick={() => onChipClick(chip)}
+              aria-label={count > 0 ? `${chip.labelEn} — ${onBoardLabel(count)}` : undefined}
+            >
+              <span
+                className={s.chipDot}
+                style={{ background: chip.swatchHex }}
+                aria-hidden
+              />
+              {chip.labelEn}
+              {count > 0 && (
+                <span className={s.chipCount} aria-hidden>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
 
       {/* ───── TYPOGRAPHY ───── */}
       <h3 className={s.drawerHeading}>{labels.typographyHeading}</h3>
       <div className={s.chipRow}>
-        {palette.typography.map((chip) => (
-          <button
-            key={chip.key}
-            type="button"
-            className={`${s.chip} ${s.chipTypography}`}
-            onClick={() => onChipClick(chip)}
-            title={chip.substitutesFor ? `Substitutes for ${chip.substitutesFor}` : undefined}
-          >
-            {chip.labelEn}
-          </button>
-        ))}
+        {palette.typography.map((chip) => {
+          const count = chipPinCounts[chip.key] ?? 0;
+          return (
+            <button
+              key={chip.key}
+              type="button"
+              className={`${s.chip} ${s.chipTypography} ${count > 0 ? s.chipActive : ""}`.trim()}
+              onClick={() => onChipClick(chip)}
+              title={chip.substitutesFor ? `Substitutes for ${chip.substitutesFor}` : undefined}
+              aria-label={count > 0 ? `${chip.labelEn} — ${onBoardLabel(count)}` : undefined}
+            >
+              {chip.labelEn}
+              {count > 0 && (
+                <span className={s.chipCount} aria-hidden>
+                  {count}
+                </span>
+              )}
+            </button>
+          );
+        })}
       </div>
     </aside>
   );
