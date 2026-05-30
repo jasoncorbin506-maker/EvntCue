@@ -95,6 +95,24 @@ describe("renderInquiryReceivedEmail", () => {
     assert.ok(!c.html.includes("Budget"), "no budget row when undisclosed");
   });
 
+  test("Where row + location clause omitted when city absent", () => {
+    const c = renderInquiryReceivedEmail({
+      sellerPortal: "vndr",
+      buyerName: "Acme Org",
+      buyerRole: "orgnz",
+      eventName: "Launch",
+      eventDate: "May 1, 2027",
+      message: "Interested.",
+      ctaUrl: "https://x",
+      locale: "en",
+    });
+    assert.ok(!c.html.includes("Where"), "no Where row when city absent");
+    assert.ok(!c.text.includes("Where:"), "no Where line in text when city absent");
+    assert.ok(!c.text.includes(" in ."), "no dangling 'in .' clause when city absent");
+    assert.ok(c.text.includes("on May 1, 2027."), "sentence ends cleanly at the date");
+    assertWellFormed(c);
+  });
+
   test("venue-buyer carries the venu accent treatment on a non-venu seller", () => {
     // vndr seller so venu accent only appears via the buyer-name underline.
     const c = renderInquiryReceivedEmail({

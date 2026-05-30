@@ -2,33 +2,32 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
+import { getCurrentCaterer } from "@/lib/catr/current-caterer";
 
 /**
- * V-2b Session B: vendor first-response to a booking inquiry. Sets the
- * quoted price + transitions status to 'quoted' + stamps responded_at.
+ * Caterer first-response to an inquiry: sets the quoted price, transitions
+ * status to 'quoted', and stamps responded_at. Mirrors the vndr
+ * `respondToInquiry` — catr is an expanded Vndr at the inquiry layer (Lock 77),
+ * so the same `proposed_price_cents` column carries the seller's quote. The
+ * organizer-supplied `est_revenue_cents` (lead estimate) is left untouched.
  *
- * Per Jason 2026-05-25 session 22 lock: V-2b ships price-only response.
- * Vendor → org messaging is a V-2c brief. The inquiry's `message` column
- * (from organizer) stays untouched; vendor's quote price lives in
- * `proposed_price_cents`.
- *
- * Allowed transitions: inquiry → quoted, reviewing → quoted. Any other
- * source status is rejected (already responded / terminal state). The DB
- * RLS enforces the recipient_tenant_id ownership; no need to re-verify here.
+ * Allowed transitions: inquiry → quoted, reviewing → quoted. Other source
+ * states are rejected. RLS's inq_update gates the write to the recipient
+ * tenant (role-agnostic), so an id from another tenant updates 0 rows.
  */
 
-export type RespondToInquiryInput = {
+export type RespondToCatrInquiryInput = {
   inquiryId: string;
   quotedPriceCents: number;
 };
 
-export type RespondToInquiryResult =
+export type RespondToCatrInquiryResult =
   | { ok: true; id: string }
   | { ok: false; error: string };
 
-export async function respondToInquiry(
-  input: RespondToInquiryInput,
-): Promise<RespondToInquiryResult> {
+export async function respondToCatrInquiry(
+  input: RespondToCatrInquiryInput,
+): Promise<RespondToCatrInquiryResult> {
   if (!input.inquiryId) return { ok: false, error: "Missing inquiry id." };
   if (!Number.isInteger(input.quotedPriceCents) || input.quotedPriceCents < 0) {
     return { ok: false, error: "Quote must be 0 or more cents." };
@@ -37,6 +36,9 @@ export async function respondToInquiry(
     // $1M sanity ceiling — guards against decimal-place typos.
     return { ok: false, error: "Quote too high — check the amount." };
   }
+
+  const caterer = await getCurrentCaterer();
+  if (!caterer) return { ok: false, error: "Not signed in." };
 
   const supabase = await createClient();
   const { data, error } = await supabase
@@ -59,7 +61,7 @@ export async function respondToInquiry(
         "Update failed — inquiry may already be responded to or in a terminal state.",
     };
   }
-  revalidatePath("/vndr/inquiries");
-  revalidatePath("/vndr");
+  revalidatePath("/catr/inquiries");
+  revalidatePath("/catr");
   return { ok: true, id: data.id as string };
 }

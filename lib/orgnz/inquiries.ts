@@ -2,7 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 
 /**
- * Organizer-side reads against `booking_inquiries`. Filtered by
+ * Organizer-side reads against `inquiries`. Filtered by
  * `buyer_tenant_id` (the orgnz tenant that sent the inquiry). Mirrors
  * `lib/vndr/inquiries.ts` shape on the buyer side; joins `vendors` for
  * the recipient display name so the list can render "Carter Wedding ·
@@ -39,7 +39,7 @@ export type OrgnzInquiry = {
 };
 
 const COLS =
-  "id, event_id, vndr_tenant_id, event_date, guest_count, message, proposed_price_cents, status, created_at, responded_at, expires_at";
+  "id, event_id, recipient_tenant_id, event_date, guest_count, message, proposed_price_cents, status, created_at, responded_at, expires_at";
 
 export async function getOrgnzInquiries(
   buyerTenantId: string,
@@ -47,7 +47,7 @@ export async function getOrgnzInquiries(
   const supabase = await createClient();
 
   const { data: rows } = await supabase
-    .from("booking_inquiries")
+    .from("inquiries")
     .select(COLS)
     .eq("buyer_tenant_id", buyerTenantId)
     .eq("buyer_role", "orgnz")
@@ -60,7 +60,7 @@ export async function getOrgnzInquiries(
   // without a per-row fetch. RLS on vendors is org-visible (vendors_select
   // mig 041) so this works under the orgnz session.
   const vndrTenantIds = Array.from(
-    new Set(inquiries.map((r) => r.vndr_tenant_id as string)),
+    new Set(inquiries.map((r) => r.recipient_tenant_id as string)),
   );
   const { data: vendorRows } = await supabase
     .from("vendors")
@@ -77,8 +77,8 @@ export async function getOrgnzInquiries(
   return inquiries.map((row) => ({
     id: row.id as string,
     eventId: (row.event_id as string | null) ?? null,
-    vndrTenantId: row.vndr_tenant_id as string,
-    vendorDisplayName: nameByTenant.get(row.vndr_tenant_id as string) ?? null,
+    vndrTenantId: row.recipient_tenant_id as string,
+    vendorDisplayName: nameByTenant.get(row.recipient_tenant_id as string) ?? null,
     eventDate: (row.event_date as string | null) ?? "",
     guestCount: (row.guest_count as number | null) ?? 0,
     message: (row.message as string | null) ?? null,

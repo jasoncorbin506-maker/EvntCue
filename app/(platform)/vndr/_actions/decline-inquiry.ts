@@ -7,14 +7,14 @@ import { createClient } from "@/lib/supabase/server";
  * V-2b smoke-fix (session 23 — 2026-05-25 — brief G2): vendor declines a
  * booking inquiry. Transitions status to `closed` (which falls under the
  * "Lost" filter chip per Jason's session 22 filter mapping). RLS gates the
- * write via vndr_tenant_id; the .in() guard rejects already-committed
+ * write via recipient_tenant_id; the .in() guard rejects already-committed
  * inquiries.
  *
  * Allowed source statuses: inquiry, reviewing, quoted. Penciled / inked /
  * booked are commitments that need the cancellation flow (V-2c, Lock 24
  * territory), NOT decline.
  *
- * No `decline_reason` column on booking_inquiries (verified via Supabase
+ * No `decline_reason` column on inquiries (verified via Supabase
  * MCP at session start). V-2b ships status-only decline; reason capture
  * is a V-2c brief if user feedback warrants.
  */
@@ -30,7 +30,7 @@ export async function declineInquiry(
 
   const supabase = await createClient();
   const { data, error } = await supabase
-    .from("booking_inquiries")
+    .from("inquiries")
     .update({
       status: "closed",
       responded_at: new Date().toISOString(),

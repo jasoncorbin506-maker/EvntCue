@@ -390,22 +390,22 @@ async function testCrossTenantBookingsIsolation() {
 }
 
 /**
- * Cross-tenant venue_inquiries isolation — venue A cannot read venue B's inquiries.
- *
- * Different policy chain than bookings — venue_inquiries has its own RLS
- * surface scoped by venue_tenant_id. Exercises the "doesn't short-circuit
- * on earlier clauses" pattern: venue B's session fails the venue_tenant_id
- * match clause and falls through to any remaining clauses. Assert no
- * recursion + no cross-tenant leak.
+ * Cross-tenant venu-recipient inquiry isolation — venue A cannot read venue B's
+ * inquiries. Post-070 these live on the unified `inquiries` table scoped by
+ * recipient_tenant_id (+ recipient_type='venu'); the inq_select policy gates on
+ * recipient_tenant_id. Exercises the "doesn't short-circuit on earlier clauses"
+ * pattern: venue B's session fails the recipient_tenant_id match and falls
+ * through to any remaining clauses. Assert no recursion + no cross-tenant leak.
  */
 async function testCrossTenantVenueInquiriesIsolation() {
   const venueA = await seedTestUser("venue");
   const venueB = await seedTestUser("venue");
 
   const { data: aInquiry, error: aInquiryErr } = await adminClient
-    .from("venue_inquiries")
+    .from("inquiries")
     .insert({
-      venue_tenant_id: venueA.tenantId,
+      recipient_tenant_id: venueA.tenantId,
+      recipient_type: "venu",
       client_name: `RLS test client ${TEST_RUN_ID}`,
       event_type: "wedding",
       event_date: "2027-08-15",
@@ -417,14 +417,14 @@ async function testCrossTenantVenueInquiriesIsolation() {
     .single();
   if (aInquiryErr) throw new Error(`venue A inquiry seed failed: ${aInquiryErr.message}`);
 
-  // Venue B queries venue_inquiries — should NOT see Venue A's inquiry.
+  // Venue B queries inquiries — should NOT see Venue A's inquiry.
   const { data: bView, error: bErr } = await venueB.authedClient
-    .from("venue_inquiries")
+    .from("inquiries")
     .select("id")
     .eq("id", aInquiry.id);
 
   if (bErr && bErr.code === "42P17") {
-    throw new Error(`42P17 recursion on venue_inquiries cross-tenant query: ${bErr.message}`);
+    throw new Error(`42P17 recursion on inquiries cross-tenant query: ${bErr.message}`);
   }
   if (bErr) throw new Error(`unexpected error from venue B query: ${bErr.message}`);
   if (bView && bView.length > 0) {
@@ -433,7 +433,7 @@ async function testCrossTenantVenueInquiriesIsolation() {
 
   // Positive control: Venue A CAN see their own inquiry.
   const { data: aView, error: aErr } = await venueA.authedClient
-    .from("venue_inquiries")
+    .from("inquiries")
     .select("id")
     .eq("id", aInquiry.id);
   if (aErr) throw new Error(`venue A positive control failed: ${aErr.message}`);
@@ -847,12 +847,11 @@ async function testCrossTenantBookingsVndrIsolation() {
 }
 
 /**
- * Cross-tenant booking_inquiries isolation — vndr A vs vndr B.
+ * Cross-tenant vndr-recipient inquiry isolation — vndr A vs vndr B.
  *
- * booking_inquiries has vndr_tenant_id as the receiver. Migration 028
- * renamed the status enum + added edge_flag column. Suite verifies the
- * vndr-side read path works (vndr A sees their inquiry) and is isolated
- * (vndr B doesn't see it).
+ * Post-070 inquiries has recipient_tenant_id as the receiver (recipient_type=
+ * 'vndr'); the inq_select policy gates on it. Suite verifies the vndr-side read
+ * path works (vndr A sees their inquiry) and is isolated (vndr B doesn't).
  */
 async function testCrossTenantBookingInquiriesVndrIsolation() {
   const orgnz = await seedTestUser("orgnz");
@@ -875,12 +874,13 @@ async function testCrossTenantBookingInquiriesVndrIsolation() {
     .single();
 
   const { data: inquiry, error: inquiryErr } = await adminClient
-    .from("booking_inquiries")
+    .from("inquiries")
     .insert({
       event_id: event.id,
       buyer_tenant_id: orgnz.tenantId,
       buyer_role: "orgnz",
-      vndr_tenant_id: vndrA.tenantId,
+      recipient_tenant_id: vndrA.tenantId,
+      recipient_type: "vndr",
       event_date: "2027-06-12",
       guest_count: 90,
       message: `RLS test inquiry ${TEST_RUN_ID}`,
@@ -888,16 +888,16 @@ async function testCrossTenantBookingInquiriesVndrIsolation() {
     })
     .select("id")
     .single();
-  if (inquiryErr) throw new Error(`booking_inquiry seed failed: ${inquiryErr.message}`);
+  if (inquiryErr) throw new Error(`inquiry seed failed: ${inquiryErr.message}`);
 
-  // Vndr B queries booking_inquiries — should NOT see Vndr A's inquiry.
+  // Vndr B queries inquiries — should NOT see Vndr A's inquiry.
   const { data: bView, error: bErr } = await vndrB.authedClient
-    .from("booking_inquiries")
+    .from("inquiries")
     .select("id")
     .eq("id", inquiry.id);
 
   if (bErr && bErr.code === "42P17") {
-    throw new Error(`42P17 recursion on cross-vndr booking_inquiries query: ${bErr.message}`);
+    throw new Error(`42P17 recursion on cross-vndr inquiries query: ${bErr.message}`);
   }
   if (bErr) throw new Error(`unexpected error from vndr B query: ${bErr.message}`);
   if (bView && bView.length > 0) {
@@ -906,7 +906,7 @@ async function testCrossTenantBookingInquiriesVndrIsolation() {
 
   // Positive control: Vndr A CAN see their own inquiry.
   const { data: aView, error: aErr } = await vndrA.authedClient
-    .from("booking_inquiries")
+    .from("inquiries")
     .select("id")
     .eq("id", inquiry.id);
   if (aErr) throw new Error(`vndr A positive control failed: ${aErr.message}`);
@@ -916,7 +916,7 @@ async function testCrossTenantBookingInquiriesVndrIsolation() {
 
   // Positive control: Orgnz who sent the inquiry CAN also see it.
   const { data: oView, error: oErr } = await orgnz.authedClient
-    .from("booking_inquiries")
+    .from("inquiries")
     .select("id")
     .eq("id", inquiry.id);
   if (oErr) throw new Error(`orgnz positive control failed: ${oErr.message}`);
@@ -1146,9 +1146,10 @@ async function testCrossTenantBookingsCatrIsolation() {
 }
 
 /**
- * Cross-tenant booking_inquiries isolation — catr A vs catr B.
+ * Cross-tenant catr-recipient inquiry isolation — catr A vs catr B.
  *
- * Mirrors testCrossTenantBookingInquiriesVndrIsolation for catr role.
+ * Mirrors testCrossTenantBookingInquiriesVndrIsolation for catr role
+ * (unified inquiries table, recipient_type='catr').
  * Three assertions: (1) catr B cannot see catr A's inquiry, (2) catr A
  * can see their own, (3) the sending orgnz can also see it (preserves
  * the inquiry-thread visibility model).
@@ -1174,12 +1175,13 @@ async function testCrossTenantBookingInquiriesCatrIsolation() {
     .single();
 
   const { data: inquiry, error: inquiryErr } = await adminClient
-    .from("booking_inquiries")
+    .from("inquiries")
     .insert({
       event_id: event.id,
       buyer_tenant_id: orgnz.tenantId,
       buyer_role: "orgnz",
-      vndr_tenant_id: catrA.tenantId,
+      recipient_tenant_id: catrA.tenantId,
+      recipient_type: "catr",
       event_date: "2027-12-04",
       guest_count: 130,
       message: `RLS test catr inquiry ${TEST_RUN_ID}`,
@@ -1187,16 +1189,16 @@ async function testCrossTenantBookingInquiriesCatrIsolation() {
     })
     .select("id")
     .single();
-  if (inquiryErr) throw new Error(`booking_inquiry seed failed: ${inquiryErr.message}`);
+  if (inquiryErr) throw new Error(`inquiry seed failed: ${inquiryErr.message}`);
 
-  // Catr B queries booking_inquiries — should NOT see Catr A's inquiry.
+  // Catr B queries inquiries — should NOT see Catr A's inquiry.
   const { data: bView, error: bErr } = await catrB.authedClient
-    .from("booking_inquiries")
+    .from("inquiries")
     .select("id")
     .eq("id", inquiry.id);
 
   if (bErr && bErr.code === "42P17") {
-    throw new Error(`42P17 recursion on cross-catr booking_inquiries query: ${bErr.message}`);
+    throw new Error(`42P17 recursion on cross-catr inquiries query: ${bErr.message}`);
   }
   if (bErr) throw new Error(`unexpected error from catr B query: ${bErr.message}`);
   if (bView && bView.length > 0) {
@@ -1205,7 +1207,7 @@ async function testCrossTenantBookingInquiriesCatrIsolation() {
 
   // Positive control: Catr A CAN see their own inquiry.
   const { data: aView, error: aErr } = await catrA.authedClient
-    .from("booking_inquiries")
+    .from("inquiries")
     .select("id")
     .eq("id", inquiry.id);
   if (aErr) throw new Error(`catr A positive control failed: ${aErr.message}`);
@@ -1215,7 +1217,7 @@ async function testCrossTenantBookingInquiriesCatrIsolation() {
 
   // Positive control: Orgnz who sent the inquiry CAN also see it.
   const { data: oView, error: oErr } = await orgnz.authedClient
-    .from("booking_inquiries")
+    .from("inquiries")
     .select("id")
     .eq("id", inquiry.id);
   if (oErr) throw new Error(`orgnz positive control failed: ${oErr.message}`);
@@ -2142,7 +2144,7 @@ async function testRecursionSweep() {
     "gratuity_pools", "gratuity_distributions",
     // 003 — vendor ecosystem
     "tenant_certifications", "vendor_trust_scores", "plnr_vendor_mutes",
-    "managed_listings", "booking_inquiries", "managed_listing_relays",
+    "managed_listings", "inquiries", "managed_listing_relays",
     "booking_status_log", "cancellation_policies", "event_cancellations",
     "warm_transfers", "vendor_credits", "plnr_trusted_network",
     // 004 — plnr crm
@@ -2975,7 +2977,7 @@ async function testManualAndIcalFeedDedupCoexistence() {
 // (venue + vendor) and isolated from unrelated venue tenants.
 //
 // Assertions:
-//   (1) Venue A CAN insert a booking_inquiry with buyer_role='venue' and
+//   (1) Venue A CAN insert an inquiry with buyer_role='venue' and
 //       no event_id (the venue->vndr path mig 059 unblocks).
 //   (2) Venue A CAN insert an inquiry_message with sender_role='venue' on
 //       that inquiry; mig 061 widened sender_role to allow 'venue'.
@@ -2990,11 +2992,12 @@ async function testInquiryMessagesVenueBuyerRLS() {
 
   // Venue A authors a venue->vndr inquiry directly (no event).
   const { data: inquiry, error: bipErr } = await venueA.authedClient
-    .from("booking_inquiries")
+    .from("inquiries")
     .insert({
       buyer_tenant_id: venueA.tenantId,
       buyer_role: "venue",
-      vndr_tenant_id: vndr.tenantId,
+      recipient_tenant_id: vndr.tenantId,
+      recipient_type: "vndr",
       event_date: "2027-09-18",
       guest_count: 60,
       message: `T-32 venue->vndr inquiry ${TEST_RUN_ID}`,
@@ -3009,7 +3012,7 @@ async function testInquiryMessagesVenueBuyerRLS() {
   const { data: msgA, error: maErr } = await venueA.authedClient
     .from("inquiry_messages")
     .insert({
-      inquiry_table: "booking_inquiries",
+      inquiry_table: "inquiries",
       inquiry_id: inquiry.id,
       sender_user_id: venueA.userId,
       sender_tenant_id: venueA.tenantId,
@@ -3044,8 +3047,8 @@ async function testInquiryMessagesVenueBuyerRLS() {
 }
 
 // -----------------------------------------------------------------------------
-// TEST T-33: buyer_role enforcement on booking_inquiries INSERT (migration 059).
-// The bi_insert WITH CHECK requires user_roles.role to match the row's
+// TEST T-33: buyer_role enforcement on inquiries INSERT (migration 059).
+// The inq_insert_buyer WITH CHECK requires user_roles.role to match the row's
 // buyer_role — prevents an orgnz tenant from posing as a venue (or vice
 // versa) by setting whichever discriminator they want.
 //
@@ -3064,11 +3067,12 @@ async function testBookingInquiriesBuyerRoleEnforcement() {
 
   // (1) orgnz tenant posing as venue — RLS WITH CHECK must reject.
   const { data: spoofVen, error: spoofVenErr } = await orgnz.authedClient
-    .from("booking_inquiries")
+    .from("inquiries")
     .insert({
       buyer_tenant_id: orgnz.tenantId,
       buyer_role: "venue",
-      vndr_tenant_id: vndr.tenantId,
+      recipient_tenant_id: vndr.tenantId,
+      recipient_type: "vndr",
       event_date: "2027-10-01",
       guest_count: 50,
       message: `T-33 spoof-venue ${TEST_RUN_ID}`,
@@ -3076,16 +3080,17 @@ async function testBookingInquiriesBuyerRoleEnforcement() {
     })
     .select("id");
   if (!spoofVenErr && spoofVen && spoofVen.length > 0) {
-    throw new Error(`RLS LEAK: orgnz tenant inserted booking_inquiry with buyer_role='venue'`);
+    throw new Error(`RLS LEAK: orgnz tenant inserted inquiry with buyer_role='venue'`);
   }
 
   // (2) venue tenant posing as orgnz — RLS WITH CHECK must reject.
   const { data: spoofOrg, error: spoofOrgErr } = await venue.authedClient
-    .from("booking_inquiries")
+    .from("inquiries")
     .insert({
       buyer_tenant_id: venue.tenantId,
       buyer_role: "orgnz",
-      vndr_tenant_id: vndr.tenantId,
+      recipient_tenant_id: vndr.tenantId,
+      recipient_type: "vndr",
       event_date: "2027-10-02",
       guest_count: 50,
       message: `T-33 spoof-orgnz ${TEST_RUN_ID}`,
@@ -3093,7 +3098,7 @@ async function testBookingInquiriesBuyerRoleEnforcement() {
     })
     .select("id");
   if (!spoofOrgErr && spoofOrg && spoofOrg.length > 0) {
-    throw new Error(`RLS LEAK: venue tenant inserted booking_inquiry with buyer_role='orgnz'`);
+    throw new Error(`RLS LEAK: venue tenant inserted inquiry with buyer_role='orgnz'`);
   }
 
   // (3) orgnz tenant with matching role — must succeed.
@@ -3112,12 +3117,13 @@ async function testBookingInquiriesBuyerRoleEnforcement() {
     .select("id")
     .single();
   const { data: okInq, error: okErr } = await orgnz.authedClient
-    .from("booking_inquiries")
+    .from("inquiries")
     .insert({
       event_id: okEvent.id,
       buyer_tenant_id: orgnz.tenantId,
       buyer_role: "orgnz",
-      vndr_tenant_id: vndr.tenantId,
+      recipient_tenant_id: vndr.tenantId,
+      recipient_type: "vndr",
       event_date: "2027-10-03",
       guest_count: 50,
       message: `T-33 positive control ${TEST_RUN_ID}`,
@@ -3587,7 +3593,7 @@ const TESTS = [
   { name: "Migration 034 regression (venue role + events join, no 42P17)", fn: testMigration034Regression },
   { name: "Cross-tenant events isolation (orgnz A vs orgnz B)", fn: testCrossTenantEventIsolation },
   { name: "Cross-tenant bookings isolation (venue A vs venue B)", fn: testCrossTenantBookingsIsolation },
-  { name: "Cross-tenant venue_inquiries isolation (venue A vs venue B)", fn: testCrossTenantVenueInquiriesIsolation },
+  { name: "Cross-tenant inquiries isolation — venu recipient (venue A vs venue B)", fn: testCrossTenantVenueInquiriesIsolation },
   { name: "Plnr accepted on event CAN read event (event_participants path)", fn: testPlnrParticipantCanReadEvent },
   { name: "Plnr NOT on event CANNOT read it (negative control)", fn: testPlnrNotParticipantCannotReadEvent },
   { name: "Cross-tenant mood_boards isolation (orgnz A vs orgnz B, private board)", fn: testCrossTenantMoodBoardIsolation },
@@ -3595,12 +3601,12 @@ const TESTS = [
   { name: "Cross-tenant mood_board_comments isolation (orgnz A vs orgnz B)", fn: testCrossTenantMoodBoardCommentsIsolation },
   { name: "Cross-tenant mood_board_vendor_briefs isolation (orgnz B vs vendor target)", fn: testCrossTenantMoodBoardVendorBriefsIsolation },
   { name: "Cross-tenant bookings isolation — vndr role (vndr A vs vndr B)", fn: testCrossTenantBookingsVndrIsolation },
-  { name: "Cross-tenant booking_inquiries isolation — vndr role (vndr A vs vndr B)", fn: testCrossTenantBookingInquiriesVndrIsolation },
+  { name: "Cross-tenant inquiries isolation — vndr recipient (vndr A vs vndr B)", fn: testCrossTenantBookingInquiriesVndrIsolation },
   { name: "Vndr accepted on event CAN read event (event_participants path)", fn: testVndrParticipantCanReadEvent },
   { name: "Catr accepted on event CAN read event (event_participants path)", fn: testCatrParticipantCanReadEvent },
   { name: "Catr NOT on event CANNOT read it (negative control)", fn: testCatrNotParticipantCannotReadEvent },
   { name: "Cross-tenant bookings isolation — catr role (catr A vs catr B)", fn: testCrossTenantBookingsCatrIsolation },
-  { name: "Cross-tenant booking_inquiries isolation — catr role (catr A vs catr B)", fn: testCrossTenantBookingInquiriesCatrIsolation },
+  { name: "Cross-tenant inquiries isolation — catr recipient (catr A vs catr B)", fn: testCrossTenantBookingInquiriesCatrIsolation },
   { name: "Cross-plnr plnr_clients isolation (Bucket-3 PII)", fn: testCrossPlnrClientsIsolation },
   { name: "Cross-tenant commission_flows isolation (orgnz A vs orgnz B; money table)", fn: testCrossTenantCommissionFlowsIsolation },
   { name: "Non-participant cannot read guest_accommodations (Bucket-3 PII)", fn: testNonParticipantCannotReadGuestAccommodations },
@@ -3620,7 +3626,7 @@ const TESTS = [
   { name: "T-30 vendor_photos isolation (migration 056 — vndr A vs B)", fn: testCrossTenantVendorPhotosIsolation },
   { name: "T-31 vendor_date_commission_overrides isolation (migration 057 — vndr A vs B)", fn: testCrossTenantVendorDateCommissionsIsolation },
   { name: "T-32 inquiry_messages RLS for venue-as-buyer (migrations 059+061)", fn: testInquiryMessagesVenueBuyerRLS },
-  { name: "T-33 buyer_role enforcement on booking_inquiries (migration 059)", fn: testBookingInquiriesBuyerRoleEnforcement },
+  { name: "T-33 buyer_role enforcement on inquiries (migration 059)", fn: testBookingInquiriesBuyerRoleEnforcement },
   { name: "T-34 event_reviews RLS (migration 062)", fn: testEventReviewsRLS },
   { name: "T-35 booking_cancellation_requests RLS (migration 063)", fn: testBookingCancellationRequestsRLS },
   { name: "T-36 vendor_cue_dismissals RLS (migration 064)", fn: testVendorCueDismissalsRLS },

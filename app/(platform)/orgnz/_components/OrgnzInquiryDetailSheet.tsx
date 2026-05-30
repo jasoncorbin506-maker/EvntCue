@@ -37,6 +37,10 @@ function formatPriceDisplay(cents: number | null): string {
   return `$${dollars.toFixed(0)}`;
 }
 
+function formatExpiry(iso: string): string {
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 export function OrgnzInquiryDetailSheet({ inquiry, onClose }: Props) {
   return (
     <>
@@ -77,6 +81,13 @@ export function OrgnzInquiryDetailSheet({ inquiry, onClose }: Props) {
               {formatPriceDisplay(inquiry.proposedPriceCents)}
             </div>
           </>
+        )}
+
+        {inquiry.status === "penciled" && (
+          <div className={s.holdBadge}>
+            On hold
+            {inquiry.expiresAt ? ` · expires ${formatExpiry(inquiry.expiresAt)}` : ""}
+          </div>
         )}
 
         <OrgnzInquiryThread inquiryId={inquiry.id} />

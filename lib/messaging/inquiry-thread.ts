@@ -10,11 +10,11 @@ import type {
  * Server-side reads for inquiry_messages (mig 058 shipped the table; mig 061
  * widened it to a polymorphic `(inquiry_table, inquiry_id)` key per the
  * Option B inquiry-primitive direction). Every query here filters
- * `inquiry_table = 'booking_inquiries'` — the plnr_engagements branch is
+ * `inquiry_table = 'inquiries'` — the plnr_engagements branch is
  * scaffolded in the schema CHECK but not yet wired through the messaging UX.
  *
  * RLS gates both vendor + buyer access via per-verb tenant pattern from
- * mig 061 — vendor reads via inquiry.vndr_tenant_id; buyer reads via
+ * mig 061 — vendor reads via inquiry.recipient_tenant_id; buyer reads via
  * inquiry.buyer_tenant_id (works for both 'orgnz' and 'venue' buyers, and
  * doesn't depend on event_id, which is nullable for venue-buyer inquiries).
  * Helpers below trust RLS — no app-layer ownership re-check beyond what the
@@ -64,7 +64,7 @@ export async function getInquiryThread(
   const { data } = await supabase
     .from("inquiry_messages")
     .select(MSG_COLS)
-    .eq("inquiry_table", "booking_inquiries")
+    .eq("inquiry_table", "inquiries")
     .eq("inquiry_id", inquiryId)
     .order("created_at", { ascending: true });
 
@@ -86,7 +86,7 @@ export async function getInquiryThread(
  * messages — sender_role IN ('orgnz', 'venue') — with read_at IS NULL.
  *
  * RLS gates the read — the vendor only sees messages on inquiries where
- * inquiry.vndr_tenant_id matches their tenant.
+ * inquiry.recipient_tenant_id matches their tenant.
  */
 export async function getUnreadCountForVendor(
   vendorTenantId: string,
@@ -95,7 +95,7 @@ export async function getUnreadCountForVendor(
   const { count } = await supabase
     .from("inquiry_messages")
     .select("id", { count: "exact", head: true })
-    .eq("inquiry_table", "booking_inquiries")
+    .eq("inquiry_table", "inquiries")
     .in("sender_role", ["orgnz", "venue"])
     .is("read_at", null)
     .in(
@@ -124,7 +124,7 @@ export async function getUnreadCountForBuyer(
   const { count } = await supabase
     .from("inquiry_messages")
     .select("id", { count: "exact", head: true })
-    .eq("inquiry_table", "booking_inquiries")
+    .eq("inquiry_table", "inquiries")
     .eq("sender_role", "vndr")
     .is("read_at", null)
     .in("inquiry_id", await getBuyerInquiryIds(buyerTenantId));
@@ -136,9 +136,9 @@ export async function getUnreadCountForBuyer(
 async function getVendorInquiryIds(vendorTenantId: string): Promise<string[]> {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("booking_inquiries")
+    .from("inquiries")
     .select("id")
-    .eq("vndr_tenant_id", vendorTenantId);
+    .eq("recipient_tenant_id", vendorTenantId);
   return (data ?? []).map((r) => (r as Record<string, unknown>).id as string);
 }
 
@@ -147,7 +147,7 @@ async function getBuyerInquiryIds(
 ): Promise<string[]> {
   const supabase = await createClient();
   const { data } = await supabase
-    .from("booking_inquiries")
+    .from("inquiries")
     .select("id")
     .eq("buyer_tenant_id", buyerTenantId);
   return (data ?? []).map((r) => (r as Record<string, unknown>).id as string);

@@ -45,8 +45,8 @@ export async function getOrgnzVendorDetailsForEvent(
       .is("superseded_by", null)
       .order("created_at", { ascending: false }),
     supabase
-      .from("booking_inquiries")
-      .select("id, vndr_tenant_id, created_at")
+      .from("inquiries")
+      .select("id, recipient_tenant_id, created_at")
       .eq("buyer_tenant_id", orgnzTenantId)
       .eq("event_id", eventId)
       .order("created_at", { ascending: false }),
@@ -128,7 +128,7 @@ export async function getOrgnzVendorDetailsForEvent(
 
   const seenInq = new Set<string>();
   for (const i of inquiries) {
-    const vt = i.vndr_tenant_id as string;
+    const vt = i.recipient_tenant_id as string;
     if (seenInq.has(vt)) continue;
     seenInq.add(vt);
     const detail = byTenant.get(vt);

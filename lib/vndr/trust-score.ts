@@ -131,9 +131,9 @@ async function computeResponseRate(vendorTenantId: string): Promise<number> {
   const slaCutoffIso = new Date(slaCutoffMs).toISOString();
 
   const { data } = await supabase
-    .from("booking_inquiries")
+    .from("inquiries")
     .select("created_at, responded_at")
-    .eq("vndr_tenant_id", vendorTenantId)
+    .eq("recipient_tenant_id", vendorTenantId)
     .gte("created_at", cutoffIso)
     .lte("created_at", slaCutoffIso);
   const rows = data ?? [];

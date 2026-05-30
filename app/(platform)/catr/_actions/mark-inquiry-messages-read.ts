@@ -2,13 +2,14 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentOrganizer } from "@/lib/orgnz/current-organizer";
+import { getCurrentCaterer } from "@/lib/catr/current-caterer";
 
 /**
- * Organizer-side mark-read for an inquiry thread. Flips read_at on
- * vendor-sent messages (sender_role='vndr'); the organizer's own sent
- * messages stay write-only-to-self. RLS's im_update (mig 061) gates
- * the UPDATE to the counter-party.
+ * Caterer marks all unread buyer-side messages on an inquiry as read. Buyer
+ * messages are sender_role IN ('orgnz','venue'); the caterer's own sent
+ * messages stay untouched. RLS's im_update recipient branch already admits
+ * this (it keys on inquiry.recipient_tenant_id, role-agnostic on the recipient
+ * side) — no migration was needed for mark-read. Called on thread mount.
  */
 
 export type MarkInquiryMessagesReadResult =
@@ -20,8 +21,8 @@ export async function markInquiryMessagesRead(
 ): Promise<MarkInquiryMessagesReadResult> {
   if (!inquiryId) return { ok: false, error: "Missing inquiry id." };
 
-  const organizer = await getCurrentOrganizer();
-  if (!organizer) return { ok: false, error: "Not signed in." };
+  const caterer = await getCurrentCaterer();
+  if (!caterer) return { ok: false, error: "Not signed in." };
 
   const supabase = await createClient();
   const { error, count } = await supabase
@@ -29,11 +30,11 @@ export async function markInquiryMessagesRead(
     .update({ read_at: new Date().toISOString() }, { count: "exact" })
     .eq("inquiry_table", "inquiries")
     .eq("inquiry_id", inquiryId)
-    .eq("sender_role", "vndr")
+    .in("sender_role", ["orgnz", "venue"])
     .is("read_at", null);
 
   if (error) return { ok: false, error: error.message };
-  revalidatePath("/orgnz/inquiries");
-  revalidatePath("/orgnz");
+  revalidatePath("/catr/inquiries");
+  revalidatePath("/catr");
   return { ok: true, updated: count ?? 0 };
 }

@@ -48,9 +48,9 @@ async function conversionRate(vendorTenantId: string): Promise<number> {
   const cutoffMs = Date.now() - 90 * 24 * 60 * 60 * 1000;
   const cutoffIso = new Date(cutoffMs).toISOString();
   const { data } = await supabase
-    .from("booking_inquiries")
+    .from("inquiries")
     .select("status")
-    .eq("vndr_tenant_id", vendorTenantId)
+    .eq("recipient_tenant_id", vendorTenantId)
     .gte("created_at", cutoffIso);
   const rows = data ?? [];
   if (rows.length === 0) return 0;
@@ -66,9 +66,9 @@ async function avgResponseHours(vendorTenantId: string): Promise<number | null> 
   const cutoffMs = Date.now() - 30 * 24 * 60 * 60 * 1000;
   const cutoffIso = new Date(cutoffMs).toISOString();
   const { data } = await supabase
-    .from("booking_inquiries")
+    .from("inquiries")
     .select("created_at, responded_at")
-    .eq("vndr_tenant_id", vendorTenantId)
+    .eq("recipient_tenant_id", vendorTenantId)
     .gte("created_at", cutoffIso)
     .not("responded_at", "is", null);
   const rows = data ?? [];

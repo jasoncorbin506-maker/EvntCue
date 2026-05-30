@@ -2,13 +2,18 @@
 
 import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
-import { getCurrentOrganizer } from "@/lib/orgnz/current-organizer";
+import { getCurrentCaterer } from "@/lib/catr/current-caterer";
 
 /**
- * Organizer-side send of an inquiry message. Mirrors the vndr-side action
- * with sender_role='orgnz' + the orgnz tenant resolved from
- * getCurrentOrganizer. RLS gates the insert against bi.buyer_tenant_id +
- * bi.buyer_role match (mig 059 + 061).
+ * Caterer sends a message into an inquiry thread. Mirrors the vndr action;
+ * sender_role='catr' is admitted by im_insert as of migration 071 (the
+ * seller-side branch widened from 'vndr' to IN ('vndr','catr','venu') on the
+ * same recipient_tenant_id = sender_tenant_id predicate). RLS still enforces:
+ *   - sender_user_id = auth.uid()
+ *   - sender_tenant_id IN current_user_tenants()
+ *   - sender_role='catr' requires inquiry.recipient_tenant_id = sender_tenant_id
+ *
+ * App-layer validation: body trim + length 1..4000 (also CHECK-constrained).
  */
 
 const MAX_BODY = 4000;
@@ -32,18 +37,23 @@ export async function sendInquiryMessage(
     return { ok: false, error: `Message too long (${MAX_BODY} max).` };
   }
 
-  const organizer = await getCurrentOrganizer();
-  if (!organizer) return { ok: false, error: "Not signed in." };
+  const caterer = await getCurrentCaterer();
+  if (!caterer) return { ok: false, error: "Not signed in." };
 
   const supabase = await createClient();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  if (!user) return { ok: false, error: "Not signed in." };
+
   const { data, error } = await supabase
     .from("inquiry_messages")
     .insert({
       inquiry_table: "inquiries",
       inquiry_id: input.inquiryId,
-      sender_user_id: organizer.userId,
-      sender_tenant_id: organizer.tenantId,
-      sender_role: "orgnz",
+      sender_user_id: user.id,
+      sender_tenant_id: caterer.tenantId,
+      sender_role: "catr",
       body,
     })
     .select("id")
@@ -57,7 +67,7 @@ export async function sendInquiryMessage(
         "Send failed — inquiry may not be yours or has been removed.",
     };
   }
-  revalidatePath("/orgnz/inquiries");
-  revalidatePath("/orgnz");
+  revalidatePath("/catr/inquiries");
+  revalidatePath("/catr");
   return { ok: true, id: data.id as string };
 }

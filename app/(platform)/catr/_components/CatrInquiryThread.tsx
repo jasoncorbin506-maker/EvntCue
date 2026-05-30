@@ -1,29 +1,28 @@
 "use client";
 
 import { useEffect, useRef, useState, useTransition } from "react";
-import type {
-  InquiryMessage,
-  InquirySenderRole,
-} from "@/lib/messaging/inquiry-thread-shared";
+import type { InquiryMessage, InquirySenderRole } from "@/lib/messaging/inquiry-thread-shared";
 import { sendInquiryMessage } from "../_actions/send-inquiry-message";
 import { deleteInquiryMessage } from "../_actions/delete-inquiry-message";
 import { markInquiryMessagesRead } from "../_actions/mark-inquiry-messages-read";
-import { loadInquiryThreadOrgnz } from "../_actions/load-inquiry-thread";
-import s from "./OrgnzInquiries.module.css";
+import { loadInquiryThreadCatr } from "../_actions/load-inquiry-thread";
+import s from "../catr.module.css";
 
 /**
- * Organizer-side inquiry message thread. Mirrors the vndr-side
- * InquiryThread; the only differences are viewerRole='orgnz', label
- * text for the counter-party ("Vendor"), and action imports point at
- * the orgnz server actions.
+ * Caterer-side message thread for a single inquiry. Mounts on the catr inquiry
+ * detail page below the event summary. Mirrors the vndr InquiryThread; the only
+ * differences are the catr-scoped actions and the 'catr' viewer role. RLS gates
+ * everything — load returns only what the caterer can see, insert/delete fail
+ * on counter-party messages.
  */
 
 type Props = {
   inquiryId: string;
+  buyerRole: "orgnz" | "venue";
 };
 
 const MAX_BODY = 4000;
-const VIEWER_ROLE: InquirySenderRole = "orgnz";
+const VIEWER_ROLE: InquirySenderRole = "catr";
 
 function formatTimestamp(iso: string): string {
   const d = new Date(iso);
@@ -35,16 +34,11 @@ function formatTimestamp(iso: string): string {
   });
 }
 
-function whoLabel(role: InquirySenderRole, isMine: boolean): string {
-  if (isMine) return "You";
-  if (role === "vndr") return "Vndr";
-  if (role === "catr") return "Catr";
-  if (role === "venue") return "Venu";
-  if (role === "plnr") return "Plnr";
-  return "Orgnz";
+function buyerLabel(buyerRole: "orgnz" | "venue"): string {
+  return buyerRole === "venue" ? "Venu" : "Orgnz";
 }
 
-export function OrgnzInquiryThread({ inquiryId }: Props) {
+export function CatrInquiryThread({ inquiryId, buyerRole }: Props) {
   const [messages, setMessages] = useState<InquiryMessage[]>([]);
   const [loaded, setLoaded] = useState(false);
   const [composer, setComposer] = useState("");
@@ -56,7 +50,7 @@ export function OrgnzInquiryThread({ inquiryId }: Props) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      const view = await loadInquiryThreadOrgnz(inquiryId);
+      const view = await loadInquiryThreadCatr(inquiryId);
       if (cancelled) return;
       setMessages(view.messages);
       setLoaded(true);
@@ -72,7 +66,7 @@ export function OrgnzInquiryThread({ inquiryId }: Props) {
   }, [messages.length, loaded]);
 
   async function refresh() {
-    const view = await loadInquiryThreadOrgnz(inquiryId);
+    const view = await loadInquiryThreadCatr(inquiryId);
     setMessages(view.messages);
   }
 
@@ -113,17 +107,17 @@ export function OrgnzInquiryThread({ inquiryId }: Props) {
   }
 
   return (
-    <div className={s.threadWrap}>
+    <div className={s.wrap}>
       <div className={s.sectionLbl}>Messages</div>
 
       {!loaded ? (
-        <div className={s.threadEmpty}>Loading…</div>
+        <div className={s.empty}>Loading…</div>
       ) : messages.length === 0 ? (
-        <div className={s.threadEmpty}>
-          No messages yet. Start the conversation with the vendor below.
+        <div className={s.empty}>
+          No messages yet. Start the conversation with the {buyerLabel(buyerRole).toLowerCase()} below.
         </div>
       ) : (
-        <div className={s.threadList} role="log" aria-live="polite">
+        <div className={s.list} role="log" aria-live="polite">
           {messages.map((m) => {
             const isMine = m.senderRole === VIEWER_ROLE;
             const confirming = confirmDeleteId === m.id;
@@ -133,7 +127,9 @@ export function OrgnzInquiryThread({ inquiryId }: Props) {
                 className={`${s.msg} ${isMine ? s.msgMine : s.msgTheirs}`.trim()}
               >
                 <div className={s.msgMeta}>
-                  <span className={s.msgWho}>{whoLabel(m.senderRole, isMine)}</span>
+                  <span className={s.msgWho}>
+                    {isMine ? "You" : buyerLabel(buyerRole)}
+                  </span>
                   <span className={s.msgWhen}>{formatTimestamp(m.createdAt)}</span>
                 </div>
                 <div className={s.msgBody}>{m.body}</div>
@@ -151,7 +147,7 @@ export function OrgnzInquiryThread({ inquiryId }: Props) {
                 {isMine && confirming && (
                   <div className={s.deleteConfirm}>
                     <span className={s.deleteConfirmTxt}>
-                      Delete this message? The vendor may have already read it.
+                      Delete this message? The other side may have already read it.
                     </span>
                     <div className={s.deleteConfirmActions}>
                       <button
@@ -183,7 +179,7 @@ export function OrgnzInquiryThread({ inquiryId }: Props) {
       <div className={s.composer}>
         <textarea
           className={s.composerInput}
-          placeholder="Message the Vndr…"
+          placeholder={`Message the ${buyerLabel(buyerRole).toLowerCase()}…`}
           value={composer}
           onChange={(e) => setComposer(e.target.value)}
           rows={2}
