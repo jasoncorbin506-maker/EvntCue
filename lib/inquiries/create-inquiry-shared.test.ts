@@ -10,6 +10,7 @@ import assert from "node:assert/strict";
 import {
   INQUIRY_ERRORS,
   MESSAGE_MAX,
+  buyerRoleToPortal,
   tenantTypeToSellerPortal,
   validateInquiryMessage,
   resolveInquiryEventDate,
@@ -31,6 +32,20 @@ describe("tenantTypeToSellerPortal", () => {
     assert.equal(tenantTypeToSellerPortal("admin"), null);
     assert.equal(tenantTypeToSellerPortal(null), null);
     assert.equal(tenantTypeToSellerPortal(undefined), null);
+  });
+});
+
+describe("buyerRoleToPortal", () => {
+  test("orgnz buyer → orgnz portal", () => {
+    assert.equal(buyerRoleToPortal("orgnz"), "orgnz");
+  });
+  test("venue buyer → 'venu' portal (mirrors the seller rename)", () => {
+    assert.equal(buyerRoleToPortal("venue"), "venu");
+  });
+  test("null / undefined / unknown default to orgnz (safe majority default)", () => {
+    assert.equal(buyerRoleToPortal(null), "orgnz");
+    assert.equal(buyerRoleToPortal(undefined), "orgnz");
+    assert.equal(buyerRoleToPortal("mystery"), "orgnz");
   });
 });
 

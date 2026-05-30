@@ -18,7 +18,10 @@
  *     venue); note `venue` → `'venu'` for the email SellerPortal label
  */
 
-import type { SellerPortal } from "@/lib/email/templates/booking-lifecycle";
+import type { BuyerRole, SellerPortal } from "@/lib/email/templates/booking-lifecycle";
+
+/** Buyer-side portal route segments. `venue` buyer-role → `venu` route, mirroring the seller `venue`→`venu` rename. */
+export type BuyerPortal = "orgnz" | "venu";
 
 /** The `tenants.type` enum (mig: tenant_type). Source of seller-portal truth. */
 export type TenantType = "orgnz" | "plnr" | "vndr" | "catr" | "venue";
@@ -61,6 +64,23 @@ export function tenantTypeToSellerPortal(
       return null;
   }
 }
+
+/**
+ * Map a buyer's `inquiries.buyer_role` to its portal route segment, for building
+ * buyer-facing CTA links (e.g. the decline email's "Open event" button →
+ * `/{portal}/events/{id}`). The `venue` → `'venu'` rename mirrors the seller
+ * mapping. Anything other than an explicit `'venue'` (including null / unknown)
+ * resolves to `'orgnz'` — the overwhelming-majority buyer and the safe default,
+ * since orgnz is the only buyer surface fully shipped today.
+ */
+export function buyerRoleToPortal(
+  role: string | null | undefined,
+): BuyerPortal {
+  return role === "venue" ? "venu" : "orgnz";
+}
+
+/** Re-export the renderer's BuyerRole so action code has one import site. */
+export type { BuyerRole };
 
 /**
  * Validate + normalize a buyer's inquiry message. Required, trimmed, capped.
