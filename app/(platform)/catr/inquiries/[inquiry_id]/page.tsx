@@ -79,6 +79,7 @@ export default async function CatrInquiryDetail({
         inquiryId={inquiry.id}
         status={inquiry.status}
         quotedPriceCents={inquiry.quotedPriceCents}
+        expiresAt={inquiry.expiresAt}
         buyerRole={inquiry.buyerRole}
       />
 

@@ -103,6 +103,7 @@ export default async function VndrInquiryDetail({
           inquiryId={inquiry.id}
           status={inquiry.status}
           quotedPriceCents={inquiry.proposedPriceCents}
+          expiresAt={inquiry.expiresAt}
           buyerRole={inquiry.buyerRole}
         />
 

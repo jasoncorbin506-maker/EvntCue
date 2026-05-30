@@ -2291,3 +2291,63 @@
   font-size: 12px;
   margin-top: 8px;
 }
+
+.holdBtn {
+  margin-top: 12px;
+  padding: 9px 14px;
+  border-radius: 8px;
+  border: 0.5px solid var(--coral);
+  background: transparent;
+  color: var(--coral);
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.holdBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.holdRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.holdBadge {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--coral);
+  background: rgba(232, 98, 42, 0.12);
+  border: 0.5px solid rgba(232, 98, 42, 0.35);
+  border-radius: 6px;
+  padding: 5px 9px;
+}
+
+.holdRelease {
+  background: transparent;
+  border: none;
+  padding: 4px 0;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt3);
+  cursor: pointer;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  white-space: nowrap;
+}
+
+.holdRelease:hover:not(:disabled) {
+  color: var(--coral);
+}
+
+.holdRelease:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
