@@ -4,7 +4,8 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentOrganizer } from "@/lib/orgnz/current-organizer";
-import { assertEventActive } from "@/lib/events/activation";
+import { assertEventActive, isEventActive } from "@/lib/events/activation";
+import { logSkippedSend } from "@/lib/email/audit";
 import { logEventHistoryWrite } from "@/lib/events/timing";
 import {
   INQUIRY_ERRORS,
@@ -145,6 +146,8 @@ export async function createInquiry(
     sellerTenantId: input.vndrTenantId,
     sellerPortal,
     buyerName: organizer.tenantName,
+    eventId: input.eventId,
+    eventStatus: event.status as string | null,
     eventName: event.name as string,
     eventDate,
     inquiryId,
@@ -168,17 +171,36 @@ export async function createInquiry(
  * `city` is intentionally omitted: the `events` table carries no location, so
  * there's no honest source for it at inquiry time (the renderer's `city` is
  * optional). Revisit if/when events gain a location field.
+ *
+ * Lock 27 activation-gate defensive check: this path is already gated upstream
+ * (createInquiry returns EVENT_NOT_ACTIVATED before any row/email on a draft),
+ * so the guard below is belt-and-suspenders — it makes the send-site honor the
+ * gate independently and records any skip to email_send_audit, matching the
+ * decline path which has no upstream gate.
  */
 async function sendInquiryReceivedEmail(args: {
   sellerTenantId: string;
   sellerPortal: "vndr" | "venu" | "plnr" | "catr";
   buyerName: string;
+  eventId: string;
+  eventStatus: string | null;
   eventName: string;
   eventDate: string;
   inquiryId: string;
   message: string;
 }): Promise<void> {
   try {
+    if (!isEventActive(args.eventStatus)) {
+      await logSkippedSend({
+        template: "inquiry-received",
+        reason: "event_not_active",
+        eventId: args.eventId,
+        inquiryId: args.inquiryId,
+        recipientTenantId: args.sellerTenantId,
+      });
+      return;
+    }
+
     const admin = createAdminClient();
 
     // Primary user's login email + locale (fallback target + locale source).
