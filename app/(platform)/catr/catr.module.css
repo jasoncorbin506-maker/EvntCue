@@ -1,0 +1,441 @@
+/* Catr portal shell — chrome + inquiry surfaces. Amber accent per the locked
+ * portal-color map (Orgnz rose / Vndr coral / Venu bay-blue / Catr amber /
+ * Plnr violet). Catr is an "expanded Vndr" at the inquiry-primitive layer
+ * (Lock 77); this module covers only the inquiry vertical scaffolded so far.
+ * Amber family tokens (--amber / --al / --ab / --at / --att) come from
+ * app/tokens.css. Visual language mirrors the venu/vndr portals. */
+
+/* ── PHONE FRAME (desktop preview only) ─────────────────────────────────── */
+.phone {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+  background: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+@media (min-width: 640px) {
+  .phone {
+    margin: 32px auto;
+    border-radius: 36px;
+    border: 0.5px solid var(--bdr);
+    overflow: hidden;
+    min-height: 780px;
+    max-height: calc(100vh - 64px);
+    box-shadow: 0 24px 80px rgba(201, 138, 26, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.02);
+  }
+}
+
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 24px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── CHROME ─────────────────────────────────────────────────────────────── */
+.chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 12px;
+  border-bottom: 0.5px solid var(--bdr);
+  background: linear-gradient(180deg, rgba(201, 138, 26, 0.04), transparent);
+  flex-shrink: 0;
+}
+
+.chromeL {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.chromeBack {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 0.5px solid var(--bdr);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--txt2);
+  flex-shrink: 0;
+  font-size: 14px;
+  cursor: pointer;
+  background: transparent;
+  text-decoration: none;
+}
+
+.chromeMark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--amber), #8C5E14);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  text-decoration: none;
+}
+
+.chromeMark::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 4px;
+  border: 0.5px solid rgba(255, 255, 255, 0.3);
+}
+
+.chromeName {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  min-width: 0;
+}
+
+.chromeCaterer {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-style: italic;
+  font-weight: 400;
+  color: #fff;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.chromeRole {
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--at);
+  margin-top: 2px;
+}
+
+.chromeR {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── HOME ───────────────────────────────────────────────────────────────── */
+.home {
+  padding: 18px 16px 0;
+}
+
+.homeIntro {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--txt2);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.homeTile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  padding: 16px 18px;
+  text-decoration: none;
+  width: 100%;
+  text-align: left;
+}
+
+.homeTile:hover {
+  border-color: var(--ab);
+}
+
+.homeTileLbl {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-style: italic;
+  color: #fff;
+}
+
+.homeTileSub {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt2);
+  margin-top: 2px;
+}
+
+.homeTileCount {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--amber);
+  background: var(--al);
+  border: 0.5px solid var(--ab);
+  border-radius: 999px;
+  min-width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+
+/* ── INQUIRY LIST ───────────────────────────────────────────────────────── */
+.inqList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 16px 0;
+}
+
+.inqRow {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  padding: 14px 16px;
+  text-decoration: none;
+}
+
+.inqRow:hover {
+  border-color: var(--ab);
+}
+
+.slaDot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  margin-top: 6px;
+  flex-shrink: 0;
+}
+
+.slaDotFresh { background: var(--teal); box-shadow: 0 0 6px var(--teal); }
+.slaDotWatch { background: var(--gold); box-shadow: 0 0 6px var(--gold); }
+.slaDotLate { background: var(--red); box-shadow: 0 0 6px var(--red); }
+.slaDotClosed { background: var(--txt3); }
+
+.inqBody {
+  flex: 1;
+  min-width: 0;
+}
+
+.inqHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inqName {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-style: italic;
+  color: #fff;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.inqStatus {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--at);
+  flex-shrink: 0;
+}
+
+.inqMeta {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt2);
+  margin-top: 4px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.inqMsg {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--txt2);
+  line-height: 1.45;
+  margin-top: 6px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* ── EMPTY STATE ────────────────────────────────────────────────────────── */
+.emptyState {
+  margin: 32px 16px 0;
+  text-align: center;
+  padding: 32px 18px;
+}
+
+.emptyStateIcon {
+  font-size: 28px;
+  color: var(--at);
+  margin-bottom: 12px;
+}
+
+.emptyStateTitle {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-style: italic;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.emptyStateBody {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--txt2);
+  line-height: 1.5;
+}
+
+/* ── DETAIL ─────────────────────────────────────────────────────────────── */
+.eventHero {
+  margin: 16px 16px 0;
+  padding: 18px 20px;
+  background: linear-gradient(135deg, rgba(201, 138, 26, 0.10), rgba(201, 138, 26, 0.02));
+  border: 0.5px solid var(--ab);
+  border-radius: 18px;
+}
+
+.eventStatusRow {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+
+.eventStatus {
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: var(--al);
+  color: var(--amber);
+  border: 0.5px solid var(--ab);
+}
+
+.eventId {
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  font-weight: 600;
+}
+
+.eventName {
+  font-family: var(--font-display);
+  font-size: 24px;
+  font-weight: 300;
+  font-style: italic;
+  line-height: 1.2;
+  color: #fff;
+  letter-spacing: -0.4px;
+  margin-bottom: 14px;
+}
+
+.eventMetaGrid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px 16px;
+}
+
+.eventMetaItem {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.eventMetaLbl {
+  font-family: var(--font-ui);
+  font-size: 8px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  font-weight: 600;
+}
+
+.eventMetaVal {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: #fff;
+  font-weight: 500;
+  line-height: 1.3;
+}
+
+.messageCard {
+  margin: 14px 16px 0;
+  padding: 16px 18px;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+}
+
+.messageLbl {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  margin-bottom: 6px;
+}
+
+.messageText {
+  font-family: var(--font-body);
+  font-style: italic;
+  font-size: 14px;
+  color: var(--txt);
+  line-height: 1.5;
+}
+
+.placeholder {
+  margin: 18px 16px 0;
+  padding: 24px 18px;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  text-align: center;
+}
+
+.placeholderTitle {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-style: italic;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.placeholderBody {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--txt2);
+  line-height: 1.5;
+}
