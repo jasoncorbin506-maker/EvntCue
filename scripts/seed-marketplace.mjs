@@ -22,6 +22,19 @@
 //
 // All marketplace data is test data (confirmed with Jason 2026-05-31).
 //
+// SCOPE — read before any reuse: this is an ALL-PROVIDER-CLASS wipe (every
+// vndr/venue/catr/plnr tenant), NOT a single-tenant delete. It is safe ONLY
+// because it destroys the whole class: nothing survives to orphan, and no
+// anchor CHECK can be left violated. Note it gathers bookings by
+// `vndr_tenant_id` (the seller axis) ONLY — it is buyer-blind by design.
+// NEVER repurpose this into a per-tenant teardown: deleting a single
+// buyer/orgnz tenant this way would miss buyer-anchored bookings and walk
+// straight into the teardown-consumes-evidence / anchor-CHECK problem. A
+// per-tenant delete first requires snapshot-and-detach (copy the tenant's
+// display name into booking.client_name, null out the buyer FK + role, THEN
+// delete the tenant). dev/test only — no in-code prod guard; safety is which
+// SUPABASE_URL your .env.local points at.
+//
 // Usage:   npm run seed:marketplace   (or: node scripts/seed-marketplace.mjs)
 // Requires .env.local with NEXT_PUBLIC_SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY.
 // =============================================================================
