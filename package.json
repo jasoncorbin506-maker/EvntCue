@@ -11,7 +11,8 @@
     "test:unit": "node --experimental-strip-types --test 'lib/**/*.test.ts'",
     "check:vndr": "node scripts/check-vndr-drift.mjs",
     "seed:lock24": "node scripts/seed-lock24-smoke.mjs",
-    "seed:inq": "node scripts/seed-catr-vndr-inquiries.mjs"
+    "seed:inq": "node scripts/seed-catr-vndr-inquiries.mjs",
+    "seed:marketplace": "node scripts/seed-marketplace.mjs"
   },
   "dependencies": {
     "@dnd-kit/react": "^0.4.0",
