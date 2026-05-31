@@ -339,7 +339,12 @@
     "tileVenuLocked": "Cerrado",
     "tileVenuPick": "Elige uno",
     "tileVenuContract": "Visitas y contrato",
-    "tileVenuBrowse": "Ver Venus de DFW"
+    "tileVenuBrowse": "Ver Venus de DFW",
+    "tileNotes": "Notas y Tareas",
+    "tileNotesItems": "elementos",
+    "tileNotesStart": "Crea una lista",
+    "tileNotesOpen": "{count} tareas pendientes",
+    "tileNotesDesc": "Notas y tareas para cualquier hito"
   },
   "venuStart": {
     "title": "Publica tu Venu en EvntCue",

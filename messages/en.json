@@ -339,7 +339,12 @@
     "tileVenuLocked": "Locked",
     "tileVenuPick": "Pick one",
     "tileVenuContract": "Walkthroughs & contract",
-    "tileVenuBrowse": "Browse DFW Venus"
+    "tileVenuBrowse": "Browse DFW Venus",
+    "tileNotes": "Notes & To-Do",
+    "tileNotesItems": "items",
+    "tileNotesStart": "Start a list",
+    "tileNotesOpen": "{count} to-do open",
+    "tileNotesDesc": "Notes & to-do for any milestone"
   },
   "venuStart": {
     "title": "Get listed on EvntCue",

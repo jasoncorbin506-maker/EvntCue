@@ -1939,6 +1939,137 @@ async function testMultiRoleTriangle() {
 }
 
 // -----------------------------------------------------------------------------
+// TEST: T-43 — release_escrow_dual_confirm multi-role precedence (PL #64 / 077).
+// -----------------------------------------------------------------------------
+// Permanent regression guard for the one genuinely NEW behavior in migration
+// 077 (current_role_claim rewrite). release_escrow_dual_confirm uses the
+// caller's role to SELECT which confirmation slot to write — orgnz_confirmed_at
+// vs vendor_confirmed_at — and the orgnz branch takes precedence. For a user
+// who is BOTH the event's orgnz AND the booking's vendor, BOTH branch
+// predicates are true, so only precedence decides the outcome.
+//
+// Pre-077 the function read a single global role via current_role_claim() (a
+// JWT-role mismatch that threw 42501 on every call). Post-077 it asks the
+// per-tenant predicate user_has_role_on_tenant() per side. This test asserts
+// the dual-party caller lands in the orgnz slot, never the vendor slot.
+//
+// SEED INTEGRITY (load-bearing): the two tenants MUST differ and the user MUST
+// hold both role rows, otherwise the branch never actually races and the test
+// would pass for the wrong reason. The pre-asserts below fail loudly if a
+// future schema/seed change collapses that setup.
+async function testReleaseEscrowMultiRolePrecedence() {
+  // U is simultaneously orgnz (tenant O, primary) and vndr (tenant V).
+  const u = await seedTestUserMultiRole([{ role: "orgnz" }, { role: "vndr" }]);
+  const [orgnz, vndr] = u.tenants;
+
+  // --- seed-integrity pre-asserts (the branch must genuinely race) ---
+  if (orgnz.tenantId === vndr.tenantId) {
+    throw new Error(
+      "seed invariant: orgnz and vndr tenants must differ, else the tie-break never competes",
+    );
+  }
+  const { data: roleRows, error: roleRowsErr } = await adminClient
+    .from("user_roles")
+    .select("role, tenant_id")
+    .eq("user_id", u.userId);
+  if (roleRowsErr) throw new Error(`user_roles readback failed: ${roleRowsErr.message}`);
+  const hasOrgnz = roleRows.some((r) => r.role === "orgnz" && r.tenant_id === orgnz.tenantId);
+  const hasVndr = roleRows.some((r) => r.role === "vndr" && r.tenant_id === vndr.tenantId);
+  if (!hasOrgnz || !hasVndr) {
+    throw new Error(
+      `seed invariant: user must hold BOTH orgnz@O and vndr@V — got ${JSON.stringify(roleRows)}`,
+    );
+  }
+
+  // --- RPC auth.uid() pre-assert (T-43 is the FIRST test to invoke a SECURITY
+  // DEFINER function through the authed client). The whole migration rests on
+  // auth.uid() resolving from the request JWT claims even though the function
+  // runs as its owner (postgres). Prove that propagates over .rpc() before the
+  // main assertion relies on it: current_role_claim() reads auth.uid() and
+  // returns the caller's primary role; if the JWT didn't reach request.jwt.claims
+  // it returns NULL instead. This is the RPC-specific seed-integrity guard.
+  const { data: claim, error: claimErr } = await u.authedClient.rpc("current_role_claim");
+  if (claimErr) {
+    throw new Error(
+      `auth.uid() RPC pre-assert: current_role_claim() call failed: ${claimErr.code} ${claimErr.message}`,
+    );
+  }
+  if (claim !== "orgnz") {
+    throw new Error(
+      `auth.uid() did not resolve to the seeded user inside an authed RPC: current_role_claim() returned ${JSON.stringify(claim)}, expected "orgnz" — the JWT→request.jwt.claims path is broken for .rpc()`,
+    );
+  }
+
+  // Event owned by the orgnz tenant.
+  const { data: event, error: eventErr } = await adminClient
+    .from("events")
+    .insert({
+      name: `T-43 tie-break event ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnz.tenantId,
+      start_date: "2027-08-20",
+    })
+    .select("id")
+    .single();
+  if (eventErr) throw new Error(`event seed failed: ${eventErr.message}`);
+
+  // Booking sold by the vndr tenant; both confirmation slots start NULL.
+  const { data: booking, error: bookingErr } = await adminClient
+    .from("bookings")
+    .insert({
+      event_id: event.id,
+      vndr_tenant_id: vndr.tenantId,
+      vndr_type: "vndr",
+      status: "confirmed",
+      subtotal_cents: 100_000,
+      platform_fee_cents: 2_500,
+      total_cents: 102_500,
+      deposit_pct: 25,
+      currency: "USD",
+    })
+    .select("id, orgnz_confirmed_at, vendor_confirmed_at")
+    .single();
+  if (bookingErr) throw new Error(`booking seed failed: ${bookingErr.message}`);
+  if (booking.orgnz_confirmed_at || booking.vendor_confirmed_at) {
+    throw new Error("seed invariant: booking must start with both confirmation slots NULL");
+  }
+
+  // ACT: U (both parties) confirms via their own JWT session. Both branch
+  // predicates are true for U, so the outcome is decided purely by precedence.
+  const { error: rpcErr } = await u.authedClient.rpc("release_escrow_dual_confirm", {
+    p_booking_id: booking.id,
+  });
+  if (rpcErr) {
+    if (rpcErr.code === "42501") {
+      throw new Error(
+        `PL #64 regression: release_escrow_dual_confirm denied a legitimate multi-role caller (42501) — ${rpcErr.message}`,
+      );
+    }
+    throw new Error(
+      `release_escrow_dual_confirm unexpected error: ${rpcErr.code} ${rpcErr.message}`,
+    );
+  }
+
+  // ASSERT: orgnz precedence won — orgnz slot filled, vendor slot untouched.
+  const { data: after, error: afterErr } = await adminClient
+    .from("bookings")
+    .select("orgnz_confirmed_at, vendor_confirmed_at")
+    .eq("id", booking.id)
+    .single();
+  if (afterErr) throw new Error(`post-call booking readback failed: ${afterErr.message}`);
+  if (!after.orgnz_confirmed_at) {
+    throw new Error(
+      "PL #64 regression: orgnz_confirmed_at is NULL — orgnz precedence branch did not run for a dual-party caller",
+    );
+  }
+  if (after.vendor_confirmed_at) {
+    throw new Error(
+      "PL #64 regression: vendor_confirmed_at is SET — precedence wrong, dual-party caller took the vendor branch",
+    );
+  }
+}
+
+// -----------------------------------------------------------------------------
 // TEST: T-23 — Admin-client ownership discipline (static-audit regression).
 // -----------------------------------------------------------------------------
 // Per SEC-02b RLS audit: every authed server action that calls
@@ -3660,6 +3791,167 @@ async function testEventNotificationsRLS() {
 // -----------------------------------------------------------------------------
 // Test array — append more tests here as new role/table combos are covered.
 // -----------------------------------------------------------------------------
+/**
+ * T-44 — event_notes cross-tenant isolation (migration 076, PL #91).
+ * orgnz A owns an event with a note; orgnz B must not SELECT/UPDATE/DELETE it.
+ * RLS is event-scoped via user_owns_event(event_id).
+ */
+async function testCrossTenantEventNotesIsolation() {
+  const orgnzA = await seedTestUser("orgnz");
+  const orgnzB = await seedTestUser("orgnz");
+
+  const { data: event, error: evErr } = await adminClient
+    .from("events")
+    .insert({
+      name: `T-44 notes isolation ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnzA.tenantId,
+      start_date: "2027-07-10",
+      guest_count: 60,
+      budget_cents: 600_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+  if (evErr) throw new Error(`event seed failed: ${evErr.message}`);
+
+  const { data: note, error: noteErr } = await adminClient
+    .from("event_notes")
+    .insert({
+      event_id: event.id,
+      system_milestone_key: "book_venue",
+      body: `T-44 secret note ${TEST_RUN_ID}`,
+      created_by: orgnzA.tenantId,
+    })
+    .select("id")
+    .single();
+  if (noteErr) throw new Error(`event_notes seed failed: ${noteErr.message}`);
+
+  // SELECT denial — orgnz B must see zero rows.
+  const { data: bView, error: bErr } = await orgnzB.authedClient
+    .from("event_notes")
+    .select("id")
+    .eq("id", note.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant event_notes query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from orgnz B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B saw orgnz A's note (${bView.length} rows)`);
+  }
+
+  // UPDATE denial — RLS scopes the write to zero rows (no error, zero affected).
+  const { data: bUpd } = await orgnzB.authedClient
+    .from("event_notes")
+    .update({ body: "hijacked" })
+    .eq("id", note.id)
+    .select("id");
+  if (bUpd && bUpd.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B updated orgnz A's note (${bUpd.length} rows)`);
+  }
+
+  // DELETE denial.
+  const { data: bDel } = await orgnzB.authedClient
+    .from("event_notes")
+    .delete()
+    .eq("id", note.id)
+    .select("id");
+  if (bDel && bDel.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B deleted orgnz A's note (${bDel.length} rows)`);
+  }
+
+  // Positive control — orgnz A sees their own note.
+  const { data: aView, error: aErr } = await orgnzA.authedClient
+    .from("event_notes")
+    .select("id")
+    .eq("id", note.id);
+  if (aErr) throw new Error(`orgnz A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`orgnz A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
+/**
+ * T-45 — event_todo_items cross-tenant isolation (migration 076, PL #91).
+ * Same event-scoped RLS as event_notes; orgnz B must not reach orgnz A's to-do.
+ */
+async function testCrossTenantEventTodoIsolation() {
+  const orgnzA = await seedTestUser("orgnz");
+  const orgnzB = await seedTestUser("orgnz");
+
+  const { data: event, error: evErr } = await adminClient
+    .from("events")
+    .insert({
+      name: `T-45 todo isolation ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: orgnzA.tenantId,
+      start_date: "2027-08-22",
+      guest_count: 90,
+      budget_cents: 900_000,
+      status: "planning",
+      timezone: "America/Chicago",
+    })
+    .select("id")
+    .single();
+  if (evErr) throw new Error(`event seed failed: ${evErr.message}`);
+
+  const { data: todo, error: todoErr } = await adminClient
+    .from("event_todo_items")
+    .insert({
+      event_id: event.id,
+      system_milestone_key: "book_venue",
+      label: `T-45 secret todo ${TEST_RUN_ID}`,
+      created_by: orgnzA.tenantId,
+    })
+    .select("id")
+    .single();
+  if (todoErr) throw new Error(`event_todo_items seed failed: ${todoErr.message}`);
+
+  // SELECT denial.
+  const { data: bView, error: bErr } = await orgnzB.authedClient
+    .from("event_todo_items")
+    .select("id")
+    .eq("id", todo.id);
+  if (bErr && bErr.code === "42P17") {
+    throw new Error(`42P17 recursion on cross-tenant event_todo_items query: ${bErr.message}`);
+  }
+  if (bErr) throw new Error(`unexpected error from orgnz B query: ${bErr.message}`);
+  if (bView && bView.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B saw orgnz A's to-do (${bView.length} rows)`);
+  }
+
+  // UPDATE denial (e.g. spoofing a completion).
+  const { data: bUpd } = await orgnzB.authedClient
+    .from("event_todo_items")
+    .update({ completed_at: new Date().toISOString() })
+    .eq("id", todo.id)
+    .select("id");
+  if (bUpd && bUpd.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B updated orgnz A's to-do (${bUpd.length} rows)`);
+  }
+
+  // DELETE denial.
+  const { data: bDel } = await orgnzB.authedClient
+    .from("event_todo_items")
+    .delete()
+    .eq("id", todo.id)
+    .select("id");
+  if (bDel && bDel.length > 0) {
+    throw new Error(`RLS LEAK: orgnz B deleted orgnz A's to-do (${bDel.length} rows)`);
+  }
+
+  // Positive control.
+  const { data: aView, error: aErr } = await orgnzA.authedClient
+    .from("event_todo_items")
+    .select("id")
+    .eq("id", todo.id);
+  if (aErr) throw new Error(`orgnz A positive control failed: ${aErr.message}`);
+  if (!aView || aView.length !== 1) {
+    throw new Error(`orgnz A positive control: expected 1 row, got ${aView?.length ?? 0}`);
+  }
+}
+
 const TESTS = [
   { name: "Migration 034 regression (venue role + events join, no 42P17)", fn: testMigration034Regression },
   { name: "Cross-tenant events isolation (orgnz A vs orgnz B)", fn: testCrossTenantEventIsolation },
@@ -3707,6 +3999,9 @@ const TESTS = [
   { name: "T-40 manual + ical_feed coexistence in dedup index (migration 066 — schema invariant for manual-wins)", fn: testManualAndIcalFeedDedupCoexistence },
   { name: "T-41 event_notifications RLS (migration 068, Lock 24)", fn: testEventNotificationsRLS },
   { name: "T-42 csv_import block isolation + dedup idempotency (migration 066 — venue-calendar Session C)", fn: testCsvImportBlocksIsolationAndDedup },
+  { name: "T-43 release_escrow_dual_confirm multi-role precedence (PL #64 / migration 077 — orgnz wins tie-break)", fn: testReleaseEscrowMultiRolePrecedence },
+  { name: "T-44 event_notes isolation (migration 076, PL #91 — orgnz A vs B; SELECT/UPDATE/DELETE)", fn: testCrossTenantEventNotesIsolation },
+  { name: "T-45 event_todo_items isolation (migration 076, PL #91 — orgnz A vs B; SELECT/UPDATE/DELETE)", fn: testCrossTenantEventTodoIsolation },
 ];
 
 // -----------------------------------------------------------------------------

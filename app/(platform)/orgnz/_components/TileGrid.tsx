@@ -16,6 +16,9 @@ type Props = {
   hasPlnr: boolean;
   hasVenu: boolean;
   isPaidTier: boolean;
+  // PL #91 — Notes & To-Do tile counts.
+  notesCount: number;
+  todoOpenCount: number;
 };
 
 function dollars(cents: number): string {
@@ -42,6 +45,8 @@ export function TileGrid(props: Props) {
     hasPlnr,
     hasVenu,
     isPaidTier,
+    notesCount,
+    todoOpenCount,
   } = props;
 
   const budgetTotal = budgetCents ?? 0;
@@ -228,6 +233,38 @@ export function TileGrid(props: Props) {
         <div className={styles.tileV}>{hasVenu ? t("tileVenuLocked") : t("tileVenuPick")}</div>
         <div className={styles.tileD}>
           {hasVenu ? t("tileVenuContract") : t("tileVenuBrowse")}
+        </div>
+      </button>
+
+      {/* NOTES & TO-DO — free (PL #91) */}
+      <button
+        type="button"
+        className={`${styles.tile} ${styles.tileNotes}`}
+        onClick={() => openSheet("notesTodo")}
+      >
+        <div className={styles.tileH}>
+          <div className={styles.tileIco}>
+            <svg viewBox="0 0 24 24">
+              <path d="M5 4h10l4 4v12H5zM15 4v4h4M9 12l1.5 1.5L13 11M9 17h6" />
+            </svg>
+          </div>
+          <span className={styles.tileArrow}>→</span>
+        </div>
+        <div className={styles.tileL}>{t("tileNotes")}</div>
+        <div className={styles.tileV}>
+          {notesCount + todoOpenCount > 0 ? (
+            <>
+              {notesCount + todoOpenCount}
+              <em>{t("tileNotesItems")}</em>
+            </>
+          ) : (
+            t("tileNotesStart")
+          )}
+        </div>
+        <div className={styles.tileD}>
+          {todoOpenCount > 0
+            ? t("tileNotesOpen", { count: todoOpenCount })
+            : t("tileNotesDesc")}
         </div>
       </button>
     </section>

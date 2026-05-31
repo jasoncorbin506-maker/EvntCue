@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import styles from "../orgnz.module.css";
 import type { RailPin, RailPinState } from "../_lib/timeline";
+import type { OrgnzNote, OrgnzTodoItem } from "../_lib/load-context";
 import { RailDrawer } from "./RailDrawer";
 import { AddMilestoneSheet } from "./AddMilestoneSheet";
 
@@ -17,6 +18,9 @@ type Props = {
   subtypeKey: string | null;
   /** Stable keys of seed milestones that are currently dismissed. Lets the picker offer "re-enable" instead of "already there." */
   dismissedSeedKeys: string[];
+  /** PL #91 — event notes + to-do, threaded into RailDrawer's per-milestone panel. */
+  notes: OrgnzNote[];
+  todos: OrgnzTodoItem[];
 };
 
 const STATE_CLASS: Record<RailPinState, string> = {
@@ -28,7 +32,7 @@ const STATE_CLASS: Record<RailPinState, string> = {
   default: "",
 };
 
-export function TimelineRail({ pins, eventId, startDateIso, eventType, subtypeKey, dismissedSeedKeys }: Props) {
+export function TimelineRail({ pins, eventId, startDateIso, eventType, subtypeKey, dismissedSeedKeys, notes, todos }: Props) {
   const scrollRef = useRef<HTMLDivElement | null>(null);
   const [openPin, setOpenPin] = useState<RailPin | null>(null);
   const [addOpen, setAddOpen] = useState(false);
@@ -116,6 +120,8 @@ export function TimelineRail({ pins, eventId, startDateIso, eventType, subtypeKe
         eventId={eventId}
         startDateIso={startDateIso}
         eventType={eventType}
+        notes={notes}
+        todos={todos}
         onClose={() => setOpenPin(null)}
       />
       <AddMilestoneSheet
