@@ -3952,6 +3952,206 @@ async function testCrossTenantEventTodoIsolation() {
   }
 }
 
+/**
+ * T-46 — marketplace published-read views (migration 078, V-2d).
+ *
+ * The browse grid reads PUBLISHED providers cross-tenant through curated views
+ * (marketplace_vendors / _vendor_photos / _vndr_packages / _venues /
+ * _venue_spaces). This asserts the views open exactly the intended path and
+ * nothing more:
+ *   - a shopper (orgnz, owns no provider tenant) SEES a published vendor/venue
+ *     from another tenant via the view (positive),
+ *   - DOES NOT see a draft (unpublished) provider via the view (negative),
+ *   - still sees ZERO on the base tables (RLS isolation intact),
+ *   - the view rows DO NOT carry sensitive columns (referral_rate_pct /
+ *     contact_email on vendors; invite_token_hash on venues),
+ *   - photos/packages of a draft vendor are gated out of their views.
+ *
+ * NOTE: fails until migration 078 is applied (relation does not exist) — same
+ * apply-gated pattern as T-44/T-45 vs migration 076.
+ */
+async function testMarketplacePublishedReadViews() {
+  const shopper = await seedTestUser("orgnz"); // owns no vendor/venue tenant
+  const vndrPub = await seedTestUser("vndr");
+  const vndrDraft = await seedTestUser("vndr");
+  const venuePub = await seedTestUser("venue");
+  const venueDraft = await seedTestUser("venue");
+
+  const SENTINEL_EMAIL = `secret-${TEST_RUN_ID}@hidden.local`;
+
+  // Published vendor (visible) + draft vendor (hidden), each with photo + package.
+  for (const [v, status] of [
+    [vndrPub, "published"],
+    [vndrDraft, "in_review"],
+  ]) {
+    const { error: vErr } = await adminClient.from("vendors").insert({
+      tenant_id: v.tenantId,
+      claim_status: status,
+      display_name: `T-46 ${status} vendor ${TEST_RUN_ID}`,
+      primary_category: "photo",
+      primary_sub_type: "Photographer",
+      sub_types: ["Photographer"],
+      city: "Dallas",
+      contact_email: SENTINEL_EMAIL,
+      referral_rate_pct: 12.5,
+      starting_price_cents: 250000,
+      pricing_model: "packages",
+      booking_mode: "inquiry",
+    });
+    if (vErr) throw new Error(`vendors seed (${status}) failed: ${vErr.message}`);
+
+    const { error: phErr } = await adminClient.from("vendor_photos").insert({
+      tenant_id: v.tenantId,
+      storage_path: `${v.tenantId}/t46.jpg`,
+      display_order: 0,
+      alt_text: "t46",
+      created_by: v.userId,
+    });
+    if (phErr) throw new Error(`vendor_photos seed (${status}) failed: ${phErr.message}`);
+
+    const { error: pkErr } = await adminClient.from("vndr_packages").insert({
+      tenant_id: v.tenantId,
+      name: `T-46 package ${TEST_RUN_ID}`,
+      price_cents: 300000,
+      description: "t46",
+      display_order: 0,
+      active: true,
+      is_visible: true,
+      deposit_pct: 25,
+      created_by: v.userId,
+    });
+    if (pkErr) throw new Error(`vndr_packages seed (${status}) failed: ${pkErr.message}`);
+  }
+
+  // Published venue (visible) + draft venue (hidden), each with a space. The
+  // published venue carries a sentinel invite_token_hash that must NOT surface.
+  for (const [v, status] of [
+    [venuePub, "published"],
+    [venueDraft, "in_review"],
+  ]) {
+    const { error: vErr } = await adminClient.from("venues").insert({
+      tenant_id: v.tenantId,
+      claim_status: status,
+      acquisition_lane: "self_serve",
+      display_name: `T-46 ${status} venue ${TEST_RUN_ID}`,
+      address_line1: "100 Test St",
+      city: "Dallas",
+      state: "TX",
+      postal_code: "75201",
+      invite_token_hash: `tokenhash-${TEST_RUN_ID}`,
+    });
+    if (vErr) throw new Error(`venues seed (${status}) failed: ${vErr.message}`);
+
+    const { error: spErr } = await adminClient.from("venue_spaces").insert({
+      tenant_id: v.tenantId,
+      name: "Main Hall",
+      capacity: 150,
+      sq_ft: 4000,
+      rate_per_day_cents: 400000,
+      status: "active",
+      description: "t46",
+    });
+    if (spErr) throw new Error(`venue_spaces seed (${status}) failed: ${spErr.message}`);
+  }
+
+  // --- vendors view: published visible, draft hidden ---
+  const { data: vView, error: vViewErr } = await shopper.authedClient
+    .from("marketplace_vendors")
+    .select("*")
+    .in("tenant_id", [vndrPub.tenantId, vndrDraft.tenantId]);
+  if (vViewErr) throw new Error(`marketplace_vendors read failed: ${vViewErr.message}`);
+  const vTenants = (vView ?? []).map((r) => r.tenant_id);
+  if (!vTenants.includes(vndrPub.tenantId)) {
+    throw new Error("marketplace_vendors: published vendor NOT visible to shopper (positive control failed)");
+  }
+  if (vTenants.includes(vndrDraft.tenantId)) {
+    throw new Error("LEAK: marketplace_vendors exposed a DRAFT (in_review) vendor");
+  }
+  // Column curation — sensitive columns must be absent from the view row.
+  const pubRow = (vView ?? []).find((r) => r.tenant_id === vndrPub.tenantId);
+  for (const banned of ["referral_rate_pct", "contact_email", "legal_business_name"]) {
+    if (pubRow && banned in pubRow) {
+      throw new Error(`LEAK: marketplace_vendors exposes sensitive column '${banned}'`);
+    }
+  }
+
+  // --- base-table vendors: shopper sees zero (RLS isolation intact) ---
+  const { data: vBase } = await shopper.authedClient
+    .from("vendors")
+    .select("tenant_id")
+    .in("tenant_id", [vndrPub.tenantId, vndrDraft.tenantId]);
+  if (vBase && vBase.length > 0) {
+    throw new Error(`RLS LEAK: shopper read ${vBase.length} vendor row(s) from the BASE table`);
+  }
+
+  // --- photos/packages: published parent visible, draft parent gated ---
+  const { data: phView, error: phErr } = await shopper.authedClient
+    .from("marketplace_vendor_photos")
+    .select("tenant_id")
+    .in("tenant_id", [vndrPub.tenantId, vndrDraft.tenantId]);
+  if (phErr) throw new Error(`marketplace_vendor_photos read failed: ${phErr.message}`);
+  const phTenants = (phView ?? []).map((r) => r.tenant_id);
+  if (!phTenants.includes(vndrPub.tenantId)) {
+    throw new Error("marketplace_vendor_photos: published vendor's photo NOT visible");
+  }
+  if (phTenants.includes(vndrDraft.tenantId)) {
+    throw new Error("LEAK: marketplace_vendor_photos exposed a draft vendor's photo");
+  }
+
+  const { data: pkView, error: pkErr } = await shopper.authedClient
+    .from("marketplace_vndr_packages")
+    .select("tenant_id")
+    .in("tenant_id", [vndrPub.tenantId, vndrDraft.tenantId]);
+  if (pkErr) throw new Error(`marketplace_vndr_packages read failed: ${pkErr.message}`);
+  const pkTenants = (pkView ?? []).map((r) => r.tenant_id);
+  if (!pkTenants.includes(vndrPub.tenantId)) {
+    throw new Error("marketplace_vndr_packages: published vendor's package NOT visible");
+  }
+  if (pkTenants.includes(vndrDraft.tenantId)) {
+    throw new Error("LEAK: marketplace_vndr_packages exposed a draft vendor's package");
+  }
+
+  // --- venues view: published visible, draft hidden, invite_token_hash absent ---
+  const { data: veView, error: veErr } = await shopper.authedClient
+    .from("marketplace_venues")
+    .select("*")
+    .in("tenant_id", [venuePub.tenantId, venueDraft.tenantId]);
+  if (veErr) throw new Error(`marketplace_venues read failed: ${veErr.message}`);
+  const veTenants = (veView ?? []).map((r) => r.tenant_id);
+  if (!veTenants.includes(venuePub.tenantId)) {
+    throw new Error("marketplace_venues: published venue NOT visible to shopper (positive control failed)");
+  }
+  if (veTenants.includes(venueDraft.tenantId)) {
+    throw new Error("LEAK: marketplace_venues exposed a DRAFT (in_review) venue");
+  }
+  const vePubRow = (veView ?? []).find((r) => r.tenant_id === venuePub.tenantId);
+  for (const banned of ["invite_token_hash", "assigned_concierge_id", "coi_carrier"]) {
+    if (vePubRow && banned in vePubRow) {
+      throw new Error(`LEAK: marketplace_venues exposes sensitive column '${banned}'`);
+    }
+  }
+
+  // --- views are READ-ONLY (migration 079) ---
+  // The views run as their owner (security_invoker=false) and are auto-updatable,
+  // so any write grant on them is a cross-tenant write bypass of RLS. 079 revokes
+  // INSERT/UPDATE/DELETE. A shopper UPDATE through the view must NOT mutate the
+  // published vendor's base row. (Fails until 079 applied — write would succeed.)
+  await shopper.authedClient
+    .from("marketplace_vendors")
+    .update({ display_name: `HIJACKED ${TEST_RUN_ID}` })
+    .eq("tenant_id", vndrPub.tenantId);
+  const { data: afterRow } = await adminClient
+    .from("vendors")
+    .select("display_name")
+    .eq("tenant_id", vndrPub.tenantId)
+    .single();
+  if (afterRow && String(afterRow.display_name).startsWith("HIJACKED")) {
+    throw new Error(
+      "WRITE BYPASS: shopper mutated a published vendor base row through marketplace_vendors (migration 079 not applied / grant not revoked)",
+    );
+  }
+}
+
 const TESTS = [
   { name: "Migration 034 regression (venue role + events join, no 42P17)", fn: testMigration034Regression },
   { name: "Cross-tenant events isolation (orgnz A vs orgnz B)", fn: testCrossTenantEventIsolation },
@@ -4002,6 +4202,7 @@ const TESTS = [
   { name: "T-43 release_escrow_dual_confirm multi-role precedence (PL #64 / migration 077 — orgnz wins tie-break)", fn: testReleaseEscrowMultiRolePrecedence },
   { name: "T-44 event_notes isolation (migration 076, PL #91 — orgnz A vs B; SELECT/UPDATE/DELETE)", fn: testCrossTenantEventNotesIsolation },
   { name: "T-45 event_todo_items isolation (migration 076, PL #91 — orgnz A vs B; SELECT/UPDATE/DELETE)", fn: testCrossTenantEventTodoIsolation },
+  { name: "T-46 marketplace published-read views (migrations 078+079, V-2d — published visible cross-tenant, draft hidden, sensitive cols absent, views read-only)", fn: testMarketplacePublishedReadViews },
 ];
 
 // -----------------------------------------------------------------------------
