@@ -1102,6 +1102,12 @@
 .tile.tileVenu .tileIco svg { stroke: var(--blut); }
 .tile.tileVenu .tileL { color: var(--blue); }
 
+/* PL #91 — Notes & To-Do tile (rose accent, matching the panel affordances) */
+.tile.tileNotes { --tileAccent: var(--rb); }
+.tile.tileNotes .tileIco { border-color: var(--rb); background: var(--rl); }
+.tile.tileNotes .tileIco svg { stroke: var(--rt); }
+.tile.tileNotes .tileL { color: var(--rose); }
+
 /* Locked tile (free-tier paywall) */
 .tile.tileLocked {
   background: linear-gradient(180deg, rgba(212,119,138,0.05), rgba(11,18,32,0.6));
@@ -5106,3 +5112,338 @@
 
 .acConfirm:hover { opacity: 0.92; }
 .acConfirm:disabled, .acNevermind:disabled { opacity: 0.55; cursor: default; }
+
+/* ─── PL #91 — Notes & To-Do panel (RailDrawer + NotesTodoSheet) ─────────── */
+
+.ntPanel { display: flex; flex-direction: column; gap: 18px; }
+.ntBlock { display: flex; flex-direction: column; gap: 8px; }
+.ntBlockHead {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  font-weight: 600;
+}
+.ntList { display: flex; flex-direction: column; gap: 6px; }
+
+.ntNote {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 9px 11px;
+  background: rgba(255,255,255,0.018);
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+}
+.ntNoteBody {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: var(--txt);
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+.ntTodo {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+  padding: 7px 11px;
+  background: rgba(255,255,255,0.018);
+  border: 0.5px solid var(--bdr);
+  border-radius: 10px;
+}
+.ntTodoLabel {
+  flex: 1;
+  min-width: 0;
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  color: var(--txt);
+  word-break: break-word;
+}
+.ntTodoDone .ntTodoLabel {
+  text-decoration: line-through;
+  color: var(--txt3);
+}
+.ntCheck {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 5px;
+  border: 1px solid var(--bdr);
+  background: rgba(255,255,255,0.04);
+  color: #fff;
+  font-size: 11px;
+  line-height: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.ntCheck:hover { border-color: rgba(212,119,138,0.40); }
+.ntCheckOn { background: var(--rose); border-color: var(--rose); }
+
+.ntRowActions { display: flex; gap: 4px; flex-shrink: 0; }
+.ntRowBtn {
+  background: transparent;
+  border: none;
+  color: var(--txt3);
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 2px 4px;
+  transition: color 150ms ease;
+}
+.ntRowBtn:hover { color: var(--rt); }
+.ntRowBtn:disabled { opacity: 0.4; cursor: default; }
+
+.ntAddRow { display: flex; gap: 6px; align-items: flex-end; }
+.ntInput, .ntTextarea {
+  flex: 1;
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid var(--bdr);
+  border-radius: 9px;
+  padding: 8px 11px;
+  color: var(--txt);
+  font-family: var(--font-ui);
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color 150ms ease, background 150ms ease;
+}
+.ntInput:focus, .ntTextarea:focus {
+  border-color: rgba(212,119,138,0.40);
+  background: rgba(255,255,255,0.06);
+}
+.ntTextarea { resize: vertical; min-height: 40px; line-height: 1.5; }
+.ntAddBtn {
+  flex-shrink: 0;
+  background: rgba(212,119,138,0.16);
+  border: 0.5px solid rgba(212,119,138,0.50);
+  border-radius: 9px;
+  color: var(--rt);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 9px 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.ntAddBtn:hover { background: rgba(212,119,138,0.24); }
+.ntAddBtn:disabled { opacity: 0.4; cursor: default; }
+
+.ntNoteEdit { display: flex; flex-direction: column; gap: 6px; }
+.ntEditActions { display: flex; gap: 6px; justify-content: flex-end; }
+.ntMiniCancel, .ntMiniSave {
+  padding: 6px 12px;
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 10px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.ntMiniCancel { background: transparent; border: 0.5px solid var(--bdr); color: var(--txt2); }
+.ntMiniCancel:hover { background: rgba(255,255,255,0.04); }
+.ntMiniSave { background: var(--rose); border: 0.5px solid var(--rose); color: #fff; }
+.ntMiniSave:hover { background: var(--rt); }
+.ntMiniSave:disabled { opacity: 0.5; cursor: default; }
+
+/* Empty-state line for an anchor/group with no notes or to-do yet. */
+.ntEmpty {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  color: var(--txt3);
+  padding: 2px 0 4px;
+}
+
+/* Aggregated sheet: per-milestone group + head, and the print-packet trigger. */
+.ntGroup { margin-bottom: 22px; }
+.ntGroup:last-child { margin-bottom: 0; }
+.ntGroupHead {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+  margin-bottom: 12px;
+  padding-bottom: 7px;
+  border-bottom: 0.5px solid var(--bdr);
+}
+.ntGroupLabel {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-style: italic;
+  color: var(--txt);
+}
+.ntGroupWhen {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.04em;
+  color: var(--txt3);
+  flex-shrink: 0;
+}
+.ntHeadActions { display: flex; align-items: center; gap: 10px; }
+.ntPrintBtn {
+  background: rgba(255,255,255,0.04);
+  border: 0.5px solid var(--bdr);
+  border-radius: 9px;
+  color: var(--txt);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  font-weight: 600;
+  padding: 8px 13px;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.ntPrintBtn:hover { background: rgba(255,255,255,0.07); border-color: rgba(212,119,138,0.30); }
+
+/* ─── PL #91 — PrintPacket overlay + paper ──────────────────────────────── */
+
+.pkOverlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  background: rgba(8,6,10,0.86);
+  display: flex;
+  flex-direction: column;
+}
+.pkBar {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+  padding: 12px 16px;
+  background: var(--bg, #14101a);
+  border-bottom: 0.5px solid var(--bdr);
+}
+.pkBarTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-style: italic;
+  color: var(--txt);
+}
+.pkToggles { display: flex; gap: 6px; flex-wrap: wrap; flex: 1; }
+.pkToggle {
+  padding: 6px 11px;
+  background: rgba(255,255,255,0.03);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  color: var(--txt2);
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  letter-spacing: 0.04em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease, color 150ms ease;
+}
+.pkToggle:hover { color: var(--txt); border-color: rgba(212,119,138,0.30); }
+.pkToggleOn {
+  background: rgba(212,119,138,0.16);
+  border-color: rgba(212,119,138,0.50);
+  color: var(--rt);
+}
+.pkBarActions { display: flex; gap: 8px; }
+.pkPrint, .pkClose {
+  padding: 8px 15px;
+  border-radius: 9px;
+  font-family: var(--font-ui);
+  font-size: 10.5px;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 150ms ease, border-color 150ms ease;
+}
+.pkPrint { background: var(--rose); border: 0.5px solid var(--rose); color: #fff; }
+.pkPrint:hover { background: var(--rt); border-color: var(--rt); }
+.pkClose { background: transparent; border: 0.5px solid var(--bdr); color: var(--txt2); }
+.pkClose:hover { background: rgba(255,255,255,0.04); }
+
+.pkScroll { flex: 1; overflow-y: auto; padding: 26px 16px 60px; }
+.pkDoc {
+  max-width: 720px;
+  margin: 0 auto;
+  background: #fff;
+  color: #1c1a20;
+  border-radius: 6px;
+  padding: 40px 44px;
+  box-shadow: 0 18px 60px rgba(0,0,0,0.4);
+}
+.pkDocHead {
+  border-bottom: 1.5px solid #1c1a20;
+  padding-bottom: 14px;
+  margin-bottom: 26px;
+}
+.pkDocTitle {
+  font-family: var(--font-display);
+  font-size: 28px;
+  font-style: italic;
+  line-height: 1.1;
+}
+.pkDocDate {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #555;
+  margin-top: 6px;
+}
+.pkSection { margin-bottom: 30px; break-inside: avoid; }
+.pkSectionH {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: #1c1a20;
+  font-weight: 700;
+  border-bottom: 0.75px solid #c9c4cf;
+  padding-bottom: 6px;
+  margin-bottom: 14px;
+}
+.pkPhase { margin-bottom: 16px; break-inside: avoid; }
+.pkPhaseH {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-style: italic;
+  margin-bottom: 8px;
+}
+.pkPhaseWhen { font-size: 12px; color: #777; font-style: normal; }
+.pkList { list-style: none; display: flex; flex-direction: column; gap: 7px; }
+.pkRow { display: flex; gap: 14px; align-items: baseline; break-inside: avoid; }
+.pkWhen {
+  flex: 0 0 92px;
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  letter-spacing: 0.03em;
+  color: #555;
+  white-space: nowrap;
+}
+.pkRowMain { display: flex; flex-direction: column; gap: 1px; }
+.pkRowT { font-size: 14px; font-weight: 500; }
+.pkRowSub { font-family: var(--font-ui); font-size: 11.5px; color: #666; }
+.pkNote {
+  font-size: 13px;
+  line-height: 1.5;
+  padding-left: 14px;
+  border-left: 2px solid #d8d3dd;
+  white-space: pre-wrap;
+  break-inside: avoid;
+}
+.pkTodo { display: flex; gap: 8px; font-size: 13.5px; align-items: baseline; break-inside: avoid; }
+.pkBox { font-family: monospace; font-size: 13px; color: #1c1a20; }
+.pkTodoDone { text-decoration: line-through; color: #888; }
+.pkEmpty { font-size: 13px; color: #888; font-style: italic; }

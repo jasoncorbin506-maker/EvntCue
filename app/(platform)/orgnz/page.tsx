@@ -27,8 +27,10 @@ import { Hero } from "./_components/Hero";
 import { LockDateCta } from "./_components/LockDateCta";
 import { DateSetCta } from "./_components/DateSetCta";
 import { SheetManager } from "./_components/SheetManager";
+import { PrintPacket } from "./_components/PrintPacket";
 import { TileGrid } from "./_components/TileGrid";
 import { TimelineRail } from "./_components/TimelineRail";
+import type { MilestoneAnchor } from "./_components/sheets/NotesTodoSheet";
 import { buildBenchmarkRows, overallVariance } from "./_lib/benchmarks";
 import {
   daysUntil,
@@ -121,7 +123,7 @@ export default async function OrgnzDashboardPage() {
     );
   }
 
-  const { event, lineItems, customMilestones } = ctx;
+  const { event, lineItems, customMilestones, notes, todos } = ctx;
   // Concept C session B — load vendor presences in parallel with the
   // existing context. Empty array gracefully when migration 049 isn't
   // applied (the query helper swallows the relation-does-not-exist error).
@@ -250,6 +252,21 @@ export default async function OrgnzDashboardPage() {
   const openItems = deriveOpenItems(customMilestones);
   const openItemsCounts = computeOpenItemsCounts(openItems);
 
+  // PL #91 — milestone anchors for the aggregated Notes & To-Do sheet + print
+  // packet. Derived from the timeline pins so labels/dates stay in sync with
+  // whatever the user sees on the rail (seed key or custom id is the anchor).
+  const milestoneAnchors: MilestoneAnchor[] = pins
+    .filter((p) => p.origin === "seed" || p.origin === "custom")
+    .map((p) => ({
+      kind: p.origin as "seed" | "custom",
+      key: (p.origin === "seed" ? p.milestoneKey : p.customId) ?? "",
+      label: p.label,
+      when: p.when,
+    }))
+    .filter((a) => a.key !== "");
+  const notesCount = notes.length;
+  const todoOpenCount = todos.filter((t) => !t.completed_at).length;
+
   // Run of Show — Scope B hallway (2026-05-24). Pick the recipe by event
   // type + subtype (universal fallback if no match), merge in any custom
   // milestones tagged with a ros_phase, render in phase order.
@@ -318,6 +335,8 @@ export default async function OrgnzDashboardPage() {
         eventType={event.event_type}
         subtypeKey={event.event_subtype}
         dismissedSeedKeys={dismissedSeedKeys}
+        notes={notes}
+        todos={todos}
       />
       <Feed initial={welcomeCards} />
       <EventNotificationsFeed notifications={eventNotifications} />
@@ -331,6 +350,8 @@ export default async function OrgnzDashboardPage() {
         hasPlnr={hasPlnr}
         hasVenu={hasVenu}
         isPaidTier={isPaidTier}
+        notesCount={notesCount}
+        todoOpenCount={todoOpenCount}
       />
       <RunOfShow
         eventId={event.id}
@@ -345,6 +366,21 @@ export default async function OrgnzDashboardPage() {
         budget={budgetSheetData}
         hasVenu={hasVenu}
         openItems={openItems}
+        eventId={event.id}
+        milestoneAnchors={milestoneAnchors}
+        notes={notes}
+        todos={todos}
+      />
+      <PrintPacket
+        eventName={event.name}
+        longDate={longDate}
+        pins={pins}
+        rosByPhase={rosByPhase}
+        rosRecipeLabel={rosRecipe.labelEn}
+        eventType={event.event_type}
+        anchors={milestoneAnchors}
+        notes={notes}
+        todos={todos}
       />
     </>
   );

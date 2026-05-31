@@ -73,6 +73,29 @@ export type OrgnzCustomMilestone = {
   day_of_relevant?: boolean;
 };
 
+// PL #91 — notes + to-do anchored to a milestone (seed via system_milestone_key,
+// custom via milestone_id) or un-anchored (both null). New tables in migration
+// 076; loaded best-effort below so the page renders before 076 is applied.
+export type OrgnzNote = {
+  id: string;
+  milestone_id: string | null;
+  system_milestone_key: string | null;
+  body: string;
+  created_at: string;
+  updated_at: string;
+};
+
+export type OrgnzTodoItem = {
+  id: string;
+  milestone_id: string | null;
+  system_milestone_key: string | null;
+  label: string;
+  completed_at: string | null;
+  sort_order: number;
+  created_at: string;
+  updated_at: string;
+};
+
 /**
  * PL #61 — lightweight per-event row for the Chrome event picker. One per
  * event on the tenant. `dateLabel` / `typeLabel` are pre-formatted server-side
@@ -94,6 +117,9 @@ export type OrgnzContext = {
   event: OrgnzEvent | null;
   lineItems: OrgnzBudgetLine[];
   customMilestones: OrgnzCustomMilestone[];
+  // PL #91 — milestone notes + to-do (empty before migration 076).
+  notes: OrgnzNote[];
+  todos: OrgnzTodoItem[];
   // PL #61 — multi-event support.
   events: OrgnzEventSummary[];
   selectedEventId: string | null;
@@ -132,6 +158,8 @@ export const loadOrgnzContext = cache(async (): Promise<OrgnzContext | null> => 
   let event: OrgnzEvent | null = null;
   let lineItems: OrgnzBudgetLine[] = [];
   let customMilestones: OrgnzCustomMilestone[] = [];
+  let notes: OrgnzNote[] = [];
+  let todos: OrgnzTodoItem[] = [];
   let events: OrgnzEventSummary[] = [];
   let selectedEventId: string | null = null;
   let eventNotFound = false;
@@ -251,6 +279,28 @@ export const loadOrgnzContext = cache(async (): Promise<OrgnzContext | null> => 
           });
         }
       }
+
+      // PL #91 — best-effort: event_notes + event_todo_items are new in
+      // migration 076. Pre-076 these SELECTs error; swallow and leave the
+      // arrays empty so the orgnz page renders fine before 076 is applied.
+      const { data: noteRows, error: notesErr } = await admin
+        .from("event_notes")
+        .select("id,milestone_id,system_milestone_key,body,created_at,updated_at")
+        .eq("event_id", event.id)
+        .is("deleted_at", null)
+        .order("created_at", { ascending: false });
+      if (!notesErr && noteRows) notes = noteRows as OrgnzNote[];
+
+      const { data: todoRows, error: todosErr } = await admin
+        .from("event_todo_items")
+        .select(
+          "id,milestone_id,system_milestone_key,label,completed_at,sort_order,created_at,updated_at",
+        )
+        .eq("event_id", event.id)
+        .is("deleted_at", null)
+        .order("sort_order", { ascending: true })
+        .order("created_at", { ascending: true });
+      if (!todosErr && todoRows) todos = todoRows as OrgnzTodoItem[];
     }
   }
 
@@ -266,6 +316,8 @@ export const loadOrgnzContext = cache(async (): Promise<OrgnzContext | null> => 
     event,
     lineItems,
     customMilestones,
+    notes,
+    todos,
     events,
     selectedEventId,
     eventNotFound,

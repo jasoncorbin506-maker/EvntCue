@@ -9,6 +9,8 @@ import { deleteCustomMilestone } from "../_actions/delete-custom-milestone";
 import { findTradition } from "@/data/cultural-traditions";
 import { DateTimePickerModal } from "./DateTimePickerModal";
 import { CustomMilestoneForm } from "./CustomMilestoneForm";
+import { NotesTodoPanel } from "./NotesTodoPanel";
+import type { OrgnzNote, OrgnzTodoItem } from "../_lib/load-context";
 
 const DRAWER_ICONS: Record<string, string> = {
   pulse:
@@ -48,10 +50,13 @@ type Props = {
   /** event.event_type — threaded to CustomMilestoneForm in edit mode so
    *  phase chip labels match the event's flavor. */
   eventType: string | null;
+  /** PL #91 — all event notes + to-do; filtered to this pin's anchor below. */
+  notes: OrgnzNote[];
+  todos: OrgnzTodoItem[];
   onClose: () => void;
 };
 
-export function RailDrawer({ pin, eventId, startDateIso, eventType, onClose }: Props) {
+export function RailDrawer({ pin, eventId, startDateIso, eventType, notes, todos, onClose }: Props) {
   const [editing, setEditing] = useState(false);
   const [pickerOpen, setPickerOpen] = useState(false);
   // Session 18w fix E — track in-flight sort bumps to disable buttons
@@ -84,6 +89,20 @@ export function RailDrawer({ pin, eventId, startDateIso, eventType, onClose }: P
   const isSeed = pin.origin === "seed";
   const isCustom = pin.origin === "custom";
   const traditionLabel = pin.traditionKey ? findTradition(pin.traditionKey)?.label : null;
+
+  // PL #91 — anchor notes/to-do to this pin: seed pins match on the milestone
+  // key, custom pins on the custom-milestone id. The "today" pin anchors to
+  // nothing, so its panel stays hidden.
+  const anchorNotes = isSeed
+    ? notes.filter((n) => n.system_milestone_key === pin.milestoneKey)
+    : isCustom
+      ? notes.filter((n) => n.milestone_id === pin.customId)
+      : [];
+  const anchorTodos = isSeed
+    ? todos.filter((t) => t.system_milestone_key === pin.milestoneKey)
+    : isCustom
+      ? todos.filter((t) => t.milestone_id === pin.customId)
+      : [];
 
   async function toggleDone() {
     if (!isSeed || !pin?.milestoneKey) return;
@@ -400,6 +419,19 @@ export function RailDrawer({ pin, eventId, startDateIso, eventType, onClose }: P
                       </div>
                     </button>
                   )}
+                </div>
+              )}
+
+              {!isToday && (
+                <div className={styles.drSection}>
+                  <div className={styles.drSectionL}>Notes &amp; to-do</div>
+                  <NotesTodoPanel
+                    eventId={eventId}
+                    milestoneId={isCustom ? pin.customId : null}
+                    systemMilestoneKey={isSeed ? pin.milestoneKey : null}
+                    notes={anchorNotes}
+                    todos={anchorTodos}
+                  />
                 </div>
               )}
             </>
