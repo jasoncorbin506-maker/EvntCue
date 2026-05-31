@@ -2149,8 +2149,11 @@ const ADMIN_CLIENT_ACTIONS = [
     type: "public_funnel" },
   { path: "app/(public)/vndr-onboarding/_actions/save-vndr-session.ts",
     type: "public_funnel" },
-  { path: "app/(public)/landing/_actions/capture-coming-soon.ts",
-    type: "public_funnel" },
+  // NOTE: landing/_actions/capture-coming-soon.ts was removed from this matrix
+  // 2026-05-31 — the action was deleted outright (commit 763f611, Door B
+  // self-serve signup replaced the coming-soon waitlist modal). The whole
+  // app/(public)/landing/_actions/ dir is gone; landing now routes to real
+  // signup with no server action of its own. Nothing to reclassify.
   { path: "app/(public)/event-preview/_actions/attach-email.ts",
     type: "public_funnel" },
 ];
