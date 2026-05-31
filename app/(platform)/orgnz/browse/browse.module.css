@@ -21,6 +21,10 @@
   color: var(--txt2);
   text-decoration: none;
   margin-bottom: 18px;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
 }
 .back:hover {
   color: var(--txt);
@@ -81,11 +85,6 @@
 .card:hover {
   border-color: var(--tile-accent);
   color: var(--txt);
-}
-.cardOn {
-  border-color: var(--tile-accent);
-  background: var(--tile-tint);
-  color: #fff;
 }
 
 .ico {

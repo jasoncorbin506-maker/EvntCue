@@ -52,6 +52,22 @@ export function TileGrid(props: Props) {
   const budgetTotal = budgetCents ?? 0;
   const budgetSpent = allocatedCents;
 
+  const venuTileInner = (
+    <>
+      <div className={styles.tileH}>
+        <div className={styles.tileIco}>
+          <svg viewBox="0 0 24 24">
+            <path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6" />
+          </svg>
+        </div>
+        <span className={styles.tileArrow}>→</span>
+      </div>
+      <div className={styles.tileL}>{t("tileVenu")}</div>
+      <div className={styles.tileV}>{hasVenu ? t("tileVenuLocked") : t("tileVenuPick")}</div>
+      <div className={styles.tileD}>{hasVenu ? t("tileVenuContract") : t("tileVenuBrowse")}</div>
+    </>
+  );
+
   return (
     <section className={styles.tiles}>
       {/* BUDGET — free */}
@@ -215,26 +231,21 @@ export function TileGrid(props: Props) {
         </div>
       </Link>
 
-      {/* VENU — free (browse) */}
-      <button
-        type="button"
-        className={`${styles.tile} ${styles.tileVenu}`}
-        onClick={() => openSheet("venu")}
-      >
-        <div className={styles.tileH}>
-          <div className={styles.tileIco}>
-            <svg viewBox="0 0 24 24">
-              <path d="M3 21h18M5 21V10l7-5 7 5v11M9 21v-6h6v6" />
-            </svg>
-          </div>
-          <span className={styles.tileArrow}>→</span>
-        </div>
-        <div className={styles.tileL}>{t("tileVenu")}</div>
-        <div className={styles.tileV}>{hasVenu ? t("tileVenuLocked") : t("tileVenuPick")}</div>
-        <div className={styles.tileD}>
-          {hasVenu ? t("tileVenuContract") : t("tileVenuBrowse")}
-        </div>
-      </button>
+      {/* VENU — free. Unbooked → direct to the focused venue search; once a venue
+          is locked (Phase 5) → the booked-venue surface (VenuSheet). */}
+      {hasVenu ? (
+        <button
+          type="button"
+          className={`${styles.tile} ${styles.tileVenu}`}
+          onClick={() => openSheet("venu")}
+        >
+          {venuTileInner}
+        </button>
+      ) : (
+        <Link href="/orgnz/browse?focus=venu" className={`${styles.tile} ${styles.tileVenu}`}>
+          {venuTileInner}
+        </Link>
+      )}
 
       {/* NOTES & TO-DO — free (PL #91) */}
       <button

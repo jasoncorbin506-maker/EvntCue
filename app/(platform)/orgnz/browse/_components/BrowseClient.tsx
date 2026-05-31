@@ -176,39 +176,45 @@ export function BrowseClient({
 
   return (
     <div className={s.wrap}>
-      <Link href="/orgnz" className={s.back}>
-        ‹ Dashboard
-      </Link>
+      {active ? (
+        <button type="button" className={s.back} onClick={() => setSelected(null)}>
+          ‹ All categories
+        </button>
+      ) : (
+        <Link href="/orgnz" className={s.back}>
+          ‹ Dashboard
+        </Link>
+      )}
 
-      <div className={s.head}>
-        <div className={s.eyebrow}>Marketplace</div>
-        <h1 className={s.title}>
-          Find your <em>team</em>
-        </h1>
-        <p className={s.sub}>
-          Browse DFW&apos;s verified vendors, venues, planners, and caterers — all in one place.
-        </p>
-      </div>
+      {!active && (
+        <>
+          <div className={s.head}>
+            <div className={s.eyebrow}>Marketplace</div>
+            <h1 className={s.title}>
+              Find your <em>team</em>
+            </h1>
+            <p className={s.sub}>
+              Browse DFW&apos;s verified vendors, venues, planners, and caterers — all in one place.
+            </p>
+          </div>
 
-      <div className={s.grid}>
-        {tiles.map((tile) => {
-          const on = selected === tile.key;
-          return (
-            <button
-              key={tile.key}
-              type="button"
-              className={`${s.card} ${on ? s.cardOn : ""}`}
-              style={{ "--tile-accent": tile.accent, "--tile-tint": tile.tint } as React.CSSProperties}
-              onClick={() => setSelected(on ? null : tile.key)}
-              aria-pressed={on}
-            >
-              <div className={s.ico}>{tile.icon}</div>
-              <div className={s.name}>{tile.name}</div>
-              <div className={s.examples}>{tile.examples}</div>
-            </button>
-          );
-        })}
-      </div>
+          <div className={s.grid}>
+            {tiles.map((tile) => (
+              <button
+                key={tile.key}
+                type="button"
+                className={s.card}
+                style={{ "--tile-accent": tile.accent, "--tile-tint": tile.tint } as React.CSSProperties}
+                onClick={() => setSelected(tile.key)}
+              >
+                <div className={s.ico}>{tile.icon}</div>
+                <div className={s.name}>{tile.name}</div>
+                <div className={s.examples}>{tile.examples}</div>
+              </button>
+            ))}
+          </div>
+        </>
+      )}
 
       {active && (isVndrCategoryKey(active.key) || showVenues) && (
         <div
