@@ -200,6 +200,45 @@
   border-color: var(--tile-accent);
 }
 
+/* Card body button — opens the seller profile (Lock 30). Resets button chrome
+   so it inherits the .listingCard look; the Inquire pill is a sibling below. */
+.cardOpen {
+  display: block;
+  font: inherit;
+  color: inherit;
+  text-align: left;
+  width: 100%;
+  padding: 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+}
+.cardOpen:focus-visible {
+  outline: 2px solid var(--tile-accent);
+  outline-offset: 2px;
+}
+
+/* Quick-inquire shortcut on the card (Lock 30 — dual entry; profile is primary,
+   this is the fast path for buyers who already know who they want). */
+.cardActions {
+  padding: 0 11px 11px;
+}
+.inquirePill {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--tile-accent);
+  background: var(--tile-tint);
+  border: 0.5px solid var(--tile-accent);
+  border-radius: 7px;
+  padding: 4px 10px;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.inquirePill:hover {
+  filter: brightness(0.97);
+}
+
 .listingPhoto {
   position: relative;
   width: 100%;

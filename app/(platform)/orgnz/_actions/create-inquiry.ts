@@ -75,7 +75,7 @@ export async function createInquiry(
   // it's *this* organizer's event (not one they merely participate in).
   const { data: event } = await supabase
     .from("events")
-    .select("id, name, start_date, status, orgnz_tenant_id")
+    .select("id, name, start_date, guest_count, status, orgnz_tenant_id")
     .eq("id", input.eventId)
     .maybeSingle();
   if (!event || (event.orgnz_tenant_id as string) !== organizer.tenantId) {
@@ -120,7 +120,9 @@ export async function createInquiry(
       recipient_type: sellerPortal,
       event_id: input.eventId,
       event_date: eventDate,
-      guest_count: input.guestCount ?? null,
+      // Carry the event's headcount automatically (the buyer doesn't re-enter
+      // what the event already knows); an explicit override still wins if passed.
+      guest_count: input.guestCount ?? (event.guest_count as number | null) ?? null,
       message: msg.message,
       status: "inquiry",
     })
@@ -139,6 +141,26 @@ export async function createInquiry(
     userId: organizer.userId,
     reason: `Inquiry sent to ${sellerTenant.name as string}`,
   });
+
+  // Lock 30 Decision 7 — surface the outreach on the buyer's planning timeline
+  // as a custom milestone (assignment_status='vendor_assigned' → a seller is now
+  // in play, so it reads as a real entry, not an unowned to-do). Best-effort:
+  // a failed write never fails the inquiry. Admin client — event ownership was
+  // already verified above.
+  {
+    const today = new Date().toISOString().slice(0, 10);
+    const { error: msErr } = await admin.from("event_custom_milestones").insert({
+      event_id: input.eventId,
+      label: `Inquiry — ${sellerTenant.name as string}`,
+      custom_date: today,
+      assignment_status: "vendor_assigned",
+      vendor_name: sellerTenant.name as string,
+      created_by: organizer.userId,
+    });
+    if (msErr) {
+      console.warn(`createInquiry: timeline milestone write failed for ${inquiryId}: ${msErr.message}`);
+    }
+  }
 
   // Seller notification email — fire-and-forget (Lock 22 / Lock 24). A failed
   // send never fails the inquiry; the in-app row is the source of truth.

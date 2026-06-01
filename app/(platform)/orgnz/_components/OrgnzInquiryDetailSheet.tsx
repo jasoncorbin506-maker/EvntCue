@@ -8,6 +8,8 @@ import { acceptAndFundDeposit } from "../_actions/fund-deposit";
 import { OrgnzInquiryThread } from "./OrgnzInquiryThread";
 import s from "./OrgnzInquiries.module.css";
 
+const RECIPIENT_NOUN = { vndr: "Vndr", venu: "Venu", catr: "Catr" } as const;
+
 /**
  * Organizer-side bottom-sheet detail view for a single inquiry.
  *
@@ -52,6 +54,7 @@ export function OrgnzInquiryDetailSheet({ inquiry, onClose }: Props) {
   const [pending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
 
+  const noun = RECIPIENT_NOUN[inquiry.recipientType];
   const confirmed = isConfirmedHold(inquiry.depositStatus);
   const canFund =
     !confirmed &&
@@ -75,7 +78,7 @@ export function OrgnzInquiryDetailSheet({ inquiry, onClose }: Props) {
         <div className={s.sheetHeader}>
           <div>
             <div className={s.sheetTitle}>
-              {inquiry.vendorDisplayName ?? "Vndr"}
+              {inquiry.vendorDisplayName ?? noun}
             </div>
             <div className={s.sheetSubtitle}>
               {formatEventDate(inquiry.eventDate)}
@@ -102,7 +105,7 @@ export function OrgnzInquiryDetailSheet({ inquiry, onClose }: Props) {
 
         {inquiry.proposedPriceCents !== null && (
           <>
-            <div className={s.sectionLbl}>Vndr&rsquo;s quote</div>
+            <div className={s.sectionLbl}>{noun}&rsquo;s quote</div>
             <div className={s.priceReadonly}>
               {formatPriceDisplay(inquiry.proposedPriceCents)}
             </div>

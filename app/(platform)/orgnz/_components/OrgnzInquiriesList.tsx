@@ -2,11 +2,19 @@
 
 import { useMemo, useState } from "react";
 import type {
+  InquiryRecipientType,
   OrgnzInquiry,
   OrgnzInquiryStatus,
 } from "@/lib/orgnz/inquiries";
 import { OrgnzInquiryDetailSheet } from "./OrgnzInquiryDetailSheet";
 import s from "./OrgnzInquiries.module.css";
+
+/** Seller-portal word for a recipient's type chip + display-name fallback. */
+const RECIPIENT_NOUN: Record<InquiryRecipientType, string> = {
+  vndr: "Vndr",
+  venu: "Venu",
+  catr: "Catr",
+};
 
 /**
  * Organizer inquiries list — mirrors VndrInquiriesList shape. Client owns
@@ -135,7 +143,7 @@ export function OrgnzInquiriesList({ inquiries, initialOpenId = null }: Props) {
           </div>
           <div className={s.emptyStateBody}>
             {filter === "all"
-              ? "When you reach out to Vndrs about an event, those inquiries land here. Start from a Vndr's profile or from the Plnr side of your event."
+              ? "When you reach out to a Vndr, Venu, or Catr about an event, those inquiries land here. Start from the marketplace — browse, then send an inquiry."
               : `Nothing in ${FILTER_LABELS[filter]} right now. Try a different filter to see more.`}
           </div>
         </div>
@@ -159,7 +167,9 @@ export function OrgnzInquiriesList({ inquiries, initialOpenId = null }: Props) {
                   </span>
                 </div>
                 <div className={s.inqRowMid}>
-                  <b>{inq.vendorDisplayName ?? "Vndr"}</b>
+                  <b>{inq.vendorDisplayName ?? RECIPIENT_NOUN[inq.recipientType]}</b>
+                  {" · "}
+                  <span className={s.inqType}>{RECIPIENT_NOUN[inq.recipientType]}</span>
                   {" · "}
                   {inq.guestCount > 0
                     ? `${inq.guestCount} guests`

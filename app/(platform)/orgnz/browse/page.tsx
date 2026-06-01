@@ -1,4 +1,5 @@
 import { getMarketplaceVendors, getMarketplaceVenues } from "@/lib/marketplace/listings";
+import { getOrgnzActiveEvents } from "@/lib/orgnz/active-events";
 import { BrowseClient } from "./_components/BrowseClient";
 
 /**
@@ -13,11 +14,19 @@ export default async function OrgnzBrowsePage({
 }: {
   searchParams: Promise<{ focus?: string }>;
 }) {
-  const [{ focus }, vendors, venues] = await Promise.all([
+  const [{ focus }, vendors, venues, activeEvents] = await Promise.all([
     searchParams,
     getMarketplaceVendors(),
     getMarketplaceVenues(),
+    getOrgnzActiveEvents(),
   ]);
 
-  return <BrowseClient vendors={vendors} venues={venues} initialFocus={focus ?? null} />;
+  return (
+    <BrowseClient
+      vendors={vendors}
+      venues={venues}
+      activeEvents={activeEvents}
+      initialFocus={focus ?? null}
+    />
+  );
 }

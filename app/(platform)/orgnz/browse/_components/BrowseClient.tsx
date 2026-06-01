@@ -8,6 +8,15 @@ import { vendorCategoryLabel } from "@/lib/labels/vendor-categories";
 import { CATEGORY_ICONS } from "@/app/(public)/vndr-onboarding/[step]/_components/category-icons";
 import type { Locale } from "@/i18n/locale";
 import type { VendorListing, VenueListing } from "@/lib/marketplace/listings";
+import type { InquiryEventOption } from "@/lib/orgnz/active-events";
+import {
+  SendInquirySheet,
+  type InquiryTarget,
+} from "../../_components/SendInquirySheet";
+import {
+  SellerProfileSheet,
+  type SellerProfile,
+} from "../../_components/SellerProfileSheet";
 import s from "../browse.module.css";
 
 /**
@@ -69,7 +78,15 @@ function dollars(cents: number | null): string | null {
   return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
 }
 
-function VendorCard({ v }: { v: VendorListing }) {
+function VendorCard({
+  v,
+  onView,
+  onInquire,
+}: {
+  v: VendorListing;
+  onView: () => void;
+  onInquire: () => void;
+}) {
   const cheapest = v.packages.reduce<number | null>((min, p) => {
     if (p.priceCents == null) return min;
     return min == null || p.priceCents < min ? p.priceCents : min;
@@ -78,30 +95,50 @@ function VendorCard({ v }: { v: VendorListing }) {
   const cover = v.photos[0];
   return (
     <div className={s.listingCard}>
-      <div className={s.listingPhoto}>
-        {cover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover.url} alt={cover.alt ?? v.displayName} loading="lazy" />
-        ) : (
-          <div className={s.listingPhotoEmpty} aria-hidden="true" />
-        )}
-      </div>
-      <div className={s.listingBody}>
-        <div className={s.listingName}>{v.displayName}</div>
-        <div className={s.listingMeta}>
-          {[v.subType, v.city].filter(Boolean).join(" · ")}
+      <button
+        type="button"
+        className={s.cardOpen}
+        onClick={onView}
+        aria-label={`View ${v.displayName}`}
+      >
+        <div className={s.listingPhoto}>
+          {cover ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={cover.url} alt={cover.alt ?? v.displayName} loading="lazy" />
+          ) : (
+            <div className={s.listingPhotoEmpty} aria-hidden="true" />
+          )}
         </div>
-        {fromCents != null && (
-          <div className={s.listingPrice}>
-            From <strong>{dollars(fromCents)}</strong>
+        <div className={s.listingBody}>
+          <div className={s.listingName}>{v.displayName}</div>
+          <div className={s.listingMeta}>
+            {[v.subType, v.city].filter(Boolean).join(" · ")}
           </div>
-        )}
+          {fromCents != null && (
+            <div className={s.listingPrice}>
+              From <strong>{dollars(fromCents)}</strong>
+            </div>
+          )}
+        </div>
+      </button>
+      <div className={s.cardActions}>
+        <button type="button" className={s.inquirePill} onClick={onInquire}>
+          Inquire →
+        </button>
       </div>
     </div>
   );
 }
 
-function VenueCard({ v }: { v: VenueListing }) {
+function VenueCard({
+  v,
+  onView,
+  onInquire,
+}: {
+  v: VenueListing;
+  onView: () => void;
+  onInquire: () => void;
+}) {
   const topSpace = v.spaces[0];
   const rate = topSpace ? dollars(topSpace.ratePerDayCents) : null;
   const cap = v.spaces.reduce<number | null>((max, sp) => {
@@ -110,26 +147,38 @@ function VenueCard({ v }: { v: VenueListing }) {
   }, null);
   return (
     <div className={s.listingCard}>
-      <div className={s.listingPhoto}>
-        <div className={s.listingPhotoEmpty} aria-hidden="true" />
-      </div>
-      <div className={s.listingBody}>
-        <div className={s.listingName}>{v.displayName}</div>
-        <div className={s.listingMeta}>
-          {[v.city, v.state].filter(Boolean).join(", ")}
-          {cap != null ? ` · up to ${cap.toLocaleString("en-US")} guests` : ""}
+      <button
+        type="button"
+        className={s.cardOpen}
+        onClick={onView}
+        aria-label={`View ${v.displayName}`}
+      >
+        <div className={s.listingPhoto}>
+          <div className={s.listingPhotoEmpty} aria-hidden="true" />
         </div>
-        {rate != null && (
-          <div className={s.listingPrice}>
-            From <strong>{rate}</strong> / day
+        <div className={s.listingBody}>
+          <div className={s.listingName}>{v.displayName}</div>
+          <div className={s.listingMeta}>
+            {[v.city, v.state].filter(Boolean).join(", ")}
+            {cap != null ? ` · up to ${cap.toLocaleString("en-US")} guests` : ""}
           </div>
-        )}
-        {(v.coiVerified || v.propertyVerified) && (
-          <div className={s.listingBadges}>
-            {v.propertyVerified && <span className={s.listingBadge}>Property verified</span>}
-            {v.coiVerified && <span className={s.listingBadge}>Insured</span>}
-          </div>
-        )}
+          {rate != null && (
+            <div className={s.listingPrice}>
+              From <strong>{rate}</strong> / day
+            </div>
+          )}
+          {(v.coiVerified || v.propertyVerified) && (
+            <div className={s.listingBadges}>
+              {v.propertyVerified && <span className={s.listingBadge}>Property verified</span>}
+              {v.coiVerified && <span className={s.listingBadge}>Insured</span>}
+            </div>
+          )}
+        </div>
+      </button>
+      <div className={s.cardActions}>
+        <button type="button" className={s.inquirePill} onClick={onInquire}>
+          Inquire →
+        </button>
       </div>
     </div>
   );
@@ -138,14 +187,18 @@ function VenueCard({ v }: { v: VenueListing }) {
 export function BrowseClient({
   vendors,
   venues,
+  activeEvents,
   initialFocus,
 }: {
   vendors: VendorListing[];
   venues: VenueListing[];
+  activeEvents: InquiryEventOption[];
   initialFocus: string | null;
 }) {
   const locale = useLocale() as Locale;
   const [selected, setSelected] = useState<string | null>(initialFocus);
+  const [inquiryTarget, setInquiryTarget] = useState<InquiryTarget | null>(null);
+  const [profileTarget, setProfileTarget] = useState<SellerProfile | null>(null);
 
   const vendorTiles: Tile[] = VNDR_CATEGORIES.map((cat) => ({
     key: cat.key,
@@ -228,7 +281,18 @@ export function BrowseClient({
             venues.length > 0 ? (
               <div className={s.listingGrid}>
                 {venues.map((v) => (
-                  <VenueCard key={v.tenantId} v={v} />
+                  <VenueCard
+                    key={v.tenantId}
+                    v={v}
+                    onView={() => setProfileTarget({ kind: "venu", venue: v })}
+                    onInquire={() =>
+                      setInquiryTarget({
+                        tenantId: v.tenantId,
+                        displayName: v.displayName,
+                        portal: "venu",
+                      })
+                    }
+                  />
                 ))}
               </div>
             ) : (
@@ -239,7 +303,18 @@ export function BrowseClient({
           ) : activeVendors.length > 0 ? (
             <div className={s.listingGrid}>
               {activeVendors.map((v) => (
-                <VendorCard key={v.tenantId} v={v} />
+                <VendorCard
+                  key={v.tenantId}
+                  v={v}
+                  onView={() => setProfileTarget({ kind: "vndr", vendor: v })}
+                  onInquire={() =>
+                    setInquiryTarget({
+                      tenantId: v.tenantId,
+                      displayName: v.displayName,
+                      portal: "vndr",
+                    })
+                  }
+                />
               ))}
             </div>
           ) : (
@@ -263,6 +338,33 @@ export function BrowseClient({
             you lock them in.
           </p>
         </div>
+      )}
+
+      {profileTarget && (
+        <SellerProfileSheet
+          profile={profileTarget}
+          onClose={() => setProfileTarget(null)}
+          onInquire={() => {
+            const t =
+              profileTarget.kind === "vndr"
+                ? profileTarget.vendor
+                : profileTarget.venue;
+            setProfileTarget(null);
+            setInquiryTarget({
+              tenantId: t.tenantId,
+              displayName: t.displayName,
+              portal: profileTarget.kind,
+            });
+          }}
+        />
+      )}
+
+      {inquiryTarget && (
+        <SendInquirySheet
+          target={inquiryTarget}
+          events={activeEvents}
+          onClose={() => setInquiryTarget(null)}
+        />
       )}
     </div>
   );

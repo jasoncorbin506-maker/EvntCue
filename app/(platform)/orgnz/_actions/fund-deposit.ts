@@ -8,21 +8,24 @@ import { createClient } from "@/lib/supabase/server";
  * bare inquiry becomes a cash-backed "Confirmed hold." This is what makes a
  * lead *qualified*: the date isn't held until money is on file.
  *
- *   acceptAndFundDeposit:  quoted (deposit none) → penciled (deposit funded)
- *     + deposit_amount_cents, deposit_funded_at = now, hold_expires_at = +14d
+ *   fund_inquiry_deposit:  quoted (deposit none) → penciled (deposit funded)
+ *     + deposit_amount_cents (25% of quote), deposit_funded_at = now,
+ *       hold_expires_at = +14d
  *
- * STUB MONEY — pre-Stripe. No charge happens; this only stamps the deposit
- * state via the buyer branch of the inq_update RLS policy. When Stripe Connect
- * lands, this MUST move to a SECURITY DEFINER fn gated on a verified payment
- * intent (a self-serve UPDATE that flips 'funded' with no charge is a bypass —
- * see migration 081 header). The `.eq` source guards keep the transition legal.
+ * The write goes through the SECURITY DEFINER fn `fund_inquiry_deposit`
+ * (migration 083 / R2 / PL #101) — the SOLE writer of the four deposit columns,
+ * which `authenticated` can no longer UPDATE directly. That closes the prior
+ * self-serve funded-flip bypass (a raw PostgREST UPDATE flipping 'funded' with
+ * no charge). The fn re-checks buyer ownership + state server-side, so the
+ * pre-read below is purely for friendly UX errors, not a security gate.
  *
- * Deposit amount is a platform-default fraction of the quote until venu-set
- * deposit terms ship (the payment-flows config sheet, PARKING_LOT #45).
+ * STUB MONEY — pre-Stripe. The fn stamps funded with no charge; when Stripe
+ * Connect lands it gains a payment_intent.succeeded gate (the bypass surface is
+ * already closed, so that's an additive change inside the fn).
+ *
+ * Deposit fraction (25%) + hold window (14d) live in the fn now — single source
+ * of truth — until venu-set deposit terms ship (PARKING_LOT #45).
  */
-
-const DEPOSIT_FRACTION = 0.25;
-const HOLD_DAYS = 14;
 
 export type FundDepositResult =
   | { ok: true; id: string; depositAmountCents: number }
@@ -35,8 +38,8 @@ export async function acceptAndFundDeposit(
 
   const supabase = await createClient();
 
-  // Read the quote to size the deposit. RLS (inq_select) scopes this to the
-  // buyer's own inquiries.
+  // Friendly pre-checks (UX only — the fn re-validates server-side). RLS
+  // (inq_select) scopes this read to the buyer's own inquiries.
   const { data: row, error: readErr } = await supabase
     .from("inquiries")
     .select("proposed_price_cents, status, deposit_status")
@@ -57,23 +60,10 @@ export async function acceptAndFundDeposit(
     return { ok: false, error: "The seller hasn't set a quote price yet." };
   }
 
-  const depositAmountCents = Math.round(priceCents * DEPOSIT_FRACTION);
-  const now = new Date();
-  const holdExpiresAt = new Date(now.getTime() + HOLD_DAYS * 86_400_000).toISOString();
-
+  // The actual flip — definer fn is the only path that may write the deposit
+  // columns. Returns one row: { id, deposit_amount_cents }.
   const { data, error } = await supabase
-    .from("inquiries")
-    .update({
-      status: "penciled",
-      deposit_status: "funded",
-      deposit_amount_cents: depositAmountCents,
-      deposit_funded_at: now.toISOString(),
-      hold_expires_at: holdExpiresAt,
-    })
-    .eq("id", inquiryId)
-    .eq("status", "quoted")
-    .eq("deposit_status", "none")
-    .select("id")
+    .rpc("fund_inquiry_deposit", { p_inquiry_id: inquiryId })
     .single();
 
   if (error || !data) {
@@ -85,5 +75,9 @@ export async function acceptAndFundDeposit(
 
   revalidatePath("/orgnz/inquiries");
   revalidatePath("/orgnz");
-  return { ok: true, id: data.id as string, depositAmountCents };
+  return {
+    ok: true,
+    id: (data as { id: string }).id,
+    depositAmountCents: (data as { deposit_amount_cents: number }).deposit_amount_cents,
+  };
 }
