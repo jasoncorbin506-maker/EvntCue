@@ -147,6 +147,21 @@ function VndrProfileBody({ v }: { v: VendorListing }) {
 function VenuProfileBody({ v }: { v: VenueListing }) {
   return (
     <>
+      {v.photos.length > 0 && (
+        <div className={s.gallery}>
+          {v.photos.map((p, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={i}
+              src={p.url}
+              alt={p.alt ?? v.displayName}
+              loading="lazy"
+              className={s.galleryImg}
+            />
+          ))}
+        </div>
+      )}
+
       <div className={s.metaRow}>
         {[v.city, v.state].filter(Boolean).join(", ")}
       </div>
