@@ -13,6 +13,10 @@ import {
   SendInquirySheet,
   type InquiryTarget,
 } from "../../_components/SendInquirySheet";
+import {
+  SellerProfileSheet,
+  type SellerProfile,
+} from "../../_components/SellerProfileSheet";
 import s from "../browse.module.css";
 
 /**
@@ -74,7 +78,15 @@ function dollars(cents: number | null): string | null {
   return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
 }
 
-function VendorCard({ v, onInquire }: { v: VendorListing; onInquire: () => void }) {
+function VendorCard({
+  v,
+  onView,
+  onInquire,
+}: {
+  v: VendorListing;
+  onView: () => void;
+  onInquire: () => void;
+}) {
   const cheapest = v.packages.reduce<number | null>((min, p) => {
     if (p.priceCents == null) return min;
     return min == null || p.priceCents < min ? p.priceCents : min;
@@ -82,36 +94,51 @@ function VendorCard({ v, onInquire }: { v: VendorListing; onInquire: () => void 
   const fromCents = v.startingPriceCents ?? cheapest;
   const cover = v.photos[0];
   return (
-    <button
-      type="button"
-      className={`${s.listingCard} ${s.listingCardBtn}`}
-      onClick={onInquire}
-      aria-label={`Inquire with ${v.displayName}`}
-    >
-      <div className={s.listingPhoto}>
-        {cover ? (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img src={cover.url} alt={cover.alt ?? v.displayName} loading="lazy" />
-        ) : (
-          <div className={s.listingPhotoEmpty} aria-hidden="true" />
-        )}
-      </div>
-      <div className={s.listingBody}>
-        <div className={s.listingName}>{v.displayName}</div>
-        <div className={s.listingMeta}>
-          {[v.subType, v.city].filter(Boolean).join(" · ")}
+    <div className={s.listingCard}>
+      <button
+        type="button"
+        className={s.cardOpen}
+        onClick={onView}
+        aria-label={`View ${v.displayName}`}
+      >
+        <div className={s.listingPhoto}>
+          {cover ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={cover.url} alt={cover.alt ?? v.displayName} loading="lazy" />
+          ) : (
+            <div className={s.listingPhotoEmpty} aria-hidden="true" />
+          )}
         </div>
-        {fromCents != null && (
-          <div className={s.listingPrice}>
-            From <strong>{dollars(fromCents)}</strong>
+        <div className={s.listingBody}>
+          <div className={s.listingName}>{v.displayName}</div>
+          <div className={s.listingMeta}>
+            {[v.subType, v.city].filter(Boolean).join(" · ")}
           </div>
-        )}
+          {fromCents != null && (
+            <div className={s.listingPrice}>
+              From <strong>{dollars(fromCents)}</strong>
+            </div>
+          )}
+        </div>
+      </button>
+      <div className={s.cardActions}>
+        <button type="button" className={s.inquirePill} onClick={onInquire}>
+          Inquire →
+        </button>
       </div>
-    </button>
+    </div>
   );
 }
 
-function VenueCard({ v, onInquire }: { v: VenueListing; onInquire: () => void }) {
+function VenueCard({
+  v,
+  onView,
+  onInquire,
+}: {
+  v: VenueListing;
+  onView: () => void;
+  onInquire: () => void;
+}) {
   const topSpace = v.spaces[0];
   const rate = topSpace ? dollars(topSpace.ratePerDayCents) : null;
   const cap = v.spaces.reduce<number | null>((max, sp) => {
@@ -119,34 +146,41 @@ function VenueCard({ v, onInquire }: { v: VenueListing; onInquire: () => void })
     return max == null || sp.capacity > max ? sp.capacity : max;
   }, null);
   return (
-    <button
-      type="button"
-      className={`${s.listingCard} ${s.listingCardBtn}`}
-      onClick={onInquire}
-      aria-label={`Inquire with ${v.displayName}`}
-    >
-      <div className={s.listingPhoto}>
-        <div className={s.listingPhotoEmpty} aria-hidden="true" />
-      </div>
-      <div className={s.listingBody}>
-        <div className={s.listingName}>{v.displayName}</div>
-        <div className={s.listingMeta}>
-          {[v.city, v.state].filter(Boolean).join(", ")}
-          {cap != null ? ` · up to ${cap.toLocaleString("en-US")} guests` : ""}
+    <div className={s.listingCard}>
+      <button
+        type="button"
+        className={s.cardOpen}
+        onClick={onView}
+        aria-label={`View ${v.displayName}`}
+      >
+        <div className={s.listingPhoto}>
+          <div className={s.listingPhotoEmpty} aria-hidden="true" />
         </div>
-        {rate != null && (
-          <div className={s.listingPrice}>
-            From <strong>{rate}</strong> / day
+        <div className={s.listingBody}>
+          <div className={s.listingName}>{v.displayName}</div>
+          <div className={s.listingMeta}>
+            {[v.city, v.state].filter(Boolean).join(", ")}
+            {cap != null ? ` · up to ${cap.toLocaleString("en-US")} guests` : ""}
           </div>
-        )}
-        {(v.coiVerified || v.propertyVerified) && (
-          <div className={s.listingBadges}>
-            {v.propertyVerified && <span className={s.listingBadge}>Property verified</span>}
-            {v.coiVerified && <span className={s.listingBadge}>Insured</span>}
-          </div>
-        )}
+          {rate != null && (
+            <div className={s.listingPrice}>
+              From <strong>{rate}</strong> / day
+            </div>
+          )}
+          {(v.coiVerified || v.propertyVerified) && (
+            <div className={s.listingBadges}>
+              {v.propertyVerified && <span className={s.listingBadge}>Property verified</span>}
+              {v.coiVerified && <span className={s.listingBadge}>Insured</span>}
+            </div>
+          )}
+        </div>
+      </button>
+      <div className={s.cardActions}>
+        <button type="button" className={s.inquirePill} onClick={onInquire}>
+          Inquire →
+        </button>
       </div>
-    </button>
+    </div>
   );
 }
 
@@ -164,6 +198,7 @@ export function BrowseClient({
   const locale = useLocale() as Locale;
   const [selected, setSelected] = useState<string | null>(initialFocus);
   const [inquiryTarget, setInquiryTarget] = useState<InquiryTarget | null>(null);
+  const [profileTarget, setProfileTarget] = useState<SellerProfile | null>(null);
 
   const vendorTiles: Tile[] = VNDR_CATEGORIES.map((cat) => ({
     key: cat.key,
@@ -249,6 +284,7 @@ export function BrowseClient({
                   <VenueCard
                     key={v.tenantId}
                     v={v}
+                    onView={() => setProfileTarget({ kind: "venu", venue: v })}
                     onInquire={() =>
                       setInquiryTarget({
                         tenantId: v.tenantId,
@@ -270,6 +306,7 @@ export function BrowseClient({
                 <VendorCard
                   key={v.tenantId}
                   v={v}
+                  onView={() => setProfileTarget({ kind: "vndr", vendor: v })}
                   onInquire={() =>
                     setInquiryTarget({
                       tenantId: v.tenantId,
@@ -301,6 +338,25 @@ export function BrowseClient({
             you lock them in.
           </p>
         </div>
+      )}
+
+      {profileTarget && (
+        <SellerProfileSheet
+          profile={profileTarget}
+          onClose={() => setProfileTarget(null)}
+          onInquire={() => {
+            const t =
+              profileTarget.kind === "vndr"
+                ? profileTarget.vendor
+                : profileTarget.venue;
+            setProfileTarget(null);
+            setInquiryTarget({
+              tenantId: t.tenantId,
+              displayName: t.displayName,
+              portal: profileTarget.kind,
+            });
+          }}
+        />
       )}
 
       {inquiryTarget && (

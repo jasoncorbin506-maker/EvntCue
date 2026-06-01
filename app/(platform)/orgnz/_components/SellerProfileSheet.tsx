@@ -1,0 +1,187 @@
+"use client";
+
+import { useEffect } from "react";
+import { createPortal } from "react-dom";
+import type { VendorListing, VenueListing } from "@/lib/marketplace/listings";
+import orgnzStyles from "../orgnz.module.css";
+import s from "./SellerProfileSheet.module.css";
+
+/**
+ * Seller profile drawer (Lock 30 Phase A — profile-first marketplace).
+ *
+ * Opened from a marketplace browse card; shows the seller's full listing
+ * (gallery, packages/spaces, location, verifications) so the buyer can size
+ * them up before reaching out. The "Inquire" CTA hands off to the same
+ * SendInquirySheet the card's quick-inquire pill uses.
+ *
+ * Phase A renders entirely from the already-fetched listing data (no extra
+ * round-trip) for vndr + venu. catr/plnr profiles land in Phase C with their
+ * tables; venue photos in Phase B.
+ */
+
+function dollars(cents: number | null): string | null {
+  if (cents == null) return null;
+  return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
+}
+
+export type SellerProfile =
+  | { kind: "vndr"; vendor: VendorListing }
+  | { kind: "venu"; venue: VenueListing };
+
+const EYEBROW = { vndr: "Vndr", venu: "Venu" } as const;
+
+type Props = {
+  profile: SellerProfile;
+  onClose: () => void;
+  onInquire: () => void;
+};
+
+export function SellerProfileSheet({ profile, onClose, onInquire }: Props) {
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") onClose();
+    };
+    document.body.style.overflow = "hidden";
+    window.addEventListener("keydown", onKey);
+    return () => {
+      document.body.style.overflow = "";
+      window.removeEventListener("keydown", onKey);
+    };
+  }, [onClose]);
+
+  if (typeof document === "undefined") return null;
+
+  const displayName =
+    profile.kind === "vndr" ? profile.vendor.displayName : profile.venue.displayName;
+
+  return createPortal(
+    <>
+      <div className={orgnzStyles.scrim} onClick={onClose} aria-hidden="true" />
+      <aside
+        className={`${orgnzStyles.drawer} ${orgnzStyles.drawerOpen}`}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="seller-profile-title"
+      >
+        <div className={orgnzStyles.drawerHandle} />
+        <div className={orgnzStyles.drawerHead}>
+          <div>
+            <div className={orgnzStyles.drawerEye}>{EYEBROW[profile.kind]}</div>
+            <h3 className={orgnzStyles.drawerTitle} id="seller-profile-title">
+              <em>{displayName}</em>
+            </h3>
+          </div>
+          <button
+            type="button"
+            className={orgnzStyles.drawerClose}
+            onClick={onClose}
+            aria-label="Close"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className={orgnzStyles.drawerBody}>
+          {profile.kind === "vndr"
+            ? <VndrProfileBody v={profile.vendor} />
+            : <VenuProfileBody v={profile.venue} />}
+        </div>
+
+        <div className={s.cta}>
+          <button type="button" className={s.inquireBtn} onClick={onInquire}>
+            Inquire with {displayName}
+          </button>
+        </div>
+      </aside>
+    </>,
+    document.body,
+  );
+}
+
+function VndrProfileBody({ v }: { v: VendorListing }) {
+  return (
+    <>
+      {v.photos.length > 0 && (
+        <div className={s.gallery}>
+          {v.photos.map((p, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={i}
+              src={p.url}
+              alt={p.alt ?? v.displayName}
+              loading="lazy"
+              className={s.galleryImg}
+            />
+          ))}
+        </div>
+      )}
+
+      <div className={s.metaRow}>
+        {[v.subType, v.city].filter(Boolean).join(" · ")}
+      </div>
+
+      {v.packages.length > 0 && (
+        <div className={s.section}>
+          <div className={s.sectionLabel}>Packages</div>
+          <ul className={s.list}>
+            {v.packages.map((p) => (
+              <li key={p.id} className={s.listRow}>
+                <span className={s.listName}>{p.name}</span>
+                <span className={s.listVal}>
+                  {[
+                    dollars(p.priceCents),
+                    p.durationHours != null ? `${p.durationHours}h` : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
+
+function VenuProfileBody({ v }: { v: VenueListing }) {
+  return (
+    <>
+      <div className={s.metaRow}>
+        {[v.city, v.state].filter(Boolean).join(", ")}
+      </div>
+
+      {(v.coiVerified || v.propertyVerified) && (
+        <div className={s.badges}>
+          {v.propertyVerified && <span className={s.badge}>Property verified</span>}
+          {v.coiVerified && <span className={s.badge}>Insured</span>}
+        </div>
+      )}
+
+      {v.spaces.length > 0 && (
+        <div className={s.section}>
+          <div className={s.sectionLabel}>Spaces</div>
+          <ul className={s.list}>
+            {v.spaces.map((sp) => (
+              <li key={sp.id} className={s.listRow}>
+                <span className={s.listName}>{sp.name}</span>
+                <span className={s.listVal}>
+                  {[
+                    sp.capacity != null
+                      ? `up to ${sp.capacity.toLocaleString("en-US")}`
+                      : null,
+                    sp.ratePerDayCents != null
+                      ? `${dollars(sp.ratePerDayCents)}/day`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
