@@ -3989,6 +3989,10 @@ async function testMarketplacePublishedReadViews() {
   ]) {
     const { error: vErr } = await adminClient.from("vendors").insert({
       tenant_id: v.tenantId,
+      // A tenant-linked vendor must carry claimed_at (CHECK
+      // vendors_tenant_implies_claimed: tenant_id NOT NULL ⟺ claimed_at NOT NULL).
+      // Both rows here are tenant-owned regardless of claim_status.
+      claimed_at: new Date().toISOString(),
       claim_status: status,
       display_name: `T-46 ${status} vendor ${TEST_RUN_ID}`,
       primary_category: "photo",
@@ -4034,6 +4038,8 @@ async function testMarketplacePublishedReadViews() {
   ]) {
     const { error: vErr } = await adminClient.from("venues").insert({
       tenant_id: v.tenantId,
+      // CHECK venues_tenant_implies_claimed: tenant-linked venue needs claimed_at.
+      claimed_at: new Date().toISOString(),
       claim_status: status,
       acquisition_lane: "self_serve",
       display_name: `T-46 ${status} venue ${TEST_RUN_ID}`,
@@ -4041,7 +4047,11 @@ async function testMarketplacePublishedReadViews() {
       city: "Dallas",
       state: "TX",
       postal_code: "75201",
-      invite_token_hash: `tokenhash-${TEST_RUN_ID}`,
+      // Per-row token (uniq_venues_invite_token_hash is GLOBAL — both venues in
+      // this loop would collide on a shared value).
+      invite_token_hash: `tokenhash-${status}-${TEST_RUN_ID}`,
+      // CHECK venues_token_consistency: token hash + expiry are set together.
+      invite_token_expires_at: new Date(Date.now() + 7 * 86400000).toISOString(),
     });
     if (vErr) throw new Error(`venues seed (${status}) failed: ${vErr.message}`);
 
@@ -4155,6 +4165,129 @@ async function testMarketplacePublishedReadViews() {
   }
 }
 
+// =============================================================================
+// T-47..T-49 — migration 082 RLS write-surface hardening (PL #100) regressions.
+// Each guards one of the four surfaces 082 tightened against a future re-widen.
+// =============================================================================
+
+// TEST: T-47 — guest_checkins insert scoping (PL #100 / migration 082).
+// gc_insert was WITH CHECK (true): any authenticated user could POST a check-in
+// for ANY event. 082 scoped it to on_event(event_id). The event's orgnz is
+// allowed; an unrelated orgnz is denied. (event_id is ON DELETE CASCADE, so the
+// positive row is cleaned when the test event/tenant is torn down.)
+async function testGuestCheckinsInsertScoping() {
+  const owner = await seedTestUser("orgnz");
+  const stranger = await seedTestUser("orgnz");
+
+  const { data: event, error: evErr } = await adminClient
+    .from("events")
+    .insert({
+      name: `T-47 event ${TEST_RUN_ID}`,
+      event_type: "wedding",
+      orgnz_tenant_id: owner.tenantId,
+      start_date: "2027-09-01",
+    })
+    .select("id")
+    .single();
+  if (evErr) throw new Error(`event seed failed: ${evErr.message}`);
+
+  // Positive: the event's orgnz can insert a check-in (on_event TRUE).
+  const { data: ok, error: okErr } = await owner.authedClient
+    .from("guest_checkins")
+    .insert({ event_id: event.id, guest_name: `T-47 guest ${TEST_RUN_ID}` })
+    .select("id");
+  if (okErr && okErr.code === "42P17") throw new Error(`42P17 recursion on gc_insert: ${okErr.message}`);
+  if (okErr) {
+    throw new Error(
+      `PL #100 over-tighten: event owner DENIED a check-in on their own event — ${okErr.code} ${okErr.message}`,
+    );
+  }
+  if (!ok || ok.length === 0) throw new Error("event owner check-in insert returned no row");
+
+  // Negative: a stranger orgnz NOT on the event is denied (was allowed pre-082).
+  const { data: leak, error: leakErr } = await stranger.authedClient
+    .from("guest_checkins")
+    .insert({ event_id: event.id, guest_name: `T-47 stranger ${TEST_RUN_ID}` })
+    .select("id");
+  if (leakErr && leakErr.code === "42P17") throw new Error(`42P17 recursion on gc_insert: ${leakErr.message}`);
+  if (!leakErr && leak && leak.length > 0) {
+    throw new Error(
+      "RLS LEAK (PL #100): stranger inserted a guest_checkin for an event they are not on — gc_insert WITH CHECK (true) re-introduced?",
+    );
+  }
+}
+
+// TEST: T-48 — safetab_waivers insert scoping (PL #100 / migration 082).
+// sw_insert was WITH CHECK (true). 082 mirrors sw_select (admin OR own-tenant OR
+// on-event). This is the highest-stakes surface — a spoofed cross-tenant waiver
+// inherits the table's after-write immutability (permanent, undeletable).
+// DENIAL-ONLY by design: a successful insert here can never be cleaned up (FKs
+// are ON DELETE SET NULL + a no-delete trigger), so we do NOT commit a positive
+// row. Instead we assert the foreign-tenant insert is rejected specifically with
+// 42501 (RLS) — which also proves the row was otherwise VALID and rejected only
+// by the policy, not by a missing column (a wrong-reason pass would carry a
+// different SQLSTATE).
+async function testSafetabWaiversInsertScoping() {
+  const a = await seedTestUser("venue");
+  const b = await seedTestUser("venue");
+
+  // B attempts a fully-valid waiver attributed to A's tenant (foreign). Denied:
+  // tenant_id A is not in B's tenants, event_id is NULL, B is not admin.
+  const { data: leak, error: leakErr } = await b.authedClient
+    .from("safetab_waivers")
+    .insert({
+      tenant_id: a.tenantId,
+      guest_name: `T-48 spoof ${TEST_RUN_ID}`,
+      guest_phone_hash: `hash-${TEST_RUN_ID}`,
+      transport_method: "rideshare",
+      waiver_text: "I acknowledge the waiver terms.",
+      waiver_version: "v1",
+      signed_name: "T-48 spoof",
+      ip_address: "203.0.113.10",
+      device_fingerprint: `fp-${TEST_RUN_ID}`,
+    })
+    .select("id");
+
+  if (leakErr && leakErr.code === "42P17") throw new Error(`42P17 recursion on sw_insert: ${leakErr.message}`);
+  if (!leakErr && leak && leak.length > 0) {
+    throw new Error(
+      "RLS LEAK (PL #100): foreign tenant inserted a safetab_waiver attributed to another tenant — sw_insert WITH CHECK (true) re-introduced?",
+    );
+  }
+  if (!leakErr) {
+    throw new Error("safetab_waivers cross-tenant insert returned neither error nor row — unexpected");
+  }
+  if (leakErr.code !== "42501") {
+    throw new Error(
+      `safetab_waivers denial had SQLSTATE ${leakErr.code} (${leakErr.message}) — expected 42501 (RLS). A non-RLS code means the test row is invalid, not that the policy held.`,
+    );
+  }
+}
+
+// TEST: T-49 — email_send_audit grant lockdown (PL #100 / migration 082).
+// 082 REVOKE ALL stripped the residual anon/authenticated grants so the audit
+// table is service-role only. An authenticated client must NOT be able to write
+// it (defence-in-depth alongside the RLS-no-policy deny). The row shape is valid
+// (template_kind + recipient_email are the only NOT NULL cols) so the only
+// possible rejection is the missing privilege.
+async function testEmailSendAuditAuthedWriteDenied() {
+  const u = await seedTestUser("orgnz");
+
+  const { data: leak, error: leakErr } = await u.authedClient
+    .from("email_send_audit")
+    .insert({ template_kind: "welcome", recipient_email: `t49-${TEST_RUN_ID}@test.local` })
+    .select("id");
+
+  if (!leakErr && leak && leak.length > 0) {
+    throw new Error(
+      "GRANT LEAK (PL #100): authenticated client INSERTed into email_send_audit — REVOKE not applied / grant re-introduced?",
+    );
+  }
+  if (!leakErr) {
+    throw new Error("email_send_audit authed insert returned neither error nor row — unexpected");
+  }
+}
+
 const TESTS = [
   { name: "Migration 034 regression (venue role + events join, no 42P17)", fn: testMigration034Regression },
   { name: "Cross-tenant events isolation (orgnz A vs orgnz B)", fn: testCrossTenantEventIsolation },
@@ -4206,6 +4339,9 @@ const TESTS = [
   { name: "T-44 event_notes isolation (migration 076, PL #91 — orgnz A vs B; SELECT/UPDATE/DELETE)", fn: testCrossTenantEventNotesIsolation },
   { name: "T-45 event_todo_items isolation (migration 076, PL #91 — orgnz A vs B; SELECT/UPDATE/DELETE)", fn: testCrossTenantEventTodoIsolation },
   { name: "T-46 marketplace published-read views (migrations 078+079, V-2d — published visible cross-tenant, draft hidden, sensitive cols absent, views read-only)", fn: testMarketplacePublishedReadViews },
+  { name: "T-47 guest_checkins insert scoping (migration 082, PL #100 — on_event gate; owner allowed, stranger denied)", fn: testGuestCheckinsInsertScoping },
+  { name: "T-48 safetab_waivers insert scoping (migration 082, PL #100 — foreign-tenant insert denied 42501; denial-only, immutable table)", fn: testSafetabWaiversInsertScoping },
+  { name: "T-49 email_send_audit grant lockdown (migration 082, PL #100 — authenticated write denied)", fn: testEmailSendAuditAuthedWriteDenied },
 ];
 
 // -----------------------------------------------------------------------------

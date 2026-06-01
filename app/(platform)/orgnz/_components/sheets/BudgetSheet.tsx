@@ -1,5 +1,6 @@
 "use client";
 
+import { PAYMENTS_COMING_SOON } from "@/lib/labels/payments";
 import styles from "../../orgnz.module.css";
 import { Sheet } from "../Sheet";
 import { showToast } from "../../_lib/toast";
@@ -171,7 +172,7 @@ export function BudgetSheet({ open, onClose, data }: Props) {
         <button
           type="button"
           className={`${styles.actionBtn} ${styles.actionBtnAlt}`}
-          onClick={() => showToast("Stripe Connect setup lands in <em>Phase 4</em>.")}
+          onClick={() => showToast(PAYMENTS_COMING_SOON.toast)}
         >
           <span className={styles.actionBtnIco}>
             <svg viewBox="0 0 24 24">
