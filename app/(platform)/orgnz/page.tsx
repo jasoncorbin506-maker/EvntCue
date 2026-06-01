@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CATEGORIES, type CategoryKey } from "@/data/budget-presets";
+import { CATEGORIES, categoryForSubtype, type CategoryKey } from "@/data/budget-presets";
 import {
   mergeRecipeWithCustoms,
   pickRecipe,
@@ -144,7 +144,10 @@ export default async function OrgnzDashboardPage() {
   const vendorDetailsByTenant = Object.fromEntries(vendorDetailMap);
   const allocatedCents = lineItems.reduce((sum, item) => sum + item.amount_cents, 0);
   const days = daysUntil(event.start_date);
-  const category = toCategory(event.event_type);
+  // Category resolves from the subtype key (globally unique, reliable); the
+  // event_type fallback only matters for subtype-less events. Using event_type
+  // alone mis-mapped granular types — a corporate gala fell through to "social".
+  const category = categoryForSubtype(event.event_subtype) ?? toCategory(event.event_type);
   const longDate = formatStartLongDate(event.start_date);
 
   // PARKING_LOT #10 closed 2026-05-11 (session 9) — migration 021 added

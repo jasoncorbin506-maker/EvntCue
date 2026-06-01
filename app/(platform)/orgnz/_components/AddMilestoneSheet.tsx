@@ -3,7 +3,11 @@
 import { useEffect, useState } from "react";
 import s from "../orgnz.module.css";
 import { CulturalTraditionsPicker } from "./CulturalTraditionsPicker";
+import { CatalogMilestonePicker } from "./CatalogMilestonePicker";
 import { CustomMilestoneForm } from "./CustomMilestoneForm";
+import { categoryForSubtype, type CategoryKey } from "@/data/budget-presets";
+
+const VALID_CATEGORIES: CategoryKey[] = ["wedding", "corporate", "nonprofit", "public", "social"];
 
 type Tab = "traditions" | "free";
 
@@ -31,6 +35,15 @@ export function AddMilestoneSheet({
   onClose,
 }: Props) {
   const [tab, setTab] = useState<Tab>("traditions");
+
+  // Category drives which "Browse" picker to show: weddings browse cultural
+  // ceremonies; every other category browses its event-type milestone catalog.
+  const category: CategoryKey =
+    categoryForSubtype(subtypeKey) ??
+    (eventType && (VALID_CATEGORIES as string[]).includes(eventType)
+      ? (eventType as CategoryKey)
+      : "social");
+  const isWedding = category === "wedding";
 
   useEffect(() => {
     if (!open) return;
@@ -72,7 +85,7 @@ export function AddMilestoneSheet({
             className={`${s.addTab} ${tab === "traditions" ? s.addTabOn : ""}`}
             onClick={() => setTab("traditions")}
           >
-            Browse traditions
+            {isWedding ? "Browse traditions" : "Suggested milestones"}
           </button>
           <button
             type="button"
@@ -85,14 +98,25 @@ export function AddMilestoneSheet({
 
         <div className={s.drawerBody}>
           {tab === "traditions" ? (
-            <CulturalTraditionsPicker
-              eventId={eventId}
-              startDateIso={startDateIso}
-              subtypeKey={subtypeKey}
-              existingKeys={existingKeys}
-              dismissedSeedKeys={dismissedSeedKeys}
-              onDone={onClose}
-            />
+            isWedding ? (
+              <CulturalTraditionsPicker
+                eventId={eventId}
+                startDateIso={startDateIso}
+                subtypeKey={subtypeKey}
+                existingKeys={existingKeys}
+                dismissedSeedKeys={dismissedSeedKeys}
+                onDone={onClose}
+              />
+            ) : (
+              <CatalogMilestonePicker
+                eventId={eventId}
+                startDateIso={startDateIso}
+                category={category}
+                subtypeKey={subtypeKey}
+                existingKeys={existingKeys}
+                onDone={onClose}
+              />
+            )
           ) : (
             <CustomMilestoneForm
               eventId={eventId}
