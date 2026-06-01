@@ -66,11 +66,11 @@ function buildWelcomeFeed(args: {
     body: `<em>Your celebration is on the board.</em> Three things up next: lock the venue, build a mood board, and tell us if you want a Plnr to ride alongside.`,
     primaryCta: {
       label: "Start mood board",
-      toast: "Mood Board opens. <em>Pin your first image.</em>",
+      href: "/mood-board",
     },
     secondaryCta: {
       label: "Find a Plnr",
-      toast: "Plnr sheet opens here in <em>3.2.B</em>.",
+      href: "/orgnz/browse?focus=plnr",
     },
   });
 
@@ -83,7 +83,7 @@ function buildWelcomeFeed(args: {
       body: `Vndrs get sticky once a date is locked, and a date locks when the <strong>venue</strong> confirms. <em>You can still proceed</em> — just expect quotes to firm up after.`,
       primaryCta: {
         label: "Browse Venu",
-        toast: "Venu sheet opens here in <em>3.2.B</em>.",
+        href: "/orgnz/browse?focus=venu",
       },
     });
   }

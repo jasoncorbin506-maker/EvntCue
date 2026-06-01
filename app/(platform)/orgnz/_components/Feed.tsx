@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { useRouter } from "next/navigation";
 import styles from "../orgnz.module.css";
 import { showToast } from "../_lib/toast";
 
@@ -12,8 +13,9 @@ export type FeedCard = {
   eyebrow: string;
   when: string;
   body: string; // raw HTML — internal copy only
-  primaryCta?: { label: string; toast: string };
-  secondaryCta?: { label: string; toast: string };
+  /** A CTA either navigates (`href`) or fires an in-app toast (`toast`). */
+  primaryCta?: { label: string; toast?: string; href?: string };
+  secondaryCta?: { label: string; toast?: string; href?: string };
   dismissable?: boolean;
 };
 
@@ -38,8 +40,15 @@ const KIND_CLASS: Record<FeedCardKind, string> = {
 type Props = { initial: FeedCard[] };
 
 export function Feed({ initial }: Props) {
+  const router = useRouter();
   const [cards, setCards] = useState(initial);
   const [dismissing, setDismissing] = useState<Set<string>>(new Set());
+
+  // A CTA navigates if it carries an href, else fires its toast.
+  function runCta(cta: { toast?: string; href?: string }) {
+    if (cta.href) router.push(cta.href);
+    else if (cta.toast) showToast(cta.toast);
+  }
   const visibleCount = useMemo(
     () => cards.filter((c) => !dismissing.has(c.id)).length,
     [cards, dismissing],
@@ -96,7 +105,7 @@ export function Feed({ initial }: Props) {
                   <button
                     type="button"
                     className={`${styles.fcBtn} ${styles.fcBtnPrimary}`}
-                    onClick={() => showToast(card.primaryCta!.toast)}
+                    onClick={() => runCta(card.primaryCta!)}
                   >
                     {card.primaryCta.label}
                   </button>
@@ -105,7 +114,7 @@ export function Feed({ initial }: Props) {
                   <button
                     type="button"
                     className={styles.fcBtn}
-                    onClick={() => showToast(card.secondaryCta!.toast)}
+                    onClick={() => runCta(card.secondaryCta!)}
                   >
                     {card.secondaryCta.label}
                   </button>
