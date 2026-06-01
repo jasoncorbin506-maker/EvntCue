@@ -3,6 +3,15 @@
   margin-bottom: 1.1rem;
 }
 
+/* Read-only event context the inquiry carries (date · guests) — shows the buyer
+   what auto-attaches so they never re-enter it. */
+.eventContext {
+  margin: -0.5rem 0 1.1rem;
+  font-family: var(--font-ui);
+  font-size: 0.8rem;
+  color: var(--txt3);
+}
+
 .fieldLabel {
   display: block;
   font-family: var(--font-ui);

@@ -21,6 +21,7 @@ export type InquiryEventOption = {
   name: string;
   startDate: string | null;
   dateLabel: string | null;
+  guestCount: number | null;
 };
 
 export async function getOrgnzActiveEvents(): Promise<InquiryEventOption[]> {
@@ -30,7 +31,7 @@ export async function getOrgnzActiveEvents(): Promise<InquiryEventOption[]> {
   const supabase = await createClient();
   const { data: rows } = await supabase
     .from("events")
-    .select("id, name, start_date")
+    .select("id, name, start_date, guest_count")
     .eq("orgnz_tenant_id", organizer.tenantId)
     .eq("status", "active")
     .order("start_date", { ascending: true });
@@ -42,6 +43,7 @@ export async function getOrgnzActiveEvents(): Promise<InquiryEventOption[]> {
       name: (r.name as string | null) ?? "Untitled event",
       startDate,
       dateLabel: startDate ? formatStartDateMedium(startDate) : null,
+      guestCount: (r.guest_count as number | null) ?? null,
     };
   });
 }

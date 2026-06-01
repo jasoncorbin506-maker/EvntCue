@@ -63,12 +63,12 @@ type Props = {
 export function SendInquirySheet({ target, events, onClose }: Props) {
   const [eventId, setEventId] = useState<string>(events[0]?.id ?? "");
   const [message, setMessage] = useState("");
-  const [guestCount, setGuestCount] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
   const noun = PORTAL_NOUN[target.portal];
   const hasEvents = events.length > 0;
+  const selectedEvent = events.find((e) => e.id === eventId) ?? null;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -95,16 +95,13 @@ export function SendInquirySheet({ target, events, onClose }: Props) {
       setError("Pick which event this inquiry is for.");
       return;
     }
-    const parsedGuests = guestCount.trim() ? Number(guestCount) : null;
     startTransition(async () => {
+      // Event context (date + guest count) is carried server-side from the
+      // selected event — the buyer never re-enters what we already have.
       const res = await createInquiry({
         vndrTenantId: target.tenantId,
         eventId,
         message: message.trim(),
-        guestCount:
-          parsedGuests != null && Number.isFinite(parsedGuests) && parsedGuests > 0
-            ? Math.round(parsedGuests)
-            : null,
       });
       if (!res.ok) {
         setError(errorMessage(res.error, noun));
@@ -159,6 +156,10 @@ export function SendInquirySheet({ target, events, onClose }: Props) {
                 <span className={s.fieldLabel}>For which event</span>
                 <select
                   className={s.select}
+                  name="inquiryEvent"
+                  autoComplete="off"
+                  data-1p-ignore
+                  data-lpignore="true"
                   value={eventId}
                   onChange={(e) => setEventId(e.target.value)}
                   disabled={pending}
@@ -172,31 +173,34 @@ export function SendInquirySheet({ target, events, onClose }: Props) {
                 </select>
               </label>
 
+              {/* Event context the inquiry carries automatically — shown, not
+                  re-entered. The seller sees the date + headcount from the event. */}
+              {selectedEvent && (selectedEvent.dateLabel || selectedEvent.guestCount != null) && (
+                <div className={s.eventContext}>
+                  {[
+                    selectedEvent.dateLabel,
+                    selectedEvent.guestCount != null
+                      ? `${selectedEvent.guestCount.toLocaleString("en-US")} guests`
+                      : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ")}
+                </div>
+              )}
+
               <label className={s.field}>
                 <span className={s.fieldLabel}>Your message</span>
                 <textarea
                   className={s.textarea}
+                  name="inquiryMessage"
+                  autoComplete="off"
+                  data-1p-ignore
+                  data-lpignore="true"
                   value={message}
                   onChange={(e) => setMessage(e.target.value)}
                   maxLength={2000}
                   rows={5}
                   placeholder={`Tell ${target.displayName} about your event and what you're looking for.`}
-                  disabled={pending}
-                />
-              </label>
-
-              <label className={s.field}>
-                <span className={s.fieldLabel}>
-                  Approx. guest count <span className={s.optional}>(optional)</span>
-                </span>
-                <input
-                  className={s.input}
-                  type="number"
-                  inputMode="numeric"
-                  min={1}
-                  value={guestCount}
-                  onChange={(e) => setGuestCount(e.target.value)}
-                  placeholder="e.g. 120"
                   disabled={pending}
                 />
               </label>
