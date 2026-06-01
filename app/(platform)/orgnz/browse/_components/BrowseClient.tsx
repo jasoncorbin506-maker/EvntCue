@@ -8,6 +8,11 @@ import { vendorCategoryLabel } from "@/lib/labels/vendor-categories";
 import { CATEGORY_ICONS } from "@/app/(public)/vndr-onboarding/[step]/_components/category-icons";
 import type { Locale } from "@/i18n/locale";
 import type { VendorListing, VenueListing } from "@/lib/marketplace/listings";
+import type { InquiryEventOption } from "@/lib/orgnz/active-events";
+import {
+  SendInquirySheet,
+  type InquiryTarget,
+} from "../../_components/SendInquirySheet";
 import s from "../browse.module.css";
 
 /**
@@ -101,7 +106,7 @@ function VendorCard({ v }: { v: VendorListing }) {
   );
 }
 
-function VenueCard({ v }: { v: VenueListing }) {
+function VenueCard({ v, onInquire }: { v: VenueListing; onInquire: () => void }) {
   const topSpace = v.spaces[0];
   const rate = topSpace ? dollars(topSpace.ratePerDayCents) : null;
   const cap = v.spaces.reduce<number | null>((max, sp) => {
@@ -109,7 +114,12 @@ function VenueCard({ v }: { v: VenueListing }) {
     return max == null || sp.capacity > max ? sp.capacity : max;
   }, null);
   return (
-    <div className={s.listingCard}>
+    <button
+      type="button"
+      className={`${s.listingCard} ${s.listingCardBtn}`}
+      onClick={onInquire}
+      aria-label={`Inquire with ${v.displayName}`}
+    >
       <div className={s.listingPhoto}>
         <div className={s.listingPhotoEmpty} aria-hidden="true" />
       </div>
@@ -131,21 +141,24 @@ function VenueCard({ v }: { v: VenueListing }) {
           </div>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 
 export function BrowseClient({
   vendors,
   venues,
+  activeEvents,
   initialFocus,
 }: {
   vendors: VendorListing[];
   venues: VenueListing[];
+  activeEvents: InquiryEventOption[];
   initialFocus: string | null;
 }) {
   const locale = useLocale() as Locale;
   const [selected, setSelected] = useState<string | null>(initialFocus);
+  const [inquiryTarget, setInquiryTarget] = useState<InquiryTarget | null>(null);
 
   const vendorTiles: Tile[] = VNDR_CATEGORIES.map((cat) => ({
     key: cat.key,
@@ -228,7 +241,17 @@ export function BrowseClient({
             venues.length > 0 ? (
               <div className={s.listingGrid}>
                 {venues.map((v) => (
-                  <VenueCard key={v.tenantId} v={v} />
+                  <VenueCard
+                    key={v.tenantId}
+                    v={v}
+                    onInquire={() =>
+                      setInquiryTarget({
+                        tenantId: v.tenantId,
+                        displayName: v.displayName,
+                        portal: "venu",
+                      })
+                    }
+                  />
                 ))}
               </div>
             ) : (
@@ -263,6 +286,14 @@ export function BrowseClient({
             you lock them in.
           </p>
         </div>
+      )}
+
+      {inquiryTarget && (
+        <SendInquirySheet
+          target={inquiryTarget}
+          events={activeEvents}
+          onClose={() => setInquiryTarget(null)}
+        />
       )}
     </div>
   );
