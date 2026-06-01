@@ -1,9 +1,15 @@
 import { notFound } from "next/navigation";
 import { Chrome } from "../../_components/Chrome";
 import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
+import { isConfirmedHold } from "@/lib/labels/deposit-status";
 import { formatEventDate, formatUSDCents } from "../../_lib/demo-data";
 import { getVenueInquiry } from "@/lib/venu/inquiries";
 import s from "../../venu.module.css";
+
+function formatHoldThrough(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 /**
  * Inquiry detail. Wire-DB: single-row read against venue_inquiries.
@@ -55,6 +61,23 @@ export default async function VenuInquiryDetail({
           </div>
         </div>
       </div>
+
+      {isConfirmedHold(inquiry.depositStatus) && (
+        <div className={s.holdBanner}>
+          <div className={s.holdBannerTitle}>✓ Confirmed hold · escrow funded</div>
+          <div className={s.holdBannerBody}>
+            This family has a deposit on file
+            {inquiry.depositAmountCents != null
+              ? ` (${formatUSDCents(inquiry.depositAmountCents)} held)`
+              : ""}
+            .
+            {inquiry.holdExpiresAt
+              ? ` Date held through ${formatHoldThrough(inquiry.holdExpiresAt)}.`
+              : ""}{" "}
+            This is a qualified, cash-backed booking — not a tire-kicker.
+          </div>
+        </div>
+      )}
 
       <div className={s.placeholder}>
         <div className={s.placeholderTitle}>Reply · Quote · Hold</div>

@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import type { VndrInquiry, VndrInquiryStatus } from "@/lib/vndr/inquiries";
+import { isConfirmedHold } from "@/lib/labels/deposit-status";
 import { InquiryDetailSheet } from "./InquiryDetailSheet";
 import s from "../vndr.module.css";
 
@@ -146,20 +147,25 @@ export function InquiriesList({ inquiries }: Props) {
         <div className={s.inqList}>
           {filtered.map((inq) => {
             const pill = STATUS_PILL[inq.status];
+            const confirmed = isConfirmedHold(inq.depositStatus);
             return (
               <button
                 key={inq.id}
                 type="button"
-                className={s.inqRow}
+                className={confirmed ? `${s.inqRow} ${s.inqRowHold}` : s.inqRow}
                 onClick={() => setOpenId(inq.id)}
               >
                 <div className={s.inqRowTop}>
                   <span className={s.inqDate}>
                     {formatEventDate(inq.eventDate)}
                   </span>
-                  <span className={`${s.statusPill} ${pill.cls}`.trim()}>
-                    {pill.label}
-                  </span>
+                  {confirmed ? (
+                    <span className={s.pillHold}>✓ Confirmed hold</span>
+                  ) : (
+                    <span className={`${s.statusPill} ${pill.cls}`.trim()}>
+                      {pill.label}
+                    </span>
+                  )}
                 </div>
                 <div className={s.inqRowMid}>
                   {inq.guestCount > 0 ? `${inq.guestCount} guests` : "Guest count TBD"}
@@ -170,6 +176,14 @@ export function InquiriesList({ inquiries }: Props) {
                     </>
                   )}
                 </div>
+                {confirmed && (
+                  <div className={s.inqHoldMeta}>
+                    Escrow funded
+                    {inq.depositAmountCents != null
+                      ? ` · ${formatPrice(inq.depositAmountCents)} deposit held`
+                      : ""}
+                  </div>
+                )}
                 {inq.message && (
                   <div className={s.inqMsg}>
                     {inq.message.length > 110

@@ -1325,6 +1325,33 @@
 
 .inqRow:hover { border-color: var(--coral); }
 
+/* Model C: a cash-backed Confirmed hold reads distinct from a bare inquiry. */
+.inqRowHold {
+  border-color: rgba(26, 158, 130, 0.5);
+  box-shadow: inset 3px 0 0 var(--teal);
+}
+.pillHold {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 6px;
+  background: rgba(26, 158, 130, 0.16);
+  color: #4fc3a1;
+  border: 0.5px solid rgba(26, 158, 130, 0.42);
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+.inqHoldMeta {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: #4fc3a1;
+}
+
 .inqRowTop {
   display: flex;
   align-items: center;

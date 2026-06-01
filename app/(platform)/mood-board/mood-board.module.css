@@ -51,32 +51,7 @@
 .brand strong { font-weight: 400; }
 .brandAccent { color: var(--rt); }
 
-.backLink {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 6px 10px 6px 8px;
-  margin-left: -8px;
-  border-radius: 8px;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--txt2);
-  text-decoration: none;
-  transition: color 140ms ease, background 140ms ease;
-}
-.backLink:hover {
-  color: var(--rt);
-  background: rgba(212, 119, 138, 0.04);
-}
-.backLink svg {
-  flex-shrink: 0;
-  transition: transform 140ms ease;
-}
-.backLink:hover svg {
-  transform: translateX(-2px);
-}
+/* .backLink moved to the shared lib/ui/BackLink component (PL #66). */
 
 .topbarSep {
   width: 1px;

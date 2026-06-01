@@ -1,5 +1,6 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
+import type { DepositStatus } from "@/lib/labels/deposit-status";
 
 /**
  * Organizer-side reads against `inquiries`. Filtered by
@@ -36,10 +37,13 @@ export type OrgnzInquiry = {
   createdAt: string;
   respondedAt: string | null;
   expiresAt: string | null;
+  depositStatus: DepositStatus;
+  depositAmountCents: number | null;
+  holdExpiresAt: string | null;
 };
 
 const COLS =
-  "id, event_id, recipient_tenant_id, event_date, guest_count, message, proposed_price_cents, status, created_at, responded_at, expires_at";
+  "id, event_id, recipient_tenant_id, event_date, guest_count, message, proposed_price_cents, status, created_at, responded_at, expires_at, deposit_status, deposit_amount_cents, hold_expires_at";
 
 export async function getOrgnzInquiries(
   buyerTenantId: string,
@@ -87,5 +91,8 @@ export async function getOrgnzInquiries(
     createdAt: row.created_at as string,
     respondedAt: (row.responded_at as string | null) ?? null,
     expiresAt: (row.expires_at as string | null) ?? null,
+    depositStatus: ((row.deposit_status as DepositStatus | null) ?? "none"),
+    depositAmountCents: (row.deposit_amount_cents as number | null) ?? null,
+    holdExpiresAt: (row.hold_expires_at as string | null) ?? null,
   }));
 }

@@ -79,9 +79,9 @@ export default function VenuesPublicLanding() {
               </svg>
             </div>
             <div className={s.whatBody}>
-              <div className={s.whatName}>Qualified inquiries only</div>
+              <div className={s.whatName}>Cash-backed holds stand out</div>
               <div className={s.whatSub}>
-                Families come with escrow held. No tire-kickers, no fake leads.
+                Inquiries are free to send, so you hear from real families early. When one funds a deposit to hold your date, it&apos;s flagged as a confirmed hold — escrow on file, not a tire-kicker.
               </div>
             </div>
           </div>
@@ -94,9 +94,9 @@ export default function VenuesPublicLanding() {
               </svg>
             </div>
             <div className={s.whatBody}>
-              <div className={s.whatName}>Day-of cockpit</div>
+              <div className={s.whatName}>Day-of cockpit <span className={s.whatSoon}>Coming soon</span></div>
               <div className={s.whatSub}>
-                Vndr check-in, live timeline, BEO acknowledgment. Run the event from your phone.
+                Vndr check-in, live timeline, BEO acknowledgment — so you can run your events while you&apos;re on the go. Rolling out portal by portal.
               </div>
             </div>
           </div>
@@ -108,7 +108,7 @@ export default function VenuesPublicLanding() {
               </svg>
             </div>
             <div className={s.whatBody}>
-              <div className={s.whatName}>Your commission flows, intact</div>
+              <div className={s.whatName}>Your payment flows, intact</div>
               <div className={s.whatSub}>
                 In-house, F&amp;B surcharge, referral fees, sourcing. The way you&apos;ve always done it, just on rails.
               </div>
@@ -147,7 +147,7 @@ export default function VenuesPublicLanding() {
             <div className={s.howNum}>2</div>
             <div className={s.howBody}>
               <div className={s.howName}>Build your profile</div>
-              <div className={s.howSub}>Spaces, pricing, photos, commission flows</div>
+              <div className={s.howSub}>Spaces, pricing, photos, payment flows</div>
             </div>
           </div>
           <div className={s.howRow}>

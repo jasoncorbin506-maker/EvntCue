@@ -11,23 +11,12 @@
   padding: 14px 16px 40px;
 }
 
+/* Placement only — the affordance (chevron + label + hover) is owned by the
+   shared lib/ui/BackLink component (PL #66). align-self keeps the inline-flex
+   link from stretching in the flex column. */
 .back {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  font-family: var(--font-ui);
-  font-size: 11px;
-  letter-spacing: 0.04em;
-  color: var(--txt2);
-  text-decoration: none;
+  align-self: flex-start;
   margin-bottom: 18px;
-  background: none;
-  border: none;
-  padding: 0;
-  cursor: pointer;
-}
-.back:hover {
-  color: var(--txt);
 }
 
 .head {

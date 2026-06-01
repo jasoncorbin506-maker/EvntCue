@@ -3,12 +3,18 @@ import { notFound, redirect } from "next/navigation";
 import { getCurrentCaterer } from "@/lib/catr/current-caterer";
 import { getCatrInquiry } from "@/lib/catr/inquiries";
 import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
+import { isConfirmedHold } from "@/lib/labels/deposit-status";
 
 import { Chrome, ChromeSignOut } from "../../_components/Chrome";
 import { CatrInquiryThread } from "../../_components/CatrInquiryThread";
 import { CatrQuotePanel } from "../../_components/CatrQuotePanel";
 import { formatEventDateLong, formatUSDCents } from "../../_lib/format";
 import s from "../../catr.module.css";
+
+function formatHoldThrough(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
 
 /**
  * Catr inquiry detail — the inquiry-received email CTA target
@@ -67,6 +73,23 @@ export default async function CatrInquiryDetail({
           </div>
         </div>
       </div>
+
+      {isConfirmedHold(inquiry.depositStatus) && (
+        <div className={s.holdBanner}>
+          <div className={s.holdBannerTitle}>✓ Confirmed hold · escrow funded</div>
+          <div className={s.holdBannerBody}>
+            This client has a deposit on file
+            {inquiry.depositAmountCents != null
+              ? ` (${formatUSDCents(inquiry.depositAmountCents)} held)`
+              : ""}
+            .
+            {inquiry.holdExpiresAt
+              ? ` Date held through ${formatHoldThrough(inquiry.holdExpiresAt)}.`
+              : ""}{" "}
+            This is a qualified, cash-backed booking — not a tire-kicker.
+          </div>
+        </div>
+      )}
 
       {inquiry.message && (
         <div className={s.messageCard}>

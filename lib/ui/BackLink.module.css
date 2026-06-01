@@ -1,0 +1,37 @@
+/* Canonical drilldown-exit affordance (PL #66). Chevron + uppercase Barlow
+   label, editorial-luxe register. Lifted from the mood-board .backLink — the
+   pattern Jason's "clear way to exit" requirement drove. Shared so full-screen
+   / desktop drilldowns render one consistent back-link.
+   NOTE (PL #66 two-tier decision): the compact mobile portal Chrome
+   (venu/catr/vndr) keeps its own 26px icon-only `‹` affordance on purpose —
+   different context (persistent bottom-nav + venue/role header). Do not route
+   those through this component without a deliberate mobile-fit pass. */
+.backLink {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 10px 6px 8px;
+  margin-left: -8px;
+  border-radius: 8px;
+  font-family: var(--font-ui);
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--txt2);
+  text-decoration: none;
+  background: none;
+  border: none;
+  cursor: pointer;
+  transition: color 140ms ease, background 140ms ease;
+}
+.backLink:hover {
+  color: var(--rt);
+  background: rgba(212, 119, 138, 0.04);
+}
+.backLink svg {
+  flex-shrink: 0;
+  transition: transform 140ms ease;
+}
+.backLink:hover svg {
+  transform: translateX(-2px);
+}

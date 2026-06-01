@@ -1,5 +1,6 @@
 import { createClient } from "@/lib/supabase/server";
 import type { InquiryStatus } from "@/lib/labels/inquiry-status";
+import type { DepositStatus } from "@/lib/labels/deposit-status";
 
 export type VenuInquiry = {
   id: string;
@@ -10,6 +11,9 @@ export type VenuInquiry = {
   status: InquiryStatus;
   hoursSinceCreated: number;
   badges: string[];
+  depositStatus: DepositStatus;
+  depositAmountCents: number | null;
+  holdExpiresAt: string | null;
 };
 
 function shape(row: Record<string, unknown>, now: number): VenuInquiry {
@@ -24,10 +28,14 @@ function shape(row: Record<string, unknown>, now: number): VenuInquiry {
     status: row.status as InquiryStatus,
     hoursSinceCreated,
     badges: [],
+    depositStatus: ((row.deposit_status as DepositStatus | null) ?? "none"),
+    depositAmountCents: (row.deposit_amount_cents as number | null) ?? null,
+    holdExpiresAt: (row.hold_expires_at as string | null) ?? null,
   };
 }
 
-const COLS = "id, client_name, event_date, guest_count, est_revenue_cents, status, created_at";
+const COLS =
+  "id, client_name, event_date, guest_count, est_revenue_cents, status, created_at, deposit_status, deposit_amount_cents, hold_expires_at";
 
 // Post-070 the venue inquiry rows live on the unified `inquiries` table; venue
 // rows are those with recipient_type='venu' (the venue is the recipient). Both
