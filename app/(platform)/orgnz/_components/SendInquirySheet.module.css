@@ -3,13 +3,27 @@
   margin-bottom: 1.1rem;
 }
 
-/* Read-only event context the inquiry carries (date · guests) — shows the buyer
-   what auto-attaches so they never re-enter it. */
-.eventContext {
-  margin: -0.5rem 0 1.1rem;
+/* Read-only event card — the full context the inquiry carries (type · subtype ·
+   date · guests) so the buyer sees what auto-attaches and never re-enters it. */
+.eventCard {
+  margin-bottom: 1.1rem;
+  padding: 0.7rem 0.8rem;
+  border: 1px solid var(--bdr);
+  border-radius: 10px;
+  background: rgba(0, 0, 0, 0.015);
+}
+.eventCardName {
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--txt);
+}
+.eventCardMeta {
+  margin-top: 0.2rem;
   font-family: var(--font-ui);
   font-size: 0.8rem;
-  color: var(--txt3);
+  color: var(--txt2);
+  text-transform: capitalize;
 }
 
 .fieldLabel {

@@ -68,7 +68,23 @@ export function SendInquirySheet({ target, events, onClose }: Props) {
 
   const noun = PORTAL_NOUN[target.portal];
   const hasEvents = events.length > 0;
+  const multipleEvents = events.length > 1;
   const selectedEvent = events.find((e) => e.id === eventId) ?? null;
+
+  // Everything we already know about the event — carried automatically, shown
+  // so the buyer never re-enters it. The seller receives all of this.
+  const eventContext = selectedEvent
+    ? [
+        selectedEvent.typeLabel,
+        selectedEvent.subtype,
+        selectedEvent.dateLabel,
+        selectedEvent.guestCount != null
+          ? `${selectedEvent.guestCount.toLocaleString("en-US")} guests`
+          : null,
+      ]
+        .filter(Boolean)
+        .join(" · ")
+    : "";
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -152,39 +168,37 @@ export function SendInquirySheet({ target, events, onClose }: Props) {
             </div>
           ) : (
             <>
-              <label className={s.field}>
-                <span className={s.fieldLabel}>For which event</span>
-                <select
-                  className={s.select}
-                  name="inquiryEvent"
-                  autoComplete="off"
-                  data-1p-ignore
-                  data-lpignore="true"
-                  value={eventId}
-                  onChange={(e) => setEventId(e.target.value)}
-                  disabled={pending}
-                >
-                  {events.map((ev) => (
-                    <option key={ev.id} value={ev.id}>
-                      {ev.name}
-                      {ev.dateLabel ? ` · ${ev.dateLabel}` : ""}
-                    </option>
-                  ))}
-                </select>
-              </label>
+              {/* Pick which event only when there's more than one active. With
+                  a single event there's nothing to choose — we just attach it. */}
+              {multipleEvents && (
+                <label className={s.field}>
+                  <span className={s.fieldLabel}>For which event</span>
+                  <select
+                    className={s.select}
+                    name="inquiryEvent"
+                    autoComplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
+                    value={eventId}
+                    onChange={(e) => setEventId(e.target.value)}
+                    disabled={pending}
+                  >
+                    {events.map((ev) => (
+                      <option key={ev.id} value={ev.id}>
+                        {ev.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              )}
 
-              {/* Event context the inquiry carries automatically — shown, not
-                  re-entered. The seller sees the date + headcount from the event. */}
-              {selectedEvent && (selectedEvent.dateLabel || selectedEvent.guestCount != null) && (
-                <div className={s.eventContext}>
-                  {[
-                    selectedEvent.dateLabel,
-                    selectedEvent.guestCount != null
-                      ? `${selectedEvent.guestCount.toLocaleString("en-US")} guests`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ")}
+              {/* Everything we already know — carried automatically, never re-entered. */}
+              {selectedEvent && (
+                <div className={s.eventCard}>
+                  <div className={s.eventCardName}>{selectedEvent.name}</div>
+                  {eventContext && (
+                    <div className={s.eventCardMeta}>{eventContext}</div>
+                  )}
                 </div>
               )}
 

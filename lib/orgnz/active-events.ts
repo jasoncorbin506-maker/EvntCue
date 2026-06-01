@@ -2,6 +2,7 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import { getCurrentOrganizer } from "./current-organizer";
 import { formatStartDateMedium } from "@/app/(platform)/orgnz/_lib/load-context";
+import { humanizeEventType } from "@/lib/events/event-picker";
 
 /**
  * Active events for the buyer's send-inquiry picker (Phase 4 R4a).
@@ -22,6 +23,10 @@ export type InquiryEventOption = {
   startDate: string | null;
   dateLabel: string | null;
   guestCount: number | null;
+  /** Humanized event type, e.g. "Wedding". */
+  typeLabel: string | null;
+  /** Raw subtype if set, e.g. "hindu". */
+  subtype: string | null;
 };
 
 export async function getOrgnzActiveEvents(): Promise<InquiryEventOption[]> {
@@ -31,19 +36,22 @@ export async function getOrgnzActiveEvents(): Promise<InquiryEventOption[]> {
   const supabase = await createClient();
   const { data: rows } = await supabase
     .from("events")
-    .select("id, name, start_date, guest_count")
+    .select("id, name, start_date, guest_count, event_type, event_subtype")
     .eq("orgnz_tenant_id", organizer.tenantId)
     .eq("status", "active")
     .order("start_date", { ascending: true });
 
   return (rows ?? []).map((r) => {
     const startDate = (r.start_date as string | null) ?? null;
+    const eventType = (r.event_type as string | null) ?? null;
     return {
       id: r.id as string,
       name: (r.name as string | null) ?? "Untitled event",
       startDate,
       dateLabel: startDate ? formatStartDateMedium(startDate) : null,
       guestCount: (r.guest_count as number | null) ?? null,
+      typeLabel: eventType ? humanizeEventType(eventType) : null,
+      subtype: (r.event_subtype as string | null) ?? null,
     };
   });
 }
