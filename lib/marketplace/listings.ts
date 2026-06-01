@@ -47,6 +47,7 @@ export type VenueListing = {
   coiVerified: boolean;
   propertyVerified: boolean;
   spaces: VenueSpace[];
+  photos: MarketplacePhoto[];
 };
 
 function groupBy<T>(rows: T[], key: (row: T) => string): Map<string, T[]> {
@@ -118,7 +119,7 @@ export async function getMarketplaceVendors(): Promise<VendorListing[]> {
 export async function getMarketplaceVenues(): Promise<VenueListing[]> {
   const supabase = await createClient();
 
-  const [venuesRes, spacesRes] = await Promise.all([
+  const [venuesRes, spacesRes, photosRes] = await Promise.all([
     supabase
       .from("marketplace_venues")
       .select(
@@ -127,11 +128,17 @@ export async function getMarketplaceVenues(): Promise<VenueListing[]> {
     supabase
       .from("marketplace_venue_spaces")
       .select("id, tenant_id, name, capacity, rate_per_day_cents"),
+    supabase
+      .from("marketplace_venue_photos")
+      .select("tenant_id, storage_path, alt_text, display_order")
+      .order("display_order", { ascending: true }),
   ]);
 
   const venueRows = (venuesRes.data ?? []) as Record<string, unknown>[];
   const spaceRows = (spacesRes.data ?? []) as Record<string, unknown>[];
+  const photoRows = (photosRes.data ?? []) as Record<string, unknown>[];
   const spacesByTenant = groupBy(spaceRows, (r) => r.tenant_id as string);
+  const photosByTenant = groupBy(photoRows, (r) => r.tenant_id as string);
 
   return venueRows
     .map((row): VenueListing => {
@@ -142,6 +149,12 @@ export async function getMarketplaceVenues(): Promise<VenueListing[]> {
         capacity: (sp.capacity as number | null) ?? null,
         ratePerDayCents: (sp.rate_per_day_cents as number | null) ?? null,
       }));
+      const photos = (photosByTenant.get(tenantId) ?? []).map((p) => {
+        const { data: pub } = supabase.storage
+          .from("venue-photos")
+          .getPublicUrl(p.storage_path as string);
+        return { url: pub.publicUrl, alt: (p.alt_text as string | null) ?? null };
+      });
       return {
         tenantId,
         displayName: row.display_name as string,
@@ -150,6 +163,7 @@ export async function getMarketplaceVenues(): Promise<VenueListing[]> {
         coiVerified: Boolean(row.coi_verified),
         propertyVerified: Boolean(row.property_record_verified),
         spaces,
+        photos,
       };
     })
     .sort((a, b) => a.displayName.localeCompare(b.displayName));

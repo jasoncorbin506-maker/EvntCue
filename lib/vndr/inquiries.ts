@@ -2,6 +2,10 @@ import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { InquiryBuyerRole } from "@/lib/messaging/inquiry-thread-shared";
 import type { DepositStatus } from "@/lib/labels/deposit-status";
+import {
+  resolveVenueLocations,
+  type EventVenueLocation,
+} from "@/lib/inquiries/venue-location";
 
 /**
  * Vendor-side reads against `inquiries`. Filtered by `recipient_tenant_id`
@@ -39,12 +43,19 @@ export type VndrInquiry = {
   depositStatus: DepositStatus;
   depositAmountCents: number | null;
   holdExpiresAt: string | null;
+  /** Manual venue location (Lock 30) — present only for private/own-venue
+   *  events; null for marketplace-venue or no-location inquiries. The
+   *  locationType (home/business) drives the early opt-out signal. */
+  venueLocation: EventVenueLocation | null;
 };
 
 const COLS =
   "id, event_id, buyer_tenant_id, buyer_role, event_date, guest_count, message, proposed_price_cents, status, created_at, responded_at, expires_at, deposit_status, deposit_amount_cents, hold_expires_at";
 
-function shape(row: Record<string, unknown>): VndrInquiry {
+function shape(
+  row: Record<string, unknown>,
+  venueLocation: EventVenueLocation | null = null,
+): VndrInquiry {
   return {
     id: row.id as string,
     eventId: (row.event_id as string | null) ?? null,
@@ -61,6 +72,7 @@ function shape(row: Record<string, unknown>): VndrInquiry {
     depositStatus: ((row.deposit_status as DepositStatus | null) ?? "none"),
     depositAmountCents: (row.deposit_amount_cents as number | null) ?? null,
     holdExpiresAt: (row.hold_expires_at as string | null) ?? null,
+    venueLocation,
   };
 }
 
@@ -71,7 +83,13 @@ export async function getVndrInquiries(vendorTenantId: string): Promise<VndrInqu
     .select(COLS)
     .eq("recipient_tenant_id", vendorTenantId)
     .order("created_at", { ascending: false });
-  return (data ?? []).map((row) => shape(row as Record<string, unknown>));
+  const rows = (data ?? []) as Record<string, unknown>[];
+  const locations = await resolveVenueLocations(
+    rows.map((r) => r.event_id as string | null).filter(Boolean) as string[],
+  );
+  return rows.map((row) =>
+    shape(row, locations.get(row.event_id as string) ?? null),
+  );
 }
 
 /**
@@ -87,5 +105,8 @@ export async function getVndrInquiry(inquiryId: string): Promise<VndrInquiry | n
     .select(COLS)
     .eq("id", inquiryId)
     .maybeSingle();
-  return data ? shape(data as Record<string, unknown>) : null;
+  if (!data) return null;
+  const row = data as Record<string, unknown>;
+  const locations = await resolveVenueLocations([row.event_id as string]);
+  return shape(row, locations.get(row.event_id as string) ?? null);
 }
