@@ -1,5 +1,6 @@
 import { redirect } from "next/navigation";
 import { getCurrentVendor } from "@/lib/vndr/current-vendor";
+import { PAYOUTS_COMING_SOON } from "@/lib/labels/payments";
 import { Chrome, NotifButton, ChromeSignOut } from "../_components/Chrome";
 import s from "../vndr.module.css";
 
@@ -8,6 +9,10 @@ import s from "../vndr.module.css";
  * from the desktop sidebar's "Money" group. V-2c ports the Venu money tab
  * patterns (hero earnings + period segments + breakdown) once payout
  * primitives are in place.
+ *
+ * Pre-Stripe placeholder copy is the canonical seller "connect payouts" voice
+ * from lib/labels/payments.ts — shared with the catr payments touchpoint and
+ * aligned with the orgnz buyer-side copy so the portals speak with one voice.
  */
 export default async function VndrMoney() {
   const vendor = await getCurrentVendor();
@@ -26,12 +31,10 @@ export default async function VndrMoney() {
         }
       />
       <div className={s.placeholder}>
-        <div className={s.placeholderTitle}>Coming soon</div>
-        <div className={s.placeholderBody}>
-          Once your first bookings land, this is where you&apos;ll track
-          earnings, payouts, and platform fees. Hold tight — the money tab
-          unlocks alongside the first wave of completed events.
-        </div>
+        <span className={s.placeholderPill}>{PAYOUTS_COMING_SOON.pill}</span>
+        <div className={s.placeholderTitle}>{PAYOUTS_COMING_SOON.title}</div>
+        <div className={s.placeholderBody}>{PAYOUTS_COMING_SOON.body}</div>
+        <div className={s.placeholderCta}>{PAYOUTS_COMING_SOON.cta}</div>
       </div>
     </>
   );
