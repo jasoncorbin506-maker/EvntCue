@@ -1,6 +1,7 @@
 import "server-only";
 import { createClient } from "@/lib/supabase/server";
 import type { InquiryBuyerRole } from "@/lib/messaging/inquiry-thread-shared";
+import type { DepositStatus } from "@/lib/labels/deposit-status";
 
 /**
  * Vendor-side reads against `inquiries`. Filtered by `recipient_tenant_id`
@@ -35,10 +36,13 @@ export type VndrInquiry = {
   createdAt: string;
   respondedAt: string | null;
   expiresAt: string | null;
+  depositStatus: DepositStatus;
+  depositAmountCents: number | null;
+  holdExpiresAt: string | null;
 };
 
 const COLS =
-  "id, event_id, buyer_tenant_id, buyer_role, event_date, guest_count, message, proposed_price_cents, status, created_at, responded_at, expires_at";
+  "id, event_id, buyer_tenant_id, buyer_role, event_date, guest_count, message, proposed_price_cents, status, created_at, responded_at, expires_at, deposit_status, deposit_amount_cents, hold_expires_at";
 
 function shape(row: Record<string, unknown>): VndrInquiry {
   return {
@@ -54,6 +58,9 @@ function shape(row: Record<string, unknown>): VndrInquiry {
     createdAt: row.created_at as string,
     respondedAt: (row.responded_at as string | null) ?? null,
     expiresAt: (row.expires_at as string | null) ?? null,
+    depositStatus: ((row.deposit_status as DepositStatus | null) ?? "none"),
+    depositAmountCents: (row.deposit_amount_cents as number | null) ?? null,
+    holdExpiresAt: (row.hold_expires_at as string | null) ?? null,
   };
 }
 

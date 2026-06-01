@@ -118,7 +118,7 @@ export default async function VenuTools() {
           />
           <ToolRow
             href="/venu/tools/commission-flows"
-            name="Commission flows"
+            name="Payment flows"
             sub={venueFlows}
             icon={
               <svg viewBox="0 0 24 24">

@@ -1,6 +1,7 @@
 import { createClient } from "@/lib/supabase/server";
 import type { InquiryStatus } from "@/lib/labels/inquiry-status";
 import type { InquiryBuyerRole } from "@/lib/messaging/inquiry-thread-shared";
+import type { DepositStatus } from "@/lib/labels/deposit-status";
 
 /**
  * Caterer-side reads against the unified `inquiries` table. Catr is an
@@ -30,10 +31,14 @@ export type CatrInquiry = {
   hoursSinceCreated: number;
   /** Buyer side of the thread. External leads (buyer_role null) default to orgnz for labeling. */
   buyerRole: InquiryBuyerRole;
+  /** Model C deposit dimension (orthogonal to status). 'funded'/'released' = cash-backed hold. */
+  depositStatus: DepositStatus;
+  depositAmountCents: number | null;
+  holdExpiresAt: string | null;
 };
 
 const COLS =
-  "id, client_name, event_date, guest_count, est_revenue_cents, proposed_price_cents, expires_at, message, status, created_at, buyer_role";
+  "id, client_name, event_date, guest_count, est_revenue_cents, proposed_price_cents, expires_at, message, status, created_at, buyer_role, deposit_status, deposit_amount_cents, hold_expires_at";
 
 function shape(row: Record<string, unknown>, now: number): CatrInquiry {
   const createdMs = new Date(row.created_at as string).getTime();
@@ -50,6 +55,9 @@ function shape(row: Record<string, unknown>, now: number): CatrInquiry {
     status: row.status as InquiryStatus,
     hoursSinceCreated,
     buyerRole: (row.buyer_role as InquiryBuyerRole | null) ?? "orgnz",
+    depositStatus: ((row.deposit_status as DepositStatus | null) ?? "none"),
+    depositAmountCents: (row.deposit_amount_cents as number | null) ?? null,
+    holdExpiresAt: (row.hold_expires_at as string | null) ?? null,
   };
 }
 

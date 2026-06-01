@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { inquiryStatusLabel, slaSeverityFor } from "@/lib/labels/inquiry-status";
+import { isConfirmedHold } from "@/lib/labels/deposit-status";
 import type { CatrInquiry } from "@/lib/catr/inquiries";
 import { formatEventDate, formatUSDCents } from "../_lib/format";
 import s from "../catr.module.css";
@@ -17,13 +18,22 @@ export function InquiryRow({ inquiry }: { inquiry: CatrInquiry }) {
     sla === "late" ? s.slaDotLate :
     s.slaDotClosed;
 
+  const confirmed = isConfirmedHold(inquiry.depositStatus);
+
   return (
-    <Link href={`/catr/inquiries/${inquiry.id}`} className={s.inqRow}>
+    <Link
+      href={`/catr/inquiries/${inquiry.id}`}
+      className={confirmed ? `${s.inqRow} ${s.inqRowHold}` : s.inqRow}
+    >
       <div className={`${s.slaDot} ${dotCls}`} aria-label={`SLA ${sla}`} />
       <div className={s.inqBody}>
         <div className={s.inqHead}>
           <div className={s.inqName}>{inquiry.title}</div>
-          <div className={s.inqStatus}>{inquiryStatusLabel(inquiry.status)}</div>
+          {confirmed ? (
+            <div className={s.inqHoldPill}>✓ Confirmed hold</div>
+          ) : (
+            <div className={s.inqStatus}>{inquiryStatusLabel(inquiry.status)}</div>
+          )}
         </div>
         <div className={s.inqMeta}>
           <span>{formatEventDate(inquiry.eventDate)}</span>
@@ -36,6 +46,14 @@ export function InquiryRow({ inquiry }: { inquiry: CatrInquiry }) {
             </>
           )}
         </div>
+        {confirmed && (
+          <div className={s.inqHoldMeta}>
+            Escrow funded
+            {inquiry.depositAmountCents != null
+              ? ` · ${formatUSDCents(inquiry.depositAmountCents)} deposit held`
+              : ""}
+          </div>
+        )}
         {inquiry.message && <div className={s.inqMsg}>{inquiry.message}</div>}
       </div>
     </Link>

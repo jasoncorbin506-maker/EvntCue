@@ -1,18 +1,20 @@
 "use client";
 
+import { useState, useTransition } from "react";
 import type { OrgnzInquiry } from "@/lib/orgnz/inquiries";
 import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
+import { isConfirmedHold } from "@/lib/labels/deposit-status";
+import { acceptAndFundDeposit } from "../_actions/fund-deposit";
 import { OrgnzInquiryThread } from "./OrgnzInquiryThread";
 import s from "./OrgnzInquiries.module.css";
 
 /**
- * Organizer-side bottom-sheet detail view for a single inquiry. The
- * orgnz side doesn't author quotes or decline (the vendor does that),
- * so this sheet is essentially a thread surface + read-only context
- * (vendor name, status, vendor's quote price if any).
+ * Organizer-side bottom-sheet detail view for a single inquiry.
  *
- * Quote acceptance, cancellation requests, and other forward actions
- * land in later V-2c sessions per the parent brief.
+ * Model C: once the seller has quoted, the buyer can "Accept & fund deposit"
+ * here — the moment a bare inquiry becomes a cash-backed Confirmed hold. Money
+ * is STUBBED pre-Stripe (the action only stamps deposit state). A funded
+ * inquiry shows a teal Confirmed-hold badge instead of the CTA.
  */
 
 type Props = {
@@ -41,7 +43,31 @@ function formatExpiry(iso: string): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+function formatDollars(cents: number | null): string {
+  if (cents == null) return "—";
+  return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
+}
+
 export function OrgnzInquiryDetailSheet({ inquiry, onClose }: Props) {
+  const [pending, startTransition] = useTransition();
+  const [error, setError] = useState<string | null>(null);
+
+  const confirmed = isConfirmedHold(inquiry.depositStatus);
+  const canFund =
+    !confirmed &&
+    inquiry.status === "quoted" &&
+    inquiry.depositStatus === "none" &&
+    inquiry.proposedPriceCents != null;
+
+  function onFund() {
+    setError(null);
+    startTransition(async () => {
+      const res = await acceptAndFundDeposit(inquiry.id);
+      if (!res.ok) setError(res.error);
+      // On success the revalidated server data re-renders the sheet's parent.
+    });
+  }
+
   return (
     <>
       <div className={s.scrim} onClick={onClose} aria-hidden="true" />
@@ -83,10 +109,42 @@ export function OrgnzInquiryDetailSheet({ inquiry, onClose }: Props) {
           </>
         )}
 
-        {inquiry.status === "penciled" && (
+        {confirmed ? (
+          <>
+            <div className={s.confirmedBadge}>
+              ✓ Confirmed hold · escrow funded
+            </div>
+            <div className={s.confirmedSub}>
+              Deposit of {formatDollars(inquiry.depositAmountCents)} is held.
+              {inquiry.holdExpiresAt
+                ? ` Your date is held through ${formatExpiry(inquiry.holdExpiresAt)}.`
+                : ""}
+            </div>
+          </>
+        ) : inquiry.status === "penciled" ? (
           <div className={s.holdBadge}>
             On hold
             {inquiry.expiresAt ? ` · expires ${formatExpiry(inquiry.expiresAt)}` : ""}
+          </div>
+        ) : null}
+
+        {canFund && (
+          <div className={s.fundBlock}>
+            <div className={s.fundHint}>
+              Lock in your date with a{" "}
+              {formatDollars(Math.round((inquiry.proposedPriceCents ?? 0) * 0.25))}{" "}
+              deposit (25% of the quote). Held in escrow — refundable per the
+              venue&rsquo;s terms.
+            </div>
+            <button
+              type="button"
+              className={s.fundCta}
+              onClick={onFund}
+              disabled={pending}
+            >
+              {pending ? "Funding…" : "Accept & fund deposit"}
+            </button>
+            {error && <div className={s.fundErr}>{error}</div>}
           </div>
         )}
 

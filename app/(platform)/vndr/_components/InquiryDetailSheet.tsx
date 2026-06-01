@@ -3,6 +3,7 @@
 import { useState, useTransition } from "react";
 import { respondToInquiry } from "../_actions/respond-to-inquiry";
 import { declineInquiry } from "../_actions/decline-inquiry";
+import { isConfirmedHold } from "@/lib/labels/deposit-status";
 import type { VndrInquiry, VndrInquiryStatus } from "@/lib/vndr/inquiries";
 import { InquiryThread } from "./InquiryThread";
 import s from "./InquiryDetailSheet.module.css";
@@ -62,6 +63,11 @@ function formatPriceDisplay(cents: number | null): string {
   return `$${dollars.toFixed(0)}`;
 }
 
+function formatHoldThrough(iso: string | null): string {
+  if (!iso) return "";
+  return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
+}
+
 export function InquiryDetailSheet({ inquiry, onClose }: Props) {
   const [pending, startTransition] = useTransition();
   const [priceStr, setPriceStr] = useState(
@@ -72,6 +78,7 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
 
   const canRespond = RESPONDABLE.includes(inquiry.status);
   const canDecline = DECLINABLE.includes(inquiry.status);
+  const confirmed = isConfirmedHold(inquiry.depositStatus);
 
   function handleSubmit() {
     setError(null);
@@ -132,6 +139,23 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
           </button>
         </div>
 
+        {confirmed && (
+          <div className={s.holdBanner}>
+            <div className={s.holdBannerTitle}>✓ Confirmed hold · escrow funded</div>
+            <div className={s.holdBannerBody}>
+              This buyer has a deposit on file
+              {inquiry.depositAmountCents != null
+                ? ` (${formatPriceDisplay(inquiry.depositAmountCents)} held)`
+                : ""}
+              .
+              {inquiry.holdExpiresAt
+                ? ` Date held through ${formatHoldThrough(inquiry.holdExpiresAt)}.`
+                : ""}{" "}
+              A qualified, cash-backed booking — not a tire-kicker.
+            </div>
+          </div>
+        )}
+
         {inquiry.message && (
           <>
             <div className={s.sectionLbl}>
@@ -180,8 +204,8 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
         {confirmDecline ? (
           <div className={s.declineConfirm}>
             <div className={s.declineConfirmTxt}>
-              Decline this inquiry? It will move to <b>Lost</b> and you won't
-              be able to respond to it later.
+              Decline this inquiry? It will move to <b>Lost</b> and you
+              won&apos;t be able to respond to it later.
             </div>
             <div className={s.footer}>
               <button
