@@ -1,0 +1,125 @@
+.intro {
+  font-family: var(--font-body);
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--txt2);
+  margin: 0 0 1.1rem;
+}
+
+.field {
+  display: block;
+  margin-bottom: 1rem;
+}
+.label {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+  color: var(--txt2);
+  margin-bottom: 0.4rem;
+}
+.opt {
+  font-weight: 400;
+  color: var(--txt3);
+}
+
+/* Dark-theme input surface — light text on a subtle raised dark fill (the app's
+   --txt is near-white; a white background would hide typed text). */
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--txt);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bdr);
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+}
+.input::placeholder {
+  color: var(--txt3);
+}
+.input:focus {
+  outline: none;
+  border-color: var(--blue, #2a6bdb);
+  box-shadow: 0 0 0 3px rgba(42, 107, 219, 0.12);
+}
+
+.row {
+  display: flex;
+  gap: 0.6rem;
+}
+.grow {
+  flex: 1 1 auto;
+}
+.stateField {
+  flex: 0 0 4.5rem;
+}
+.zipField {
+  flex: 0 0 6rem;
+}
+
+.toggle {
+  display: flex;
+  gap: 0.5rem;
+}
+.toggleBtn {
+  flex: 1;
+  font-family: var(--font-ui);
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: var(--txt2);
+  background: rgba(255, 255, 255, 0.04);
+  border: 1px solid var(--bdr);
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.toggleBtnOn {
+  color: #fff;
+  background: var(--blue, #2a6bdb);
+  border-color: var(--blue, #2a6bdb);
+}
+
+.hint {
+  display: block;
+  margin-top: 0.45rem;
+  font-family: var(--font-ui);
+  font-size: 0.76rem;
+  color: var(--txt3);
+  line-height: 1.4;
+}
+
+.error {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  color: var(--rose, #c0392b);
+  background: rgba(192, 57, 43, 0.07);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  margin-bottom: 0.9rem;
+}
+
+.saveCta {
+  width: 100%;
+  margin-top: 0.3rem;
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: #fff;
+  background: var(--blue, #2a6bdb);
+  border: none;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.saveCta:hover:not(:disabled) {
+  filter: brightness(1.05);
+}
+.saveCta:disabled {
+  opacity: 0.6;
+  cursor: default;
+}

@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import styles from "../orgnz.module.css";
 import { showToast } from "../_lib/toast";
+import { EventVenueAddressSheet } from "./EventVenueAddressSheet";
 
 export type FeedCardKind = "cueSuggest" | "payment" | "vendor" | "cueWarn";
 
@@ -17,6 +18,9 @@ export type FeedCard = {
   primaryCta?: { label: string; toast?: string; href?: string };
   secondaryCta?: { label: string; toast?: string; href?: string };
   dismissable?: boolean;
+  /** When true, "Not for us" opens the manual-venue address sheet (private /
+   *  backyard case) instead of plain-dismissing, then dismisses on save. */
+  dismissOpensAddressPrompt?: boolean;
 };
 
 const ICONS: Record<FeedCardKind, string> = {
@@ -37,12 +41,13 @@ const KIND_CLASS: Record<FeedCardKind, string> = {
   cueWarn: styles.cueWarn,
 };
 
-type Props = { initial: FeedCard[] };
+type Props = { initial: FeedCard[]; eventId: string };
 
-export function Feed({ initial }: Props) {
+export function Feed({ initial, eventId }: Props) {
   const router = useRouter();
   const [cards, setCards] = useState(initial);
   const [dismissing, setDismissing] = useState<Set<string>>(new Set());
+  const [addressCardId, setAddressCardId] = useState<string | null>(null);
 
   // A CTA navigates if it carries an href, else fires its toast.
   function runCta(cta: { toast?: string; href?: string }) {
@@ -124,7 +129,9 @@ export function Feed({ initial }: Props) {
                     type="button"
                     className={`${styles.fcBtn} ${styles.fcBtnDismiss}`}
                     onClick={() =>
-                      dismiss(card.id, "<em>Got it.</em> Hidden from this event.")
+                      card.dismissOpensAddressPrompt
+                        ? setAddressCardId(card.id)
+                        : dismiss(card.id, "<em>Got it.</em> Hidden from this event.")
                     }
                   >
                     Not for us
@@ -135,6 +142,18 @@ export function Feed({ initial }: Props) {
           </article>
         ))}
       </div>
+
+      {addressCardId && (
+        <EventVenueAddressSheet
+          eventId={eventId}
+          onClose={() => setAddressCardId(null)}
+          onSaved={() => {
+            const id = addressCardId;
+            setAddressCardId(null);
+            dismiss(id, "<em>Got it.</em> Your venue is on the event.");
+          }}
+        />
+      )}
     </section>
   );
 }

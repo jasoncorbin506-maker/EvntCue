@@ -85,6 +85,9 @@ function buildWelcomeFeed(args: {
         label: "Browse Venu",
         href: "/orgnz/browse?focus=venu",
       },
+      // "Not for us" → capture a private/own venue address instead of dismissing
+      // (the backyard / business-address case).
+      dismissOpensAddressPrompt: true,
     });
   }
 
@@ -341,7 +344,7 @@ export default async function OrgnzDashboardPage() {
         notes={notes}
         todos={todos}
       />
-      <Feed initial={welcomeCards} />
+      <Feed initial={welcomeCards} eventId={event.id} />
       <EventNotificationsFeed notifications={eventNotifications} />
       <TileGrid
         budgetCents={event.budget_cents}
