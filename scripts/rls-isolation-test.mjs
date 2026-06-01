@@ -4288,6 +4288,65 @@ async function testEmailSendAuditAuthedWriteDenied() {
   }
 }
 
+// TEST: T-50 — inquiries deposit columns are fn-only (R2 / PL #101 / migration 083).
+// inq_update is row-scoped but had no COLUMN scope, so a buyer could raw-UPDATE
+// deposit_status='funded' on their OWN inquiry with no charge — fabricating a
+// cash-backed "Confirmed hold" (a money bypass the instant Stripe lands). 083
+// REVOKEs UPDATE on the four deposit columns from authenticated; only the
+// SECURITY DEFINER fund_inquiry_deposit() may write them. DENIAL test: the buyer
+// owns the row (so RLS would otherwise ALLOW the write), proving the
+// column-privilege gate — not RLS — is what holds. Expect 42501 (privilege); a
+// different SQLSTATE would mean the row was rejected for the wrong reason.
+// NOTE: fails until migration 083 is applied to the target DB (lands together).
+async function testBuyerCannotDirectWriteDepositColumns() {
+  const orgnz = await seedTestUser("orgnz");
+  const vndr = await seedTestUser("vndr");
+
+  // Buyer creates their own inquiry (RLS-legal; INSERT grants untouched by 083).
+  const { data: inq, error: inqErr } = await orgnz.authedClient
+    .from("inquiries")
+    .insert({
+      buyer_tenant_id: orgnz.tenantId,
+      buyer_role: "orgnz",
+      recipient_tenant_id: vndr.tenantId,
+      recipient_type: "vndr",
+      event_date: "2027-11-01",
+      guest_count: 50,
+      message: `T-50 own inquiry ${TEST_RUN_ID}`,
+      status: "inquiry",
+    })
+    .select("id")
+    .single();
+  if (inqErr || !inq) {
+    throw new Error(`T-50 setup failed — buyer could not create own inquiry: ${inqErr?.message}`);
+  }
+
+  // Buyer tries to self-fund by writing the deposit columns directly. Denied.
+  const { data: leak, error: leakErr } = await orgnz.authedClient
+    .from("inquiries")
+    .update({
+      deposit_status: "funded",
+      deposit_amount_cents: 1,
+      deposit_funded_at: new Date().toISOString(),
+    })
+    .eq("id", inq.id)
+    .select("id");
+
+  if (!leakErr && leak && leak.length > 0) {
+    throw new Error(
+      "GRANT LEAK (R2 / PL #101): buyer directly wrote inquiries.deposit_status='funded' — column REVOKE not applied / re-granted? This is the funded-flip money bypass.",
+    );
+  }
+  if (!leakErr) {
+    throw new Error("inquiries deposit direct-write returned neither error nor row — unexpected");
+  }
+  if (leakErr.code !== "42501") {
+    throw new Error(
+      `inquiries deposit direct-write denial had SQLSTATE ${leakErr.code} (${leakErr.message}) — expected 42501 (privilege). A different code means the row was rejected for the wrong reason.`,
+    );
+  }
+}
+
 const TESTS = [
   { name: "Migration 034 regression (venue role + events join, no 42P17)", fn: testMigration034Regression },
   { name: "Cross-tenant events isolation (orgnz A vs orgnz B)", fn: testCrossTenantEventIsolation },
@@ -4342,6 +4401,7 @@ const TESTS = [
   { name: "T-47 guest_checkins insert scoping (migration 082, PL #100 — on_event gate; owner allowed, stranger denied)", fn: testGuestCheckinsInsertScoping },
   { name: "T-48 safetab_waivers insert scoping (migration 082, PL #100 — foreign-tenant insert denied 42501; denial-only, immutable table)", fn: testSafetabWaiversInsertScoping },
   { name: "T-49 email_send_audit grant lockdown (migration 082, PL #100 — authenticated write denied)", fn: testEmailSendAuditAuthedWriteDenied },
+  { name: "T-50 inquiries deposit columns fn-only (migration 083, R2/PL #101 — buyer direct deposit_status write denied 42501)", fn: testBuyerCannotDirectWriteDepositColumns },
 ];
 
 // -----------------------------------------------------------------------------
