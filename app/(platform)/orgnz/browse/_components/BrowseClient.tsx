@@ -74,7 +74,7 @@ function dollars(cents: number | null): string | null {
   return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
 }
 
-function VendorCard({ v }: { v: VendorListing }) {
+function VendorCard({ v, onInquire }: { v: VendorListing; onInquire: () => void }) {
   const cheapest = v.packages.reduce<number | null>((min, p) => {
     if (p.priceCents == null) return min;
     return min == null || p.priceCents < min ? p.priceCents : min;
@@ -82,7 +82,12 @@ function VendorCard({ v }: { v: VendorListing }) {
   const fromCents = v.startingPriceCents ?? cheapest;
   const cover = v.photos[0];
   return (
-    <div className={s.listingCard}>
+    <button
+      type="button"
+      className={`${s.listingCard} ${s.listingCardBtn}`}
+      onClick={onInquire}
+      aria-label={`Inquire with ${v.displayName}`}
+    >
       <div className={s.listingPhoto}>
         {cover ? (
           // eslint-disable-next-line @next/next/no-img-element
@@ -102,7 +107,7 @@ function VendorCard({ v }: { v: VendorListing }) {
           </div>
         )}
       </div>
-    </div>
+    </button>
   );
 }
 
@@ -262,7 +267,17 @@ export function BrowseClient({
           ) : activeVendors.length > 0 ? (
             <div className={s.listingGrid}>
               {activeVendors.map((v) => (
-                <VendorCard key={v.tenantId} v={v} />
+                <VendorCard
+                  key={v.tenantId}
+                  v={v}
+                  onInquire={() =>
+                    setInquiryTarget({
+                      tenantId: v.tenantId,
+                      displayName: v.displayName,
+                      portal: "vndr",
+                    })
+                  }
+                />
               ))}
             </div>
           ) : (
