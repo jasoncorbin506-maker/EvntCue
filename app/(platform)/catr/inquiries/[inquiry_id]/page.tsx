@@ -71,6 +71,31 @@ export default async function CatrInquiryDetail({
             <div className={s.eventMetaLbl}>Inquired</div>
             <div className={s.eventMetaVal}>{inquiry.hoursSinceCreated}h ago</div>
           </div>
+          {inquiry.venueLocation && (
+            <div className={s.eventMetaItem}>
+              <div className={s.eventMetaLbl}>Venue</div>
+              <div className={s.eventMetaVal}>
+                {inquiry.venueLocation.locationType === "home"
+                  ? "Private home"
+                  : inquiry.venueLocation.locationType === "business"
+                    ? "Business"
+                    : "Off-platform"}
+                {(inquiry.venueLocation.line1 || inquiry.venueLocation.city) && (
+                  <div className={s.eventMetaLbl} style={{ marginTop: 2 }}>
+                    {[
+                      inquiry.venueLocation.line1,
+                      inquiry.venueLocation.line2,
+                      inquiry.venueLocation.city,
+                      inquiry.venueLocation.state,
+                      inquiry.venueLocation.postalCode,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 

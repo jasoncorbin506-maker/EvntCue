@@ -2,6 +2,10 @@ import { createClient } from "@/lib/supabase/server";
 import type { InquiryStatus } from "@/lib/labels/inquiry-status";
 import type { InquiryBuyerRole } from "@/lib/messaging/inquiry-thread-shared";
 import type { DepositStatus } from "@/lib/labels/deposit-status";
+import {
+  resolveVenueLocations,
+  type EventVenueLocation,
+} from "@/lib/inquiries/venue-location";
 
 /**
  * Caterer-side reads against the unified `inquiries` table. Catr is an
@@ -35,12 +39,19 @@ export type CatrInquiry = {
   depositStatus: DepositStatus;
   depositAmountCents: number | null;
   holdExpiresAt: string | null;
+  /** Manual venue location (Lock 30) — present only for private/own-venue
+   *  events; the locationType (home/business) drives the early opt-out signal. */
+  venueLocation: EventVenueLocation | null;
 };
 
 const COLS =
-  "id, client_name, event_date, guest_count, est_revenue_cents, proposed_price_cents, expires_at, message, status, created_at, buyer_role, deposit_status, deposit_amount_cents, hold_expires_at";
+  "id, event_id, client_name, event_date, guest_count, est_revenue_cents, proposed_price_cents, expires_at, message, status, created_at, buyer_role, deposit_status, deposit_amount_cents, hold_expires_at";
 
-function shape(row: Record<string, unknown>, now: number): CatrInquiry {
+function shape(
+  row: Record<string, unknown>,
+  now: number,
+  venueLocation: EventVenueLocation | null = null,
+): CatrInquiry {
   const createdMs = new Date(row.created_at as string).getTime();
   const hoursSinceCreated = Math.max(0, Math.floor((now - createdMs) / 3_600_000));
   return {
@@ -58,6 +69,7 @@ function shape(row: Record<string, unknown>, now: number): CatrInquiry {
     depositStatus: ((row.deposit_status as DepositStatus | null) ?? "none"),
     depositAmountCents: (row.deposit_amount_cents as number | null) ?? null,
     holdExpiresAt: (row.hold_expires_at as string | null) ?? null,
+    venueLocation,
   };
 }
 
@@ -71,7 +83,13 @@ export async function getCatrInquiries(tenantId: string): Promise<CatrInquiry[]>
     .order("created_at", { ascending: false });
 
   const now = Date.now();
-  return (data ?? []).map((row) => shape(row as Record<string, unknown>, now));
+  const rows = (data ?? []) as Record<string, unknown>[];
+  const locations = await resolveVenueLocations(
+    rows.map((r) => r.event_id as string | null).filter(Boolean) as string[],
+  );
+  return rows.map((row) =>
+    shape(row, now, locations.get(row.event_id as string) ?? null),
+  );
 }
 
 /** New-segment count (status ∈ {inquiry, reviewing}) for the chrome badge. */
@@ -96,5 +114,7 @@ export async function getCatrInquiry(id: string): Promise<CatrInquiry | null> {
     .maybeSingle();
 
   if (!data) return null;
-  return shape(data as Record<string, unknown>, Date.now());
+  const row = data as Record<string, unknown>;
+  const locations = await resolveVenueLocations([row.event_id as string]);
+  return shape(row, Date.now(), locations.get(row.event_id as string) ?? null);
 }

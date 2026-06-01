@@ -90,6 +90,36 @@ export default async function VndrInquiryDetail({
               {inquiry.guestCount > 0 ? inquiry.guestCount : "TBD"}
             </div>
           </div>
+          {inquiry.venueLocation && (
+            <>
+              <div className={s.dcChangeRow}>
+                <span className={s.dcChangeLbl}>Venue</span>
+                <div className={s.dcChangeValue}>
+                  {inquiry.venueLocation.locationType === "home"
+                    ? "Private home"
+                    : inquiry.venueLocation.locationType === "business"
+                      ? "Business"
+                      : "Off-platform"}
+                </div>
+              </div>
+              {(inquiry.venueLocation.line1 || inquiry.venueLocation.city) && (
+                <div className={s.dcChangeRow}>
+                  <span className={s.dcChangeLbl}>Address</span>
+                  <div className={s.dcChangeValue}>
+                    {[
+                      inquiry.venueLocation.line1,
+                      inquiry.venueLocation.line2,
+                      inquiry.venueLocation.city,
+                      inquiry.venueLocation.state,
+                      inquiry.venueLocation.postalCode,
+                    ]
+                      .filter(Boolean)
+                      .join(", ")}
+                  </div>
+                </div>
+              )}
+            </>
+          )}
         </div>
 
         {inquiry.message && (
