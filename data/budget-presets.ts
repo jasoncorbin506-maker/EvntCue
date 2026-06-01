@@ -259,6 +259,24 @@ export function getSubtype(category: CategoryKey, key: string | null | undefined
   return SUBTYPES_BY_CATEGORY[category].find((s) => s.key === key);
 }
 
+/**
+ * Resolve a `CategoryKey` from an `events.event_subtype` value (the subtype
+ * `key`, e.g. "corporate_gala", "annual_gala", "hindu"). Subtype keys are
+ * globally unique across categories, so this reverse-lookup is unambiguous.
+ *
+ * Why this exists: `events.event_type` is a coarse enum (e.g. "corporate_gala"
+ * covers both the gala and holiday_party subtypes) and is NOT a CategoryKey, so
+ * mapping category off `event_type` mis-resolves granular types (a corporate
+ * gala fell through to "social"). The subtype key is the reliable anchor.
+ */
+export function categoryForSubtype(subtypeKey: string | null | undefined): CategoryKey | null {
+  if (!subtypeKey) return null;
+  for (const cat of Object.keys(SUBTYPES_BY_CATEGORY) as CategoryKey[]) {
+    if (SUBTYPES_BY_CATEGORY[cat].some((s) => s.key === subtypeKey)) return cat;
+  }
+  return null;
+}
+
 /* ---------------- Guest count + horizon enums ---------------- */
 
 export const GUEST_BANDS = [

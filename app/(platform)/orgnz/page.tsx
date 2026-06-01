@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { CATEGORIES, type CategoryKey } from "@/data/budget-presets";
+import { CATEGORIES, categoryForSubtype, type CategoryKey } from "@/data/budget-presets";
 import {
   mergeRecipeWithCustoms,
   pickRecipe,
@@ -66,11 +66,11 @@ function buildWelcomeFeed(args: {
     body: `<em>Your celebration is on the board.</em> Three things up next: lock the venue, build a mood board, and tell us if you want a Plnr to ride alongside.`,
     primaryCta: {
       label: "Start mood board",
-      toast: "Mood Board opens. <em>Pin your first image.</em>",
+      href: "/mood-board",
     },
     secondaryCta: {
       label: "Find a Plnr",
-      toast: "Plnr sheet opens here in <em>3.2.B</em>.",
+      href: "/orgnz/browse?focus=plnr",
     },
   });
 
@@ -83,8 +83,11 @@ function buildWelcomeFeed(args: {
       body: `Vndrs get sticky once a date is locked, and a date locks when the <strong>venue</strong> confirms. <em>You can still proceed</em> — just expect quotes to firm up after.`,
       primaryCta: {
         label: "Browse Venu",
-        toast: "Venu sheet opens here in <em>3.2.B</em>.",
+        href: "/orgnz/browse?focus=venu",
       },
+      // "Not for us" → capture a private/own venue address instead of dismissing
+      // (the backyard / business-address case).
+      dismissOpensAddressPrompt: true,
     });
   }
 
@@ -144,7 +147,10 @@ export default async function OrgnzDashboardPage() {
   const vendorDetailsByTenant = Object.fromEntries(vendorDetailMap);
   const allocatedCents = lineItems.reduce((sum, item) => sum + item.amount_cents, 0);
   const days = daysUntil(event.start_date);
-  const category = toCategory(event.event_type);
+  // Category resolves from the subtype key (globally unique, reliable); the
+  // event_type fallback only matters for subtype-less events. Using event_type
+  // alone mis-mapped granular types — a corporate gala fell through to "social".
+  const category = categoryForSubtype(event.event_subtype) ?? toCategory(event.event_type);
   const longDate = formatStartLongDate(event.start_date);
 
   // PARKING_LOT #10 closed 2026-05-11 (session 9) — migration 021 added
@@ -338,7 +344,7 @@ export default async function OrgnzDashboardPage() {
         notes={notes}
         todos={todos}
       />
-      <Feed initial={welcomeCards} />
+      <Feed initial={welcomeCards} eventId={event.id} />
       <EventNotificationsFeed notifications={eventNotifications} />
       <TileGrid
         budgetCents={event.budget_cents}
