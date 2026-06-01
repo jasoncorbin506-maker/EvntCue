@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link";
 import { useLocale } from "next-intl";
+import { BackLink } from "@/lib/ui/BackLink";
 import { VNDR_CATEGORIES, isVndrCategoryKey } from "@/data/vndr-categories";
 import { vendorCategoryLabel } from "@/lib/labels/vendor-categories";
 import { CATEGORY_ICONS } from "@/app/(public)/vndr-onboarding/[step]/_components/category-icons";
@@ -177,13 +177,9 @@ export function BrowseClient({
   return (
     <div className={s.wrap}>
       {active ? (
-        <button type="button" className={s.back} onClick={() => setSelected(null)}>
-          ‹ All categories
-        </button>
+        <BackLink onClick={() => setSelected(null)} label="All categories" className={s.back} />
       ) : (
-        <Link href="/orgnz" className={s.back}>
-          ‹ Dashboard
-        </Link>
+        <BackLink href="/orgnz" label="Dashboard" className={s.back} />
       )}
 
       {!active && (

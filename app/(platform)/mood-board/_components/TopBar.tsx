@@ -1,7 +1,7 @@
 "use client";
 
-import Link from "next/link";
 import s from "../mood-board.module.css";
+import { BackLink } from "@/lib/ui/BackLink";
 import type { CanvasLabels } from "./MoodBoardCanvas";
 
 type Props = {
@@ -37,22 +37,7 @@ export function TopBar({
   return (
     <header className={s.topbar}>
       <div className={s.topbarLeft}>
-        <Link href="/orgnz" className={s.backLink} aria-label={labels.backToDashboard}>
-          <svg
-            width="14"
-            height="14"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            aria-hidden
-          >
-            <path d="M15 18l-6-6 6-6" />
-          </svg>
-          <span>{labels.backToDashboard}</span>
-        </Link>
+        <BackLink href="/orgnz" label={labels.backToDashboard} />
         <span className={s.topbarSep} aria-hidden />
         <span className={s.boardName}>{labels.boardName}</span>
         <span className={s.privacyBadge} title={labels.privacyBadge}>
