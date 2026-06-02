@@ -2,6 +2,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getCurrentCaterer } from "@/lib/catr/current-caterer";
 import { getCatrInquiry } from "@/lib/catr/inquiries";
+import { getSharedMoodboardPins } from "@/lib/moodboard/invites";
 import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
 import { isConfirmedHold } from "@/lib/labels/deposit-status";
 
@@ -36,6 +37,12 @@ export default async function CatrInquiryDetail({
 
   const inquiry = await getCatrInquiry(inquiry_id);
   if (!inquiry) notFound();
+
+  // Lock 30 Phase D — shared mood board ("their vision"), if the buyer invited
+  // this caterer's tenant. RLS-gated read; empty otherwise.
+  const sharedPins = inquiry.buyerTenantId
+    ? await getSharedMoodboardPins(inquiry.buyerTenantId)
+    : [];
 
   return (
     <>
@@ -120,6 +127,24 @@ export default async function CatrInquiryDetail({
         <div className={s.messageCard}>
           <div className={s.messageLbl}>Message</div>
           <div className={s.messageText}>&ldquo;{inquiry.message}&rdquo;</div>
+        </div>
+      )}
+
+      {sharedPins.length > 0 && (
+        <div className={s.messageCard}>
+          <div className={s.messageLbl}>Their vision · shared mood board</div>
+          <div style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 8 }}>
+            {sharedPins.map((p, i) => (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                key={i}
+                src={p.url}
+                alt={p.alt ?? "Mood board pin"}
+                loading="lazy"
+                style={{ flex: "0 0 auto", width: "46%", maxWidth: 220, aspectRatio: "3 / 2", objectFit: "cover", borderRadius: 10 }}
+              />
+            ))}
+          </div>
         </div>
       )}
 

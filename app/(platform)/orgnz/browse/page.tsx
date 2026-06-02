@@ -4,6 +4,8 @@ import {
   getMarketplaceCaterers,
 } from "@/lib/marketplace/listings";
 import { getOrgnzActiveEvents } from "@/lib/orgnz/active-events";
+import { getCurrentOrganizer } from "@/lib/orgnz/current-organizer";
+import { getInvitedTenantIds } from "@/lib/moodboard/invites";
 import { BrowseClient } from "./_components/BrowseClient";
 
 /**
@@ -18,13 +20,16 @@ export default async function OrgnzBrowsePage({
 }: {
   searchParams: Promise<{ focus?: string }>;
 }) {
-  const [{ focus }, vendors, venues, caterers, activeEvents] = await Promise.all([
-    searchParams,
-    getMarketplaceVendors(),
-    getMarketplaceVenues(),
-    getMarketplaceCaterers(),
-    getOrgnzActiveEvents(),
-  ]);
+  const organizer = await getCurrentOrganizer();
+  const [{ focus }, vendors, venues, caterers, activeEvents, invitedTenantIds] =
+    await Promise.all([
+      searchParams,
+      getMarketplaceVendors(),
+      getMarketplaceVenues(),
+      getMarketplaceCaterers(),
+      getOrgnzActiveEvents(),
+      organizer ? getInvitedTenantIds(organizer.tenantId) : Promise.resolve([]),
+    ]);
 
   return (
     <BrowseClient
@@ -32,6 +37,7 @@ export default async function OrgnzBrowsePage({
       venues={venues}
       caterers={caterers}
       activeEvents={activeEvents}
+      invitedTenantIds={invitedTenantIds}
       initialFocus={focus ?? null}
     />
   );

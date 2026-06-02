@@ -96,3 +96,31 @@
 .inquireBtn:hover {
   filter: brightness(1.05);
 }
+
+.moodboardBtn,
+.moodboardBtnOn {
+  width: 100%;
+  margin-top: 0.5rem;
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 0.65rem 1rem;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.moodboardBtn {
+  color: var(--txt);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bdr);
+}
+.moodboardBtnOn {
+  color: var(--violet, #8b5fb8);
+  background: rgba(139, 95, 184, 0.12);
+  border: 1px solid var(--violet, #8b5fb8);
+}
+.moodboardBtn:disabled,
+.moodboardBtnOn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
