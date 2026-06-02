@@ -46,6 +46,13 @@ export default async function CatrHome() {
           {newCount > 0 && <span className={s.homeTileCount}>{newCount}</span>}
         </Link>
 
+        <Link href="/catr/profile" className={s.homeTile}>
+          <div>
+            <div className={s.homeTileLbl}>Profile &amp; menu</div>
+            <div className={s.homeTileSub}>Your listing · tiers · publish to the marketplace</div>
+          </div>
+        </Link>
+
         <div
           className={`${s.homeTile} ${s.homeTileDisabled}`}
           aria-disabled="true"

@@ -168,3 +168,59 @@ export async function getMarketplaceVenues(): Promise<VenueListing[]> {
     })
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 }
+
+export type CatrMenuTier = {
+  id: string;
+  name: string;
+  description: string | null;
+  perGuestCents: number | null;
+  minGuests: number | null;
+};
+
+export type CatrListing = {
+  tenantId: string;
+  displayName: string;
+  city: string | null;
+  cuisineTypes: string[];
+  serviceStyles: string[];
+  tiers: CatrMenuTier[];
+};
+
+export async function getMarketplaceCaterers(): Promise<CatrListing[]> {
+  const supabase = await createClient();
+
+  const [caterersRes, tiersRes] = await Promise.all([
+    supabase
+      .from("marketplace_caterers")
+      .select("tenant_id, display_name, city, cuisine_types, service_styles"),
+    supabase
+      .from("marketplace_catr_menu_tiers")
+      .select("id, tenant_id, name, description, per_guest_cents, min_guests, sort_order")
+      .order("sort_order", { ascending: true }),
+  ]);
+
+  const catrRows = (caterersRes.data ?? []) as Record<string, unknown>[];
+  const tierRows = (tiersRes.data ?? []) as Record<string, unknown>[];
+  const tiersByTenant = groupBy(tierRows, (r) => r.tenant_id as string);
+
+  return catrRows
+    .map((row): CatrListing => {
+      const tenantId = row.tenant_id as string;
+      const tiers = (tiersByTenant.get(tenantId) ?? []).map((t) => ({
+        id: t.id as string,
+        name: t.name as string,
+        description: (t.description as string | null) ?? null,
+        perGuestCents: (t.per_guest_cents as number | null) ?? null,
+        minGuests: (t.min_guests as number | null) ?? null,
+      }));
+      return {
+        tenantId,
+        displayName: (row.display_name as string | null) ?? "Caterer",
+        city: (row.city as string | null) ?? null,
+        cuisineTypes: (row.cuisine_types as string[] | null) ?? [],
+        serviceStyles: (row.service_styles as string[] | null) ?? [],
+        tiers,
+      };
+    })
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+}
