@@ -1,12 +1,17 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import type {
   VendorListing,
   VenueListing,
   CatrListing,
 } from "@/lib/marketplace/listings";
+import {
+  inviteSellerToMoodboard,
+  revokeSellerMoodboardInvite,
+} from "../_actions/moodboard-invite";
+import { showToast } from "../_lib/toast";
 import orgnzStyles from "../orgnz.module.css";
 import s from "./SellerProfileSheet.module.css";
 
@@ -37,11 +42,45 @@ const EYEBROW = { vndr: "Vndr", venu: "Venu", catr: "Catr" } as const;
 
 type Props = {
   profile: SellerProfile;
+  /** Whether this seller's tenant currently holds a live moodboard invite. */
+  initiallyInvited?: boolean;
   onClose: () => void;
   onInquire: () => void;
 };
 
-export function SellerProfileSheet({ profile, onClose, onInquire }: Props) {
+export function SellerProfileSheet({
+  profile,
+  initiallyInvited = false,
+  onClose,
+  onInquire,
+}: Props) {
+  const [invited, setInvited] = useState(initiallyInvited);
+  const [pendingInvite, startInviteTransition] = useTransition();
+
+  const targetTenantId =
+    profile.kind === "vndr"
+      ? profile.vendor.tenantId
+      : profile.kind === "venu"
+        ? profile.venue.tenantId
+        : profile.caterer.tenantId;
+
+  function toggleMoodboard() {
+    if (pendingInvite) return;
+    const next = !invited;
+    setInvited(next); // optimistic
+    startInviteTransition(async () => {
+      const res = next
+        ? await inviteSellerToMoodboard(targetTenantId)
+        : await revokeSellerMoodboardInvite(targetTenantId);
+      if (!res.ok) {
+        setInvited(!next); // revert
+        showToast(res.error);
+        return;
+      }
+      showToast(next ? "Mood board shared." : "Stopped sharing your mood board.");
+    });
+  }
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") onClose();
@@ -103,6 +142,15 @@ export function SellerProfileSheet({ profile, onClose, onInquire }: Props) {
         <div className={s.cta}>
           <button type="button" className={s.inquireBtn} onClick={onInquire}>
             Inquire with {displayName}
+          </button>
+          <button
+            type="button"
+            className={invited ? s.moodboardBtnOn : s.moodboardBtn}
+            onClick={toggleMoodboard}
+            disabled={pendingInvite}
+            aria-pressed={invited}
+          >
+            {invited ? "✓ Sharing your mood board · tap to stop" : "Invite to your mood board"}
           </button>
         </div>
       </aside>

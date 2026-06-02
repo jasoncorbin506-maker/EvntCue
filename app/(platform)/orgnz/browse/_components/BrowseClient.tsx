@@ -239,12 +239,14 @@ export function BrowseClient({
   venues,
   caterers,
   activeEvents,
+  invitedTenantIds,
   initialFocus,
 }: {
   vendors: VendorListing[];
   venues: VenueListing[];
   caterers: CatrListing[];
   activeEvents: InquiryEventOption[];
+  invitedTenantIds: string[];
   initialFocus: string | null;
 }) {
   const locale = useLocale() as Locale;
@@ -424,6 +426,13 @@ export function BrowseClient({
       {profileTarget && (
         <SellerProfileSheet
           profile={profileTarget}
+          initiallyInvited={invitedTenantIds.includes(
+            profileTarget.kind === "vndr"
+              ? profileTarget.vendor.tenantId
+              : profileTarget.kind === "venu"
+                ? profileTarget.venue.tenantId
+                : profileTarget.caterer.tenantId,
+          )}
           onClose={() => setProfileTarget(null)}
           onInquire={() => {
             const t =

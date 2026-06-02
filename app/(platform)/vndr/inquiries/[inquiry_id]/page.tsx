@@ -3,6 +3,7 @@ import { notFound, redirect } from "next/navigation";
 
 import { getCurrentVendor } from "@/lib/vndr/current-vendor";
 import { getVndrInquiry, type VndrInquiryStatus } from "@/lib/vndr/inquiries";
+import { getSharedMoodboardPins } from "@/lib/moodboard/invites";
 import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
 
 import { Chrome, ChromeSignOut } from "../../_components/Chrome";
@@ -59,6 +60,10 @@ export default async function VndrInquiryDetail({
 
   const inquiry = await getVndrInquiry(inquiry_id);
   if (!inquiry) notFound();
+
+  // Lock 30 Phase D — if the buyer invited this vendor to their mood board,
+  // the RLS-gated read returns its pins ("their vision").
+  const sharedPins = await getSharedMoodboardPins(inquiry.buyerTenantId);
 
   return (
     <>
@@ -126,6 +131,24 @@ export default async function VndrInquiryDetail({
           <div className={s.dcReason}>
             <div className={s.dcReasonLbl}>Message</div>
             <div className={s.dcReasonText}>&ldquo;{inquiry.message}&rdquo;</div>
+          </div>
+        )}
+
+        {sharedPins.length > 0 && (
+          <div className={s.dcReason}>
+            <div className={s.dcReasonLbl}>Their vision · shared mood board</div>
+            <div style={{ display: "flex", gap: 6, overflowX: "auto", marginTop: 8 }}>
+              {sharedPins.map((p, i) => (
+                // eslint-disable-next-line @next/next/no-img-element
+                <img
+                  key={i}
+                  src={p.url}
+                  alt={p.alt ?? "Mood board pin"}
+                  loading="lazy"
+                  style={{ flex: "0 0 auto", width: "46%", maxWidth: 220, aspectRatio: "3 / 2", objectFit: "cover", borderRadius: 10 }}
+                />
+              ))}
+            </div>
           </div>
         )}
 

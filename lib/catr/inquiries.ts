@@ -35,6 +35,8 @@ export type CatrInquiry = {
   hoursSinceCreated: number;
   /** Buyer side of the thread. External leads (buyer_role null) default to orgnz for labeling. */
   buyerRole: InquiryBuyerRole;
+  /** Buyer tenant (null for external/seeded leads). Used for the shared-moodboard read. */
+  buyerTenantId: string | null;
   /** Model C deposit dimension (orthogonal to status). 'funded'/'released' = cash-backed hold. */
   depositStatus: DepositStatus;
   depositAmountCents: number | null;
@@ -45,7 +47,7 @@ export type CatrInquiry = {
 };
 
 const COLS =
-  "id, event_id, client_name, event_date, guest_count, est_revenue_cents, proposed_price_cents, expires_at, message, status, created_at, buyer_role, deposit_status, deposit_amount_cents, hold_expires_at";
+  "id, event_id, buyer_tenant_id, client_name, event_date, guest_count, est_revenue_cents, proposed_price_cents, expires_at, message, status, created_at, buyer_role, deposit_status, deposit_amount_cents, hold_expires_at";
 
 function shape(
   row: Record<string, unknown>,
@@ -66,6 +68,7 @@ function shape(
     status: row.status as InquiryStatus,
     hoursSinceCreated,
     buyerRole: (row.buyer_role as InquiryBuyerRole | null) ?? "orgnz",
+    buyerTenantId: (row.buyer_tenant_id as string | null) ?? null,
     depositStatus: ((row.deposit_status as DepositStatus | null) ?? "none"),
     depositAmountCents: (row.deposit_amount_cents as number | null) ?? null,
     holdExpiresAt: (row.hold_expires_at as string | null) ?? null,
