@@ -184,12 +184,13 @@ export type CatrListing = {
   cuisineTypes: string[];
   serviceStyles: string[];
   tiers: CatrMenuTier[];
+  photos: MarketplacePhoto[];
 };
 
 export async function getMarketplaceCaterers(): Promise<CatrListing[]> {
   const supabase = await createClient();
 
-  const [caterersRes, tiersRes] = await Promise.all([
+  const [caterersRes, tiersRes, photosRes] = await Promise.all([
     supabase
       .from("marketplace_caterers")
       .select("tenant_id, display_name, city, cuisine_types, service_styles"),
@@ -197,11 +198,17 @@ export async function getMarketplaceCaterers(): Promise<CatrListing[]> {
       .from("marketplace_catr_menu_tiers")
       .select("id, tenant_id, name, description, per_guest_cents, min_guests, sort_order")
       .order("sort_order", { ascending: true }),
+    supabase
+      .from("marketplace_catr_photos")
+      .select("tenant_id, storage_path, alt_text, display_order")
+      .order("display_order", { ascending: true }),
   ]);
 
   const catrRows = (caterersRes.data ?? []) as Record<string, unknown>[];
   const tierRows = (tiersRes.data ?? []) as Record<string, unknown>[];
+  const photoRows = (photosRes.data ?? []) as Record<string, unknown>[];
   const tiersByTenant = groupBy(tierRows, (r) => r.tenant_id as string);
+  const photosByTenant = groupBy(photoRows, (r) => r.tenant_id as string);
 
   return catrRows
     .map((row): CatrListing => {
@@ -213,6 +220,12 @@ export async function getMarketplaceCaterers(): Promise<CatrListing[]> {
         perGuestCents: (t.per_guest_cents as number | null) ?? null,
         minGuests: (t.min_guests as number | null) ?? null,
       }));
+      const photos = (photosByTenant.get(tenantId) ?? []).map((p) => {
+        const { data: pub } = supabase.storage
+          .from("catr-photos")
+          .getPublicUrl(p.storage_path as string);
+        return { url: pub.publicUrl, alt: (p.alt_text as string | null) ?? null };
+      });
       return {
         tenantId,
         displayName: (row.display_name as string | null) ?? "Caterer",
@@ -220,6 +233,7 @@ export async function getMarketplaceCaterers(): Promise<CatrListing[]> {
         cuisineTypes: (row.cuisine_types as string[] | null) ?? [],
         serviceStyles: (row.service_styles as string[] | null) ?? [],
         tiers,
+        photos,
       };
     })
     .sort((a, b) => a.displayName.localeCompare(b.displayName));

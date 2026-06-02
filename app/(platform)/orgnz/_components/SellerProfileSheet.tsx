@@ -266,6 +266,21 @@ function CatrProfileBody({ v }: { v: CatrListing }) {
   const meta = [v.city, ...v.cuisineTypes].filter(Boolean).join(" · ");
   return (
     <>
+      {v.photos.length > 0 && (
+        <div className={s.gallery}>
+          {v.photos.map((p, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={i}
+              src={p.url}
+              alt={p.alt ?? v.displayName}
+              loading="lazy"
+              className={s.galleryImg}
+            />
+          ))}
+        </div>
+      )}
+
       {meta && <div className={s.metaRow}>{meta}</div>}
 
       {v.serviceStyles.length > 0 && (

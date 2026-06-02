@@ -4,6 +4,8 @@ import { useState, useTransition } from "react";
 import { saveCatrProfile, saveCatrMenuTier, deleteCatrMenuTier } from "../_actions/catr-profile";
 import { showToast } from "@/app/(platform)/orgnz/_lib/toast";
 import type { CatrProfile, CatrMenuTierRow } from "@/lib/catr/profile";
+import type { CatrPhoto } from "@/lib/catr/photos";
+import { CatrPhotosGrid } from "./CatrPhotosGrid";
 import s from "./CatrProfileForm.module.css";
 
 /**
@@ -18,9 +20,10 @@ function dollars(cents: number | null): string {
 type Props = {
   initialProfile: CatrProfile;
   initialTiers: CatrMenuTierRow[];
+  initialPhotos: CatrPhoto[];
 };
 
-export function CatrProfileForm({ initialProfile, initialTiers }: Props) {
+export function CatrProfileForm({ initialProfile, initialTiers, initialPhotos }: Props) {
   const [name, setName] = useState(initialProfile.displayName ?? "");
   const [city, setCity] = useState(initialProfile.city ?? "");
   const [cuisines, setCuisines] = useState(initialProfile.cuisineTypes.join(", "));
@@ -120,6 +123,11 @@ export function CatrProfileForm({ initialProfile, initialTiers }: Props) {
         <span className={s.label}>Service styles <span className={s.opt}>(comma-separated)</span></span>
         <input className={s.input} value={styles} onChange={(e) => setStyles(e.target.value)} placeholder="Plated, Buffet, Stations, Bar" {...inputProps} />
       </label>
+
+      <div className={s.tiers}>
+        <div className={s.tiersHead}>Photos <span className={s.opt}>first is your cover</span></div>
+        <CatrPhotosGrid initial={initialPhotos} />
+      </div>
 
       <div className={s.tiers}>
         <div className={s.tiersHead}>Menu tiers <span className={s.opt}>per guest</span></div>

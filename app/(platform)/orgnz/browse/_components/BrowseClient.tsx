@@ -211,7 +211,12 @@ function CatrCard({
         aria-label={`View ${v.displayName}`}
       >
         <div className={s.listingPhoto}>
-          <div className={s.listingPhotoEmpty} aria-hidden="true" />
+          {v.photos[0] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={v.photos[0].url} alt={v.photos[0].alt ?? v.displayName} loading="lazy" />
+          ) : (
+            <div className={s.listingPhotoEmpty} aria-hidden="true" />
+          )}
         </div>
         <div className={s.listingBody}>
           <div className={s.listingName}>{v.displayName}</div>
