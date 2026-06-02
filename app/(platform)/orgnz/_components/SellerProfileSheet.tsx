@@ -2,7 +2,11 @@
 
 import { useEffect } from "react";
 import { createPortal } from "react-dom";
-import type { VendorListing, VenueListing } from "@/lib/marketplace/listings";
+import type {
+  VendorListing,
+  VenueListing,
+  CatrListing,
+} from "@/lib/marketplace/listings";
 import orgnzStyles from "../orgnz.module.css";
 import s from "./SellerProfileSheet.module.css";
 
@@ -26,9 +30,10 @@ function dollars(cents: number | null): string | null {
 
 export type SellerProfile =
   | { kind: "vndr"; vendor: VendorListing }
-  | { kind: "venu"; venue: VenueListing };
+  | { kind: "venu"; venue: VenueListing }
+  | { kind: "catr"; caterer: CatrListing };
 
-const EYEBROW = { vndr: "Vndr", venu: "Venu" } as const;
+const EYEBROW = { vndr: "Vndr", venu: "Venu", catr: "Catr" } as const;
 
 type Props = {
   profile: SellerProfile;
@@ -52,7 +57,11 @@ export function SellerProfileSheet({ profile, onClose, onInquire }: Props) {
   if (typeof document === "undefined") return null;
 
   const displayName =
-    profile.kind === "vndr" ? profile.vendor.displayName : profile.venue.displayName;
+    profile.kind === "vndr"
+      ? profile.vendor.displayName
+      : profile.kind === "venu"
+        ? profile.venue.displayName
+        : profile.caterer.displayName;
 
   return createPortal(
     <>
@@ -82,9 +91,13 @@ export function SellerProfileSheet({ profile, onClose, onInquire }: Props) {
         </div>
 
         <div className={orgnzStyles.drawerBody}>
-          {profile.kind === "vndr"
-            ? <VndrProfileBody v={profile.vendor} />
-            : <VenuProfileBody v={profile.venue} />}
+          {profile.kind === "vndr" ? (
+            <VndrProfileBody v={profile.vendor} />
+          ) : profile.kind === "venu" ? (
+            <VenuProfileBody v={profile.venue} />
+          ) : (
+            <CatrProfileBody v={profile.caterer} />
+          )}
         </div>
 
         <div className={s.cta}>
@@ -188,6 +201,44 @@ function VenuProfileBody({ v }: { v: VenueListing }) {
                     sp.ratePerDayCents != null
                       ? `${dollars(sp.ratePerDayCents)}/day`
                       : null,
+                  ]
+                    .filter(Boolean)
+                    .join(" · ") || "—"}
+                </span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+    </>
+  );
+}
+
+function CatrProfileBody({ v }: { v: CatrListing }) {
+  const meta = [v.city, ...v.cuisineTypes].filter(Boolean).join(" · ");
+  return (
+    <>
+      {meta && <div className={s.metaRow}>{meta}</div>}
+
+      {v.serviceStyles.length > 0 && (
+        <div className={s.badges}>
+          {v.serviceStyles.map((style) => (
+            <span key={style} className={s.badge}>{style}</span>
+          ))}
+        </div>
+      )}
+
+      {v.tiers.length > 0 && (
+        <div className={s.section}>
+          <div className={s.sectionLabel}>Menu tiers</div>
+          <ul className={s.list}>
+            {v.tiers.map((t) => (
+              <li key={t.id} className={s.listRow}>
+                <span className={s.listName}>{t.name}</span>
+                <span className={s.listVal}>
+                  {[
+                    t.perGuestCents != null ? `${dollars(t.perGuestCents)}/guest` : null,
+                    t.minGuests != null ? `${t.minGuests}+ guests` : null,
                   ]
                     .filter(Boolean)
                     .join(" · ") || "—"}

@@ -7,7 +7,7 @@ import { VNDR_CATEGORIES, isVndrCategoryKey } from "@/data/vndr-categories";
 import { vendorCategoryLabel } from "@/lib/labels/vendor-categories";
 import { CATEGORY_ICONS } from "@/app/(public)/vndr-onboarding/[step]/_components/category-icons";
 import type { Locale } from "@/i18n/locale";
-import type { VendorListing, VenueListing } from "@/lib/marketplace/listings";
+import type { VendorListing, VenueListing, CatrListing } from "@/lib/marketplace/listings";
 import type { InquiryEventOption } from "@/lib/orgnz/active-events";
 import {
   SendInquirySheet,
@@ -189,14 +189,61 @@ function VenueCard({
   );
 }
 
+function CatrCard({
+  v,
+  onView,
+  onInquire,
+}: {
+  v: CatrListing;
+  onView: () => void;
+  onInquire: () => void;
+}) {
+  const cheapest = v.tiers.reduce<number | null>((min, t) => {
+    if (t.perGuestCents == null) return min;
+    return min == null || t.perGuestCents < min ? t.perGuestCents : min;
+  }, null);
+  return (
+    <div className={s.listingCard}>
+      <button
+        type="button"
+        className={s.cardOpen}
+        onClick={onView}
+        aria-label={`View ${v.displayName}`}
+      >
+        <div className={s.listingPhoto}>
+          <div className={s.listingPhotoEmpty} aria-hidden="true" />
+        </div>
+        <div className={s.listingBody}>
+          <div className={s.listingName}>{v.displayName}</div>
+          <div className={s.listingMeta}>
+            {[v.city, ...v.cuisineTypes].filter(Boolean).join(" · ")}
+          </div>
+          {cheapest != null && (
+            <div className={s.listingPrice}>
+              From <strong>{dollars(cheapest)}</strong> / guest
+            </div>
+          )}
+        </div>
+      </button>
+      <div className={s.cardActions}>
+        <button type="button" className={s.inquirePill} onClick={onInquire}>
+          Inquire →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function BrowseClient({
   vendors,
   venues,
+  caterers,
   activeEvents,
   initialFocus,
 }: {
   vendors: VendorListing[];
   venues: VenueListing[];
+  caterers: CatrListing[];
   activeEvents: InquiryEventOption[];
   initialFocus: string | null;
 }) {
@@ -229,8 +276,14 @@ export function BrowseClient({
       ? vendors.filter((v) => v.category === active.key)
       : [];
   const showVenues = active?.key === "venu";
-  // Plnr/Catr have no listing surface yet → forward-looking placeholder.
-  const showPlaceholder = active != null && !isVndrCategoryKey(active.key) && !showVenues;
+  // Catr is held OUT of the buyer-facing marketplace for now (Jason 2026-06-01).
+  // The catr back-office (profile + menu tiers) is live so caterers can build
+  // their listing, but organizers don't see catr listings until this flips on.
+  // Plnr is likewise placeholder. Flip CATR_MARKETPLACE_LIVE → true to launch.
+  const CATR_MARKETPLACE_LIVE = false;
+  const showCaterers = active?.key === "catr" && CATR_MARKETPLACE_LIVE;
+  const showPlaceholder =
+    active != null && !isVndrCategoryKey(active.key) && !showVenues && !showCaterers;
 
   return (
     <div className={s.wrap}>
@@ -270,7 +323,7 @@ export function BrowseClient({
         </>
       )}
 
-      {active && (isVndrCategoryKey(active.key) || showVenues) && (
+      {active && (isVndrCategoryKey(active.key) || showVenues || showCaterers) && (
         <div
           className={s.listings}
           style={{ "--tile-accent": active.accent, "--tile-tint": active.tint } as React.CSSProperties}
@@ -278,11 +331,34 @@ export function BrowseClient({
           <div className={s.listingsHead}>
             <span className={s.listingsTitle}>{active.name}</span>
             <span className={s.listingsCount}>
-              {showVenues ? venues.length : activeVendors.length}
+              {showVenues ? venues.length : showCaterers ? caterers.length : activeVendors.length}
             </span>
           </div>
 
-          {showVenues ? (
+          {showCaterers ? (
+            caterers.length > 0 ? (
+              <div className={s.listingGrid}>
+                {caterers.map((v) => (
+                  <CatrCard
+                    key={v.tenantId}
+                    v={v}
+                    onView={() => setProfileTarget({ kind: "catr", caterer: v })}
+                    onInquire={() =>
+                      setInquiryTarget({
+                        tenantId: v.tenantId,
+                        displayName: v.displayName,
+                        portal: "catr",
+                      })
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className={s.listingEmpty}>
+                No published {active.noun} yet — check back soon.
+              </p>
+            )
+          ) : showVenues ? (
             venues.length > 0 ? (
               <div className={s.listingGrid}>
                 {venues.map((v) => (
@@ -353,7 +429,9 @@ export function BrowseClient({
             const t =
               profileTarget.kind === "vndr"
                 ? profileTarget.vendor
-                : profileTarget.venue;
+                : profileTarget.kind === "venu"
+                  ? profileTarget.venue
+                  : profileTarget.caterer;
             setProfileTarget(null);
             setInquiryTarget({
               tenantId: t.tenantId,
