@@ -1,0 +1,145 @@
+/* Planner profile-edit form. Mirrors CatrProfileForm.module.css with the accent
+ * swapped amber → violet (publish CTA) and the catr menu-tier styling dropped
+ * (planners have no tiers). Adds a chip row for the fixed service-level set and
+ * a dark-theme textarea for the founding story. All surfaces use theme tokens
+ * (--txt near-white) — no hardcoded light backgrounds behind typed text. */
+.wrap {
+  padding: 14px 16px 40px;
+}
+
+.statusLive,
+.statusDraft {
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 8px;
+  padding: 7px 11px;
+  margin-bottom: 1.1rem;
+}
+.statusLive {
+  color: var(--green, #2e9e6b);
+  background: rgba(46, 158, 107, 0.1);
+}
+.statusDraft {
+  color: var(--txt2);
+  background: rgba(255, 255, 255, 0.05);
+}
+
+.field {
+  display: block;
+  margin-bottom: 1rem;
+}
+.label {
+  display: block;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--txt2);
+  margin-bottom: 0.4rem;
+}
+.opt {
+  font-weight: 400;
+  color: var(--txt3);
+}
+
+/* Dark-theme input surface (the portal --txt is near-white). */
+.input,
+.textarea {
+  width: 100%;
+  box-sizing: border-box;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--txt);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bdr);
+  border-radius: 10px;
+  padding: 0.6rem 0.7rem;
+}
+.input::placeholder,
+.textarea::placeholder {
+  color: var(--txt3);
+}
+.textarea {
+  resize: vertical;
+  min-height: 6rem;
+  line-height: 1.45;
+}
+
+/* Fixed service-level chip set (full-service / partial / day-of). */
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+.chip,
+.chipOn {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 0.45rem 0.9rem;
+  cursor: pointer;
+  transition: filter 0.15s ease;
+}
+.chip {
+  color: var(--txt2);
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bdr);
+}
+.chipOn {
+  color: var(--violet, #afa9ec);
+  background: rgba(175, 169, 236, 0.14);
+  border: 1px solid var(--violet, #afa9ec);
+}
+.chip:disabled,
+.chipOn:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.tiers {
+  margin: 1.4rem 0 1rem;
+}
+.tiersHead {
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--txt2);
+  margin-bottom: 0.6rem;
+}
+
+.error {
+  font-family: var(--font-ui);
+  font-size: 0.85rem;
+  color: var(--rose, #c0392b);
+  background: rgba(192, 57, 43, 0.07);
+  border-radius: 8px;
+  padding: 0.55rem 0.7rem;
+  margin: 0.9rem 0;
+}
+
+.actions {
+  display: flex;
+  gap: 0.6rem;
+  margin-top: 1.2rem;
+}
+.saveBtn,
+.publishBtn {
+  flex: 1;
+  font-family: var(--font-ui);
+  font-size: 0.95rem;
+  font-weight: 600;
+  border-radius: 10px;
+  padding: 0.8rem 1rem;
+  cursor: pointer;
+}
+.saveBtn {
+  color: var(--txt);
+  background: rgba(255, 255, 255, 0.08);
+  border: 1px solid var(--bdr);
+}
+.publishBtn {
+  color: #fff;
+  background: var(--violet, #afa9ec);
+  border: none;
+}

@@ -238,3 +238,50 @@ export async function getMarketplaceCaterers(): Promise<CatrListing[]> {
     })
     .sort((a, b) => a.displayName.localeCompare(b.displayName));
 }
+
+export type PlannerListing = {
+  tenantId: string;
+  displayName: string;
+  city: string | null;
+  serviceLevels: string[];
+  specialties: string[];
+  photos: MarketplacePhoto[];
+};
+
+export async function getMarketplacePlanners(): Promise<PlannerListing[]> {
+  const supabase = await createClient();
+
+  const [plannersRes, photosRes] = await Promise.all([
+    supabase
+      .from("marketplace_planners")
+      .select("tenant_id, display_name, city, service_levels, specialties"),
+    supabase
+      .from("marketplace_planner_photos")
+      .select("tenant_id, storage_path, alt_text, display_order")
+      .order("display_order", { ascending: true }),
+  ]);
+
+  const plnrRows = (plannersRes.data ?? []) as Record<string, unknown>[];
+  const photoRows = (photosRes.data ?? []) as Record<string, unknown>[];
+  const photosByTenant = groupBy(photoRows, (r) => r.tenant_id as string);
+
+  return plnrRows
+    .map((row): PlannerListing => {
+      const tenantId = row.tenant_id as string;
+      const photos = (photosByTenant.get(tenantId) ?? []).map((p) => {
+        const { data: pub } = supabase.storage
+          .from("planner-photos")
+          .getPublicUrl(p.storage_path as string);
+        return { url: pub.publicUrl, alt: (p.alt_text as string | null) ?? null };
+      });
+      return {
+        tenantId,
+        displayName: (row.display_name as string | null) ?? "Planner",
+        city: (row.city as string | null) ?? null,
+        serviceLevels: (row.service_levels as string[] | null) ?? [],
+        specialties: (row.specialties as string[] | null) ?? [],
+        photos,
+      };
+    })
+    .sort((a, b) => a.displayName.localeCompare(b.displayName));
+}
