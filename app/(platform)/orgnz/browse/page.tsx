@@ -2,6 +2,7 @@ import {
   getMarketplaceVendors,
   getMarketplaceVenues,
   getMarketplaceCaterers,
+  getMarketplacePlanners,
 } from "@/lib/marketplace/listings";
 import { getOrgnzActiveEvents } from "@/lib/orgnz/active-events";
 import { getCurrentOrganizer } from "@/lib/orgnz/current-organizer";
@@ -21,12 +22,13 @@ export default async function OrgnzBrowsePage({
   searchParams: Promise<{ focus?: string }>;
 }) {
   const organizer = await getCurrentOrganizer();
-  const [{ focus }, vendors, venues, caterers, activeEvents, invitedTenantIds] =
+  const [{ focus }, vendors, venues, caterers, planners, activeEvents, invitedTenantIds] =
     await Promise.all([
       searchParams,
       getMarketplaceVendors(),
       getMarketplaceVenues(),
       getMarketplaceCaterers(),
+      getMarketplacePlanners(),
       getOrgnzActiveEvents(),
       organizer ? getInvitedTenantIds(organizer.tenantId) : Promise.resolve([]),
     ]);
@@ -36,6 +38,7 @@ export default async function OrgnzBrowsePage({
       vendors={vendors}
       venues={venues}
       caterers={caterers}
+      planners={planners}
       activeEvents={activeEvents}
       invitedTenantIds={invitedTenantIds}
       initialFocus={focus ?? null}

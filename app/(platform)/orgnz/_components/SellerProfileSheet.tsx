@@ -6,6 +6,7 @@ import type {
   VendorListing,
   VenueListing,
   CatrListing,
+  PlannerListing,
 } from "@/lib/marketplace/listings";
 import {
   inviteSellerToMoodboard,
@@ -36,9 +37,10 @@ function dollars(cents: number | null): string | null {
 export type SellerProfile =
   | { kind: "vndr"; vendor: VendorListing }
   | { kind: "venu"; venue: VenueListing }
-  | { kind: "catr"; caterer: CatrListing };
+  | { kind: "catr"; caterer: CatrListing }
+  | { kind: "plnr"; planner: PlannerListing };
 
-const EYEBROW = { vndr: "Vndr", venu: "Venu", catr: "Catr" } as const;
+const EYEBROW = { vndr: "Vndr", venu: "Venu", catr: "Catr", plnr: "Plnr" } as const;
 
 type Props = {
   profile: SellerProfile;
@@ -62,7 +64,9 @@ export function SellerProfileSheet({
       ? profile.vendor.tenantId
       : profile.kind === "venu"
         ? profile.venue.tenantId
-        : profile.caterer.tenantId;
+        : profile.kind === "catr"
+          ? profile.caterer.tenantId
+          : profile.planner.tenantId;
 
   function toggleMoodboard() {
     if (pendingInvite) return;
@@ -100,7 +104,17 @@ export function SellerProfileSheet({
       ? profile.vendor.displayName
       : profile.kind === "venu"
         ? profile.venue.displayName
-        : profile.caterer.displayName;
+        : profile.kind === "catr"
+          ? profile.caterer.displayName
+          : profile.planner.displayName;
+
+  // Planners engage via invite (Lock 28 holds plnr out of the inquiry path);
+  // the other seller types inquire. The engage action itself is wired by the
+  // parent (onInquire) — only the CTA label differs.
+  const engageLabel =
+    profile.kind === "plnr"
+      ? `Invite ${displayName} as planner`
+      : `Inquire with ${displayName}`;
 
   return createPortal(
     <>
@@ -134,14 +148,16 @@ export function SellerProfileSheet({
             <VndrProfileBody v={profile.vendor} />
           ) : profile.kind === "venu" ? (
             <VenuProfileBody v={profile.venue} />
-          ) : (
+          ) : profile.kind === "catr" ? (
             <CatrProfileBody v={profile.caterer} />
+          ) : (
+            <PlnrProfileBody v={profile.planner} />
           )}
         </div>
 
         <div className={s.cta}>
           <button type="button" className={s.inquireBtn} onClick={onInquire}>
-            Inquire with {displayName}
+            {engageLabel}
           </button>
           <button
             type="button"
@@ -309,6 +325,54 @@ function CatrProfileBody({ v }: { v: CatrListing }) {
               </li>
             ))}
           </ul>
+        </div>
+      )}
+    </>
+  );
+}
+
+const SERVICE_LEVEL_LABELS: Record<string, string> = {
+  "full-service": "Full-service",
+  partial: "Partial",
+  "day-of": "Day-of",
+};
+
+function PlnrProfileBody({ v }: { v: PlannerListing }) {
+  return (
+    <>
+      {v.photos.length > 0 && (
+        <div className={s.gallery}>
+          {v.photos.map((p, i) => (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img
+              key={i}
+              src={p.url}
+              alt={p.alt ?? v.displayName}
+              loading="lazy"
+              className={s.galleryImg}
+            />
+          ))}
+        </div>
+      )}
+
+      {v.city && <div className={s.metaRow}>{v.city}</div>}
+
+      {v.serviceLevels.length > 0 && (
+        <div className={s.badges}>
+          {v.serviceLevels.map((lvl) => (
+            <span key={lvl} className={s.badge}>{SERVICE_LEVEL_LABELS[lvl] ?? lvl}</span>
+          ))}
+        </div>
+      )}
+
+      {v.specialties.length > 0 && (
+        <div className={s.section}>
+          <div className={s.sectionLabel}>Specialties</div>
+          <div className={s.badges}>
+            {v.specialties.map((sp) => (
+              <span key={sp} className={s.badge}>{sp}</span>
+            ))}
+          </div>
         </div>
       )}
     </>

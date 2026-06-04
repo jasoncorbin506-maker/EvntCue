@@ -7,12 +7,21 @@ import { VNDR_CATEGORIES, isVndrCategoryKey } from "@/data/vndr-categories";
 import { vendorCategoryLabel } from "@/lib/labels/vendor-categories";
 import { CATEGORY_ICONS } from "@/app/(public)/vndr-onboarding/[step]/_components/category-icons";
 import type { Locale } from "@/i18n/locale";
-import type { VendorListing, VenueListing, CatrListing } from "@/lib/marketplace/listings";
+import type {
+  VendorListing,
+  VenueListing,
+  CatrListing,
+  PlannerListing,
+} from "@/lib/marketplace/listings";
 import type { InquiryEventOption } from "@/lib/orgnz/active-events";
 import {
   SendInquirySheet,
   type InquiryTarget,
 } from "../../_components/SendInquirySheet";
+import {
+  InvitePlannerSheet,
+  type InvitePlannerTarget,
+} from "../../_components/InvitePlannerSheet";
 import {
   SellerProfileSheet,
   type SellerProfile,
@@ -239,10 +248,62 @@ function CatrCard({
   );
 }
 
+const PLNR_LEVEL_LABELS: Record<string, string> = {
+  "full-service": "Full-service",
+  partial: "Partial",
+  "day-of": "Day-of",
+};
+
+function PlnrCard({
+  v,
+  onView,
+  onInvite,
+}: {
+  v: PlannerListing;
+  onView: () => void;
+  onInvite: () => void;
+}) {
+  const meta = [
+    v.city,
+    ...v.serviceLevels.map((l) => PLNR_LEVEL_LABELS[l] ?? l),
+  ]
+    .filter(Boolean)
+    .join(" · ");
+  return (
+    <div className={s.listingCard}>
+      <button
+        type="button"
+        className={s.cardOpen}
+        onClick={onView}
+        aria-label={`View ${v.displayName}`}
+      >
+        <div className={s.listingPhoto}>
+          {v.photos[0] ? (
+            // eslint-disable-next-line @next/next/no-img-element
+            <img src={v.photos[0].url} alt={v.photos[0].alt ?? v.displayName} loading="lazy" />
+          ) : (
+            <div className={s.listingPhotoEmpty} aria-hidden="true" />
+          )}
+        </div>
+        <div className={s.listingBody}>
+          <div className={s.listingName}>{v.displayName}</div>
+          <div className={s.listingMeta}>{meta}</div>
+        </div>
+      </button>
+      <div className={s.cardActions}>
+        <button type="button" className={s.inquirePill} onClick={onInvite}>
+          Invite as planner →
+        </button>
+      </div>
+    </div>
+  );
+}
+
 export function BrowseClient({
   vendors,
   venues,
   caterers,
+  planners,
   activeEvents,
   invitedTenantIds,
   initialFocus,
@@ -250,6 +311,7 @@ export function BrowseClient({
   vendors: VendorListing[];
   venues: VenueListing[];
   caterers: CatrListing[];
+  planners: PlannerListing[];
   activeEvents: InquiryEventOption[];
   invitedTenantIds: string[];
   initialFocus: string | null;
@@ -257,6 +319,8 @@ export function BrowseClient({
   const locale = useLocale() as Locale;
   const [selected, setSelected] = useState<string | null>(initialFocus);
   const [inquiryTarget, setInquiryTarget] = useState<InquiryTarget | null>(null);
+  const [invitePlannerTarget, setInvitePlannerTarget] =
+    useState<InvitePlannerTarget | null>(null);
   const [profileTarget, setProfileTarget] = useState<SellerProfile | null>(null);
 
   const vendorTiles: Tile[] = VNDR_CATEGORIES.map((cat) => ({
@@ -289,8 +353,18 @@ export function BrowseClient({
   // Plnr is likewise placeholder. Flip CATR_MARKETPLACE_LIVE → true to launch.
   const CATR_MARKETPLACE_LIVE = false;
   const showCaterers = active?.key === "catr" && CATR_MARKETPLACE_LIVE;
+  // Plnr is likewise held OUT of the buyer-facing marketplace for now (Lock 30
+  // Phase C pt 2 ships dormant). The plnr back-office (profile + photos) and the
+  // buyer→planner invite primitive are live, but organizers don't see planner
+  // listings until this flips on. Flip PLNR_MARKETPLACE_LIVE → true to launch.
+  const PLNR_MARKETPLACE_LIVE = false;
+  const showPlanners = active?.key === "plnr" && PLNR_MARKETPLACE_LIVE;
   const showPlaceholder =
-    active != null && !isVndrCategoryKey(active.key) && !showVenues && !showCaterers;
+    active != null &&
+    !isVndrCategoryKey(active.key) &&
+    !showVenues &&
+    !showCaterers &&
+    !showPlanners;
 
   return (
     <div className={s.wrap}>
@@ -330,7 +404,8 @@ export function BrowseClient({
         </>
       )}
 
-      {active && (isVndrCategoryKey(active.key) || showVenues || showCaterers) && (
+      {active &&
+        (isVndrCategoryKey(active.key) || showVenues || showCaterers || showPlanners) && (
         <div
           className={s.listings}
           style={{ "--tile-accent": active.accent, "--tile-tint": active.tint } as React.CSSProperties}
@@ -338,11 +413,39 @@ export function BrowseClient({
           <div className={s.listingsHead}>
             <span className={s.listingsTitle}>{active.name}</span>
             <span className={s.listingsCount}>
-              {showVenues ? venues.length : showCaterers ? caterers.length : activeVendors.length}
+              {showVenues
+                ? venues.length
+                : showCaterers
+                  ? caterers.length
+                  : showPlanners
+                    ? planners.length
+                    : activeVendors.length}
             </span>
           </div>
 
-          {showCaterers ? (
+          {showPlanners ? (
+            planners.length > 0 ? (
+              <div className={s.listingGrid}>
+                {planners.map((v) => (
+                  <PlnrCard
+                    key={v.tenantId}
+                    v={v}
+                    onView={() => setProfileTarget({ kind: "plnr", planner: v })}
+                    onInvite={() =>
+                      setInvitePlannerTarget({
+                        tenantId: v.tenantId,
+                        displayName: v.displayName,
+                      })
+                    }
+                  />
+                ))}
+              </div>
+            ) : (
+              <p className={s.listingEmpty}>
+                No published {active.noun} yet — check back soon.
+              </p>
+            )
+          ) : showCaterers ? (
             caterers.length > 0 ? (
               <div className={s.listingGrid}>
                 {caterers.map((v) => (
@@ -436,10 +539,24 @@ export function BrowseClient({
               ? profileTarget.vendor.tenantId
               : profileTarget.kind === "venu"
                 ? profileTarget.venue.tenantId
-                : profileTarget.caterer.tenantId,
+                : profileTarget.kind === "catr"
+                  ? profileTarget.caterer.tenantId
+                  : profileTarget.planner.tenantId,
           )}
           onClose={() => setProfileTarget(null)}
           onInquire={() => {
+            // Planners engage via invite (Lock 28 holds plnr out of the inquiry
+            // path) — the profile sheet's primary CTA opens InvitePlannerSheet
+            // for plnr, SendInquirySheet for everyone else.
+            if (profileTarget.kind === "plnr") {
+              const p = profileTarget.planner;
+              setProfileTarget(null);
+              setInvitePlannerTarget({
+                tenantId: p.tenantId,
+                displayName: p.displayName,
+              });
+              return;
+            }
             const t =
               profileTarget.kind === "vndr"
                 ? profileTarget.vendor
@@ -461,6 +578,14 @@ export function BrowseClient({
           target={inquiryTarget}
           events={activeEvents}
           onClose={() => setInquiryTarget(null)}
+        />
+      )}
+
+      {invitePlannerTarget && (
+        <InvitePlannerSheet
+          target={invitePlannerTarget}
+          events={activeEvents}
+          onClose={() => setInvitePlannerTarget(null)}
         />
       )}
     </div>

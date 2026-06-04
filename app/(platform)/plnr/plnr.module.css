@@ -1,0 +1,336 @@
+/* Plnr portal shell — chrome + invites + profile surfaces. Violet accent per
+ * the locked portal-color map (Orgnz rose / Vndr coral / Venu bay-blue / Catr
+ * amber / Plnr violet). Mirrors app/(platform)/catr/catr.module.css with the
+ * accent swapped amber → violet. Violet family tokens (--violet / --vl / --vt)
+ * come from app/tokens.css; --vb / --vtt have no token so the few places that
+ * need a bold/pale violet inline an rgba of #AFA9EC. */
+
+/* ── PHONE FRAME (desktop preview only) ─────────────────────────────────── */
+.phone {
+  width: 100%;
+  max-width: 390px;
+  margin: 0 auto;
+  background: var(--ink);
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+@media (min-width: 640px) {
+  .phone {
+    margin: 32px auto;
+    border-radius: 36px;
+    border: 0.5px solid var(--bdr);
+    overflow: hidden;
+    min-height: 780px;
+    max-height: calc(100vh - 64px);
+    box-shadow: 0 24px 80px rgba(175, 169, 236, 0.08), 0 0 0 1px rgba(255, 255, 255, 0.02);
+  }
+}
+
+.scroll {
+  flex: 1;
+  overflow-y: auto;
+  padding-bottom: 24px;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
+}
+
+.scroll::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── CHROME ─────────────────────────────────────────────────────────────── */
+.chrome {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 14px 18px 12px;
+  border-bottom: 0.5px solid var(--bdr);
+  background: linear-gradient(180deg, rgba(175, 169, 236, 0.04), transparent);
+  flex-shrink: 0;
+}
+
+.chromeL {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
+  flex: 1;
+}
+
+.chromeBack {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  border: 0.5px solid var(--bdr);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--txt2);
+  flex-shrink: 0;
+  font-size: 14px;
+  cursor: pointer;
+  background: transparent;
+  text-decoration: none;
+}
+
+.chromeMark {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: linear-gradient(135deg, var(--violet), #5C56A6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  position: relative;
+  text-decoration: none;
+}
+
+.chromeMark::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border-radius: 4px;
+  border: 0.5px solid rgba(255, 255, 255, 0.3);
+}
+
+.chromeName {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.1;
+  min-width: 0;
+}
+
+.chromeCaterer {
+  font-family: var(--font-display);
+  font-size: 17px;
+  font-style: italic;
+  font-weight: 400;
+  color: #fff;
+  letter-spacing: -0.2px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 200px;
+}
+
+.chromeRole {
+  font-family: var(--font-ui);
+  font-size: 8.5px;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--vt);
+  margin-top: 2px;
+}
+
+.chromeR {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* ── HOME ───────────────────────────────────────────────────────────────── */
+.home {
+  padding: 18px 16px 0;
+}
+
+.homeIntro {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--txt2);
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.homeTile {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  padding: 16px 18px;
+  text-decoration: none;
+  width: 100%;
+  text-align: left;
+  margin-bottom: 10px;
+}
+
+.homeTile:hover {
+  border-color: rgba(175, 169, 236, 0.28);
+}
+
+.homeTileLbl {
+  font-family: var(--font-display);
+  font-size: 18px;
+  font-style: italic;
+  color: #fff;
+}
+
+.homeTileSub {
+  font-family: var(--font-body);
+  font-size: 12px;
+  color: var(--txt2);
+  margin-top: 2px;
+}
+
+.homeTileCount {
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--violet);
+  background: var(--vl);
+  border: 0.5px solid rgba(175, 169, 236, 0.28);
+  border-radius: 999px;
+  min-width: 26px;
+  height: 26px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0 8px;
+  flex-shrink: 0;
+}
+
+/* Disabled home tile — a coming-soon touchpoint that isn't yet navigable. */
+.homeTileDisabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.homeTileDisabled:hover {
+  border-color: var(--bdr);
+}
+
+.homeTilePill {
+  font-family: var(--font-body);
+  font-size: 9.5px;
+  font-weight: 700;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--violet);
+  border: 0.5px solid rgba(175, 169, 236, 0.28);
+  border-radius: 999px;
+  padding: 3px 9px;
+  flex-shrink: 0;
+}
+
+/* ── INVITE LIST ────────────────────────────────────────────────────────── */
+.inviteList {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 16px 16px 0;
+}
+
+.inviteRow {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  background: var(--ink2);
+  border: 0.5px solid var(--bdr);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+
+.inviteHead {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.inviteTitle {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-style: italic;
+  color: #fff;
+}
+
+.inviteWhen {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--txt3);
+  flex-shrink: 0;
+}
+
+.inviteMsg {
+  font-family: var(--font-body);
+  font-size: 12.5px;
+  color: var(--txt2);
+  line-height: 1.45;
+}
+
+.inviteStatus {
+  font-family: var(--font-ui);
+  font-size: 9px;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  font-weight: 600;
+  color: var(--vt);
+  flex-shrink: 0;
+}
+
+.inviteAccepted {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--green, #2e9e6b);
+}
+
+.acceptBtn {
+  align-self: flex-start;
+  margin-top: 4px;
+  font-family: var(--font-ui);
+  font-size: 12px;
+  font-weight: 600;
+  color: #fff;
+  background: var(--violet, #afa9ec);
+  border: none;
+  border-radius: 8px;
+  padding: 7px 14px;
+  cursor: pointer;
+}
+
+.acceptBtn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.inviteErr {
+  font-family: var(--font-body);
+  font-size: 11px;
+  color: var(--rose, #c0392b);
+  margin-top: 4px;
+}
+
+/* ── EMPTY STATE ────────────────────────────────────────────────────────── */
+.emptyState {
+  margin: 32px 16px 0;
+  text-align: center;
+  padding: 32px 18px;
+}
+
+.emptyStateIcon {
+  font-size: 28px;
+  color: var(--vt);
+  margin-bottom: 12px;
+}
+
+.emptyStateTitle {
+  font-family: var(--font-display);
+  font-size: 19px;
+  font-style: italic;
+  color: #fff;
+  margin-bottom: 8px;
+}
+
+.emptyStateBody {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--txt2);
+  line-height: 1.5;
+}
