@@ -412,6 +412,21 @@
           "sub": "When a Plnr needs your category for an event you’re available for, Cue surfaces you. No pay-to-play."
         }
       },
+      "switch": {
+        "eye": "Free or Pro?",
+        "h": "Stay free as long as it pays you. <em>Switch the moment it doesn't.</em>",
+        "sub": "Free keeps 92.5% of every booking. Pro keeps 94% — for $129/mo. No guessing where the line is. Here it is.",
+        "freeTag": "Listed · free",
+        "proTag": "Professional · Pro",
+        "keepOf": "of every booking",
+        "freeKeepPct": "92.5%",
+        "proKeepPct": "94%",
+        "freeMeta": "$0/mo · 7.5% all-in",
+        "proMeta": "$129/mo · 6% all-in",
+        "breakevenLabel": "Where Pro starts winning",
+        "breakeven": "Pro pays for itself around <strong>{amount}/mo</strong> in bookings. Below that, Free keeps more in your pocket — so start free, and switch when the math flips.",
+        "link": "Find your number ↓"
+      },
       "calc": {
         "eye": "The math, finally simple",
         "headline": "For every <booking></booking> you book, you keep <keep></keep>.",

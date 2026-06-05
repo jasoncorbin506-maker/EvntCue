@@ -412,6 +412,21 @@
           "sub": "Cuando un Plnr necesita tu categoría para un evento en el que estás disponible, Cue te muestra. Sin pago-por-aparecer."
         }
       },
+      "switch": {
+        "eye": "¿Gratis o Pro?",
+        "h": "Quédate en gratis mientras te convenga. <em>Cámbiate en cuanto deje de convenirte.</em>",
+        "sub": "Gratis te deja el 92.5% de cada reservación. Pro te deja el 94% — por $129/mes. Sin adivinar dónde está la línea. Aquí está.",
+        "freeTag": "Listado · gratis",
+        "proTag": "Professional · Pro",
+        "keepOf": "de cada reservación",
+        "freeKeepPct": "92.5%",
+        "proKeepPct": "94%",
+        "freeMeta": "$0/mes · 7.5% todo incluido",
+        "proMeta": "$129/mes · 6% todo incluido",
+        "breakevenLabel": "Dónde Pro empieza a ganar",
+        "breakeven": "Pro se paga solo alrededor de <strong>{amount}/mes</strong> en reservaciones. Por debajo de eso, gratis te deja más en el bolsillo — así que empieza gratis y cámbiate cuando las cuentas cambien.",
+        "link": "Encuentra tu número ↓"
+      },
       "calc": {
         "eye": "Las cuentas, por fin sencillas",
         "headline": "Por cada <booking></booking> que reservas, te quedas con <keep></keep>.",
