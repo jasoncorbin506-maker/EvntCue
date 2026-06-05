@@ -1064,9 +1064,9 @@
 }
 .tileD {
   font-family: var(--font-ui);
-  font-size: 9.5px;
+  font-size: 11.5px;
   letter-spacing: 0.04em;
-  color: var(--txt3);
+  color: var(--txt2);
   font-weight: 500;
   margin-top: auto;
   line-height: 1.3;
