@@ -2167,6 +2167,9 @@ const ADMIN_CLIENT_ACTIONS = [
     type: "admin_gated" },
   { path: "app/(platform)/admin/_actions/resolve-appeal.ts",
     type: "admin_gated" },
+  // ── Notify-only (service role to reach admins, no tenant-data exposure) ────
+  { path: "lib/admin/notify-appeal.ts",
+    type: "notify" },
 ];
 
 function assertPattern(src, pattern, label, action) {
@@ -2228,6 +2231,18 @@ async function testAdminClientOwnershipDiscipline() {
           "consumed_at / expires_at single-use guard",
           action,
         );
+      } else if (action.type === "notify") {
+        // Notify-only: uses service role solely to reach admins (staff_admins +
+        // their auth emails) and send. Discipline = MUST NOT read protected
+        // tenant-data tables via the admin client.
+        const protectedRefs = src.match(
+          /\.from\(["'](user_roles|users|tenants|events|bookings|vendors|venues|mood_boards|vndr_packages|commission_flows|guests)["']\)/g,
+        );
+        if (protectedRefs) {
+          throw new Error(
+            `notify action reads protected user-data table(s): ${protectedRefs.join(", ")}`,
+          );
+        }
       } else if (action.type === "admin_gated") {
         // Service-role admin surface — MUST call the is_admin() gate
         // (getAdminUser wrapper or the rpc) before touching cross-tenant data.

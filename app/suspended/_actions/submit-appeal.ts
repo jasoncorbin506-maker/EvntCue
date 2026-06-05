@@ -63,5 +63,17 @@ export async function submitAppeal(input: {
     }
     return { ok: false, error: error.message };
   }
+
+  // Best-effort admin ping (the proactive alert on top of the board's Appeals
+  // view). Reads the user's own tenant name for the label.
+  const { data: tRow } = await supabase
+    .from("tenants")
+    .select("name")
+    .eq("id", tenantId)
+    .maybeSingle();
+  const label = (tRow as { name: string | null } | null)?.name ?? tenantId;
+  const { notifyAdminsOfAppeal } = await import("@/lib/admin/notify-appeal");
+  await notifyAdminsOfAppeal(label);
+
   return { ok: true };
 }
