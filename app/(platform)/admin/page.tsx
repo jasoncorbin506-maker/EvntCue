@@ -1,4 +1,5 @@
 import { getAdminOverview } from "@/lib/admin/overview";
+import { AdminUserLookup } from "./AdminUserLookup";
 import s from "./admin.module.css";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -52,9 +53,12 @@ export default async function AdminPage() {
         ))}
       </div>
 
+      <h2 className={s.h2}>User lookup</h2>
+      <AdminUserLookup />
+
       <p className={s.note}>
         Counts include seed fixtures (a seed/real filter is a near-term
-        refinement). Signups feed · disputes · user lookup + suspend land next.
+        refinement). Suspension email · enforcement gate · appeals land next.
       </p>
     </>
   );

@@ -1,5 +1,6 @@
 import "server-only";
 import { createAdminClient } from "@/lib/supabase/admin";
+import { getAdminUser } from "@/lib/admin/current-admin";
 
 /**
  * Admin-board KPI counts. Service-role reads (cross-tenant) — the CALLER must
@@ -29,7 +30,20 @@ function chicagoDay(iso: string): string {
   return new Date(iso).toLocaleDateString("en-CA", { timeZone: "America/Chicago" });
 }
 
+const EMPTY_OVERVIEW: AdminOverview = {
+  totalUsers: 0,
+  signupsToday: 0,
+  signups7d: 0,
+  tenantsByType: [],
+  suspendedTenants: 0,
+  activeSubscriptions: 0,
+  fundedDeposits: 0,
+  openDisputes: 0,
+};
+
 export async function getAdminOverview(): Promise<AdminOverview> {
+  // Self-gate (defense in depth — never read cross-tenant un-gated).
+  if (!(await getAdminUser())) return EMPTY_OVERVIEW;
   const admin = createAdminClient();
 
   const [tenantsRes, rolesRes, subsRes, depositsRes, disputesRes] =
