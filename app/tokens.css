@@ -40,8 +40,8 @@
 
   /* ---------- Text ramp (on dark surfaces) ---------- */
   --txt:  rgba(255, 255, 255, 0.92);  /* primary text */
-  --txt2: rgba(255, 255, 255, 0.55);  /* secondary text */
-  --txt3: rgba(255, 255, 255, 0.28);  /* tertiary / disabled */
+  --txt2: rgba(255, 255, 255, 0.68);  /* secondary text — brightened (PL #72) */
+  --txt3: rgba(255, 255, 255, 0.42);  /* tertiary — brightened (PL #72) */
   --txt4: rgba(255, 255, 255, 0.14);  /* hint / muted UI */
 
   /* ---------- Borders ---------- */
