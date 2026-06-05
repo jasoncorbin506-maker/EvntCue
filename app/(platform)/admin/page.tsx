@@ -1,5 +1,7 @@
 import { getAdminOverview } from "@/lib/admin/overview";
+import { getOpenAppeals } from "@/lib/admin/appeals";
 import { AdminUserLookup } from "./AdminUserLookup";
+import { AdminAppeals } from "./AdminAppeals";
 import s from "./admin.module.css";
 
 const TYPE_LABEL: Record<string, string> = {
@@ -30,7 +32,7 @@ function Kpi({
 }
 
 export default async function AdminPage() {
-  const o = await getAdminOverview();
+  const [o, appeals] = await Promise.all([getAdminOverview(), getOpenAppeals()]);
 
   return (
     <>
@@ -52,6 +54,11 @@ export default async function AdminPage() {
           <Kpi key={t.type} label={TYPE_LABEL[t.type] ?? t.type} value={t.count} />
         ))}
       </div>
+
+      <h2 className={s.h2}>
+        Appeals{appeals.length > 0 ? ` · ${appeals.length}` : ""}
+      </h2>
+      <AdminAppeals appeals={appeals} />
 
       <h2 className={s.h2}>User lookup</h2>
       <AdminUserLookup />

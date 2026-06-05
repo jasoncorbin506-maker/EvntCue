@@ -2163,6 +2163,10 @@ const ADMIN_CLIENT_ACTIONS = [
     type: "admin_gated" },
   { path: "lib/admin/lookup.ts",
     type: "admin_gated" },
+  { path: "lib/admin/appeals.ts",
+    type: "admin_gated" },
+  { path: "app/(platform)/admin/_actions/resolve-appeal.ts",
+    type: "admin_gated" },
 ];
 
 function assertPattern(src, pattern, label, action) {

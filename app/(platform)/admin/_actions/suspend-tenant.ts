@@ -77,8 +77,67 @@ export async function suspendTenant(input: {
     by_user: admin.userId,
   });
 
+  await notifySuspended(db, input.tenantId);
+
   revalidatePath("/admin");
   return { ok: true };
+}
+
+/**
+ * Best-effort generic suspension email to the tenant's user(s). Never blocks the
+ * suspend — a missing email is logged-and-moved-on. Heavy email deps are
+ * dynamic-imported (lazy-load rule).
+ */
+async function notifySuspended(
+  db: ReturnType<typeof createAdminClient>,
+  tenantId: string,
+): Promise<void> {
+  try {
+    const { data: tRow } = await db
+      .from("tenants")
+      .select("language_preference")
+      .eq("id", tenantId)
+      .maybeSingle();
+    const locale =
+      (tRow as { language_preference?: string } | null)?.language_preference ===
+      "es"
+        ? "es"
+        : "en";
+
+    const { data: roleRows } = await db
+      .from("user_roles")
+      .select("user_id")
+      .eq("tenant_id", tenantId);
+    const uids = [
+      ...new Set((roleRows ?? []).map((r) => (r as { user_id: string }).user_id)),
+    ];
+    if (uids.length === 0) return;
+
+    const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? "https://evntcue.com";
+    const [{ renderSuspensionEmail }, { sendEmail }] = await Promise.all([
+      import("@/lib/email/templates/account"),
+      import("@/lib/email/send"),
+    ]);
+    const content = renderSuspensionEmail({
+      appealUrl: `${baseUrl}/login`,
+      locale,
+    });
+
+    for (const uid of uids) {
+      const { data } = await db.auth.admin.getUserById(uid);
+      const email = data?.user?.email;
+      if (!email) continue;
+      await sendEmail({
+        to: email,
+        subject: content.subject,
+        text: content.text,
+        html: content.html,
+        tags: [{ name: "kind", value: "tenant-suspended" }],
+      });
+    }
+  } catch {
+    // best-effort — a missing email never blocks the suspend
+  }
 }
 
 export async function unsuspendTenant(input: {
