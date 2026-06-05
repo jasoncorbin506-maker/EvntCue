@@ -235,6 +235,70 @@
   font-weight: 600;
 }
 
+/* Negotiation actions (Layer B) — Quick Claim / Counter / Pass + reason chips. */
+.fullBtn {
+  width: 100%;
+}
+
+.actionRow {
+  display: flex;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.grow {
+  flex: 1;
+  text-align: center;
+}
+
+.chipRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 2px 0 4px;
+}
+
+.chip {
+  padding: 6px 11px;
+  border-radius: 999px;
+  border: 0.5px solid var(--bdr);
+  background: rgba(255, 255, 255, 0.03);
+  font-family: var(--font-ui);
+  font-size: 11px;
+  color: var(--txt2);
+  cursor: pointer;
+}
+
+.chip:hover:not(:disabled) {
+  border-color: var(--coral);
+}
+
+.chipActive {
+  background: rgba(255, 122, 89, 0.14);
+  border-color: var(--coral);
+  color: #fff;
+}
+
+.noteInput {
+  width: 100%;
+  box-sizing: border-box;
+  margin-top: 8px;
+  background: var(--ink);
+  border: 0.5px solid var(--bdr);
+  border-radius: 8px;
+  padding: 8px 10px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: #fff;
+  resize: none;
+  outline: none;
+  line-height: 1.4;
+}
+
+.noteInput:focus {
+  border-color: var(--coral);
+}
+
 @keyframes fadeIn {
   from { opacity: 0; }
   to { opacity: 1; }

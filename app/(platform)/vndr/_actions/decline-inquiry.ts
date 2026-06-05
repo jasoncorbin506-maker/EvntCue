@@ -9,6 +9,11 @@ import {
   buyerRoleToPortal,
   type BuyerRole,
 } from "@/lib/inquiries/create-inquiry-shared";
+import { logInquiryOffer, type InquiryOfferRole } from "@/lib/inquiries/offers";
+import {
+  INQUIRY_OFFER_CAUSES,
+  type InquiryOfferCause,
+} from "@/lib/labels/inquiry-offer";
 
 /**
  * V-2b smoke-fix (session 23 — 2026-05-25 — brief G2): vendor declines a
@@ -36,6 +41,7 @@ export type DeclineInquiryResult =
 
 export async function declineInquiry(
   inquiryId: string,
+  opts?: { cause?: InquiryOfferCause | null; note?: string | null },
 ): Promise<DeclineInquiryResult> {
   if (!inquiryId) return { ok: false, error: "Missing inquiry id." };
 
@@ -48,7 +54,9 @@ export async function declineInquiry(
     })
     .eq("id", inquiryId)
     .in("status", ["inquiry", "reviewing", "quoted"])
-    .select("id, buyer_tenant_id, buyer_role, recipient_tenant_id, event_id, event_date")
+    .select(
+      "id, buyer_tenant_id, buyer_role, recipient_tenant_id, recipient_type, event_id, event_date",
+    )
     .single();
 
   if (error || !data) {
@@ -58,6 +66,22 @@ export async function declineInquiry(
         error?.message ??
         "Decline failed — inquiry may already be at a committed state.",
     };
+  }
+
+  // Reason capture (Layer B) — log a 'decline' offer row when a cause was given,
+  // so the buyer sees "declined due to …". The mig-091 CHECK requires a cause on
+  // decline, so a bare decline (no cause) skips the ledger row. Best-effort.
+  const cause =
+    opts?.cause && INQUIRY_OFFER_CAUSES.includes(opts.cause) ? opts.cause : null;
+  if (cause) {
+    await logInquiryOffer(supabase, {
+      inquiryId,
+      offeredByTenantId: data.recipient_tenant_id as string,
+      offeredByRole: (data.recipient_type as InquiryOfferRole | null) ?? "vndr",
+      action: "decline",
+      cause,
+      note: opts?.note ?? null,
+    });
   }
 
   // Buyer notification — fire-and-forget. A send failure never fails the
