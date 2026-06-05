@@ -73,6 +73,10 @@ export function OfferLedger({ inquiryId, viewerRole, counterpartyLabel }: Props)
         {offers.map((o) => {
           const mine = o.offeredByRole === viewerRole;
           const price = formatPrice(o.priceCents);
+          const actor =
+            o.offeredByRole === "orgnz" || o.offeredByRole === "venue"
+              ? "buyer"
+              : "vendor";
           return (
             <li
               key={o.id}
@@ -89,8 +93,8 @@ export function OfferLedger({ inquiryId, viewerRole, counterpartyLabel }: Props)
               {o.cause && (
                 <div className={s.reason}>
                   {mine
-                    ? inquiryCauseChipLabel(o.cause)
-                    : capitalize(inquiryCauseSentence(o.cause))}
+                    ? inquiryCauseChipLabel(o.cause, "en", actor)
+                    : capitalize(inquiryCauseSentence(o.cause, "en", actor))}
                 </div>
               )}
               {o.note && <div className={s.note}>&ldquo;{o.note}&rdquo;</div>}

@@ -55,6 +55,29 @@ const CAUSE_CHIP_ES: Record<InquiryOfferCause, string> = {
   other: "Otro",
 };
 
+/**
+ * Buyer-actor wording for the SAME cause enum. The reasons read differently
+ * depending on who declined — a buyer rejecting a counter isn't "already
+ * booked," they're "going another direction." `OfferActor` selects the set.
+ */
+export type OfferActor = "vendor" | "buyer";
+
+const CAUSE_CHIP_BUYER_EN: Record<InquiryOfferCause, string> = {
+  uncompetitive: "Over budget",
+  time_constraint: "Timing doesn't work",
+  prior_engagement: "Going another direction",
+  distance: "Too far",
+  other: "Other",
+};
+
+const CAUSE_CHIP_BUYER_ES: Record<InquiryOfferCause, string> = {
+  uncompetitive: "Fuera de presupuesto",
+  time_constraint: "El horario no funciona",
+  prior_engagement: "Elegimos otra opción",
+  distance: "Muy lejos",
+  other: "Otro",
+};
+
 /** Receiver-facing sentence: "{Name} passed — {sentence}". */
 const CAUSE_SENTENCE_EN: Record<InquiryOfferCause, string> = {
   uncompetitive: "the offer was below their rate for this kind of event",
@@ -72,6 +95,23 @@ const CAUSE_SENTENCE_ES: Record<InquiryOfferCause, string> = {
   other: "dejaron una nota abajo",
 };
 
+/** Buyer-actor sentences — what the SELLER reads when a buyer passes. */
+const CAUSE_SENTENCE_BUYER_EN: Record<InquiryOfferCause, string> = {
+  uncompetitive: "the counter came in above their budget",
+  time_constraint: "the timing no longer works for them",
+  prior_engagement: "they're going another direction",
+  distance: "the location no longer fits their plans",
+  other: "they shared a note below",
+};
+
+const CAUSE_SENTENCE_BUYER_ES: Record<InquiryOfferCause, string> = {
+  uncompetitive: "la contraoferta superó su presupuesto",
+  time_constraint: "el horario ya no les funciona",
+  prior_engagement: "decidieron tomar otra dirección",
+  distance: "la ubicación ya no encaja en sus planes",
+  other: "dejaron una nota abajo",
+};
+
 export function inquiryOfferActionLabel(
   action: string,
   locale: Locale = "en",
@@ -83,24 +123,38 @@ export function inquiryOfferActionLabel(
 export function inquiryCauseChipLabel(
   cause: string,
   locale: Locale = "en",
+  actor: OfferActor = "vendor",
 ): string {
-  const t = locale === "es" ? CAUSE_CHIP_ES : CAUSE_CHIP_EN;
-  return t[cause as InquiryOfferCause] ?? CAUSE_CHIP_EN[cause as InquiryOfferCause] ?? cause;
+  const en = actor === "buyer" ? CAUSE_CHIP_BUYER_EN : CAUSE_CHIP_EN;
+  const es = actor === "buyer" ? CAUSE_CHIP_BUYER_ES : CAUSE_CHIP_ES;
+  const t = locale === "es" ? es : en;
+  return t[cause as InquiryOfferCause] ?? en[cause as InquiryOfferCause] ?? cause;
 }
 
 export function inquiryCauseSentence(
   cause: string,
   locale: Locale = "en",
+  actor: OfferActor = "vendor",
 ): string {
-  const t = locale === "es" ? CAUSE_SENTENCE_ES : CAUSE_SENTENCE_EN;
-  return t[cause as InquiryOfferCause] ?? CAUSE_SENTENCE_EN[cause as InquiryOfferCause] ?? cause;
+  const en = actor === "buyer" ? CAUSE_SENTENCE_BUYER_EN : CAUSE_SENTENCE_EN;
+  const es = actor === "buyer" ? CAUSE_SENTENCE_BUYER_ES : CAUSE_SENTENCE_ES;
+  const t = locale === "es" ? es : en;
+  return t[cause as InquiryOfferCause] ?? en[cause as InquiryOfferCause] ?? cause;
 }
 
-/** Ordered cause set for rendering the reason-chip picker. */
+/** Ordered cause set for the vendor reason-chip picker (counter / pass). */
 export const INQUIRY_OFFER_CAUSES: InquiryOfferCause[] = [
   "uncompetitive",
   "time_constraint",
   "prior_engagement",
   "distance",
+  "other",
+];
+
+/** Buyer reject picker — drops `distance` (a seller-only reason). */
+export const INQUIRY_OFFER_BUYER_CAUSES: InquiryOfferCause[] = [
+  "uncompetitive",
+  "time_constraint",
+  "prior_engagement",
   "other",
 ];

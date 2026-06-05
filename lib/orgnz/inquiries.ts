@@ -48,10 +48,13 @@ export type OrgnzInquiry = {
   depositStatus: DepositStatus;
   depositAmountCents: number | null;
   holdExpiresAt: string | null;
+  /** The buyer's original offer (mig 091) — null when none was attached. Lets
+   *  the detail sheet show the counter delta ("$500 above your offer"). */
+  initialOfferCents: number | null;
 };
 
 const COLS =
-  "id, event_id, recipient_tenant_id, recipient_type, event_date, guest_count, message, proposed_price_cents, status, created_at, responded_at, expires_at, deposit_status, deposit_amount_cents, hold_expires_at";
+  "id, event_id, recipient_tenant_id, recipient_type, event_date, guest_count, message, proposed_price_cents, status, created_at, responded_at, expires_at, deposit_status, deposit_amount_cents, hold_expires_at, initial_offer_cents";
 
 export async function getOrgnzInquiries(
   buyerTenantId: string,
@@ -124,5 +127,6 @@ export async function getOrgnzInquiries(
     depositStatus: ((row.deposit_status as DepositStatus | null) ?? "none"),
     depositAmountCents: (row.deposit_amount_cents as number | null) ?? null,
     holdExpiresAt: (row.hold_expires_at as string | null) ?? null,
+    initialOfferCents: (row.initial_offer_cents as number | null) ?? null,
   }));
 }
