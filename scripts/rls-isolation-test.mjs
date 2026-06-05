@@ -2156,6 +2156,17 @@ const ADMIN_CLIENT_ACTIONS = [
   // signup with no server action of its own. Nothing to reclassify.
   { path: "app/(public)/event-preview/_actions/attach-email.ts",
     type: "public_funnel" },
+  // ── Admin board (is_admin() gated, service-role) ──────────────────────────
+  { path: "app/(platform)/admin/_actions/suspend-tenant.ts",
+    type: "admin_gated" },
+  { path: "lib/admin/overview.ts",
+    type: "admin_gated" },
+  { path: "lib/admin/lookup.ts",
+    type: "admin_gated" },
+  { path: "lib/admin/appeals.ts",
+    type: "admin_gated" },
+  { path: "app/(platform)/admin/_actions/resolve-appeal.ts",
+    type: "admin_gated" },
 ];
 
 function assertPattern(src, pattern, label, action) {
@@ -2215,6 +2226,17 @@ async function testAdminClientOwnershipDiscipline() {
           src,
           /(consumed_at|expires_at)/,
           "consumed_at / expires_at single-use guard",
+          action,
+        );
+      } else if (action.type === "admin_gated") {
+        // Service-role admin surface — MUST call the is_admin() gate
+        // (getAdminUser wrapper or the rpc) before touching cross-tenant data.
+        // Fail-closed shape varies (ok:false for actions, empty return for
+        // readers), so the load-bearing assert is just that the gate is present.
+        assertPattern(
+          src,
+          /(getAdminUser|is_admin)/,
+          "is_admin() gate (getAdminUser / is_admin)",
           action,
         );
       } else if (action.type === "public_funnel") {

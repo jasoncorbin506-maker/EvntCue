@@ -1,0 +1,119 @@
+/* /suspended — the one user-facing surface of moderation. Dignified, generic,
+ * not a dead-end. Dark-theme tokens. */
+
+.wrap {
+  min-height: 100dvh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px 16px;
+  background: var(--ink);
+}
+
+.card {
+  width: 100%;
+  max-width: 480px;
+  padding: 28px 26px;
+  border-radius: 16px;
+  border: 0.5px solid var(--bdr);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.2px;
+  margin-bottom: 18px;
+}
+
+.title {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.3px;
+  margin: 0 0 12px;
+}
+
+.body {
+  font-family: var(--font-body);
+  font-size: 13.5px;
+  line-height: 1.55;
+  color: var(--txt2);
+  margin: 0 0 12px;
+}
+
+.form {
+  margin-top: 20px;
+  display: flex;
+  flex-direction: column;
+}
+
+.label {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--txt3);
+  margin: 12px 0 6px;
+}
+
+.textarea,
+.input {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--ink);
+  border: 0.5px solid var(--bdr);
+  border-radius: 9px;
+  padding: 10px 12px;
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: #fff;
+  outline: none;
+  line-height: 1.45;
+  resize: none;
+}
+
+.textarea:focus,
+.input:focus {
+  border-color: var(--coral);
+}
+
+.err {
+  font-family: var(--font-ui);
+  font-size: 11.5px;
+  color: var(--rose);
+  margin-top: 10px;
+}
+
+.submit {
+  margin-top: 16px;
+  padding: 11px 16px;
+  border-radius: 9px;
+  border: none;
+  background: var(--coral);
+  color: #fff;
+  font-family: var(--font-ui);
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.submit:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.confirm {
+  margin-top: 20px;
+  padding: 14px 16px;
+  border-radius: 10px;
+  background: rgba(31, 138, 112, 0.12);
+  border: 0.5px solid rgba(31, 138, 112, 0.4);
+  font-family: var(--font-body);
+  font-size: 13px;
+  line-height: 1.5;
+  color: #4fc3a1;
+}

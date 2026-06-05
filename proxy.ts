@@ -83,19 +83,56 @@ export async function proxy(request: NextRequest) {
       return NextResponse.redirect(redirect);
     }
 
-    const { data: roleRows } = await supabase
-      .from("user_roles")
-      .select("role")
-      .eq("user_id", user.id);
+    // `/admin` is gated by is_admin() (staff_admins — audited + revocable), NOT
+    // a user_roles tenant role. Defense-in-depth: the admin layout + every admin
+    // action re-check is_admin() server-side; this is the coarse first gate. A
+    // logged-in non-admin is bounced to "/" (not /login — they ARE signed in).
+    if (firstSeg === "admin") {
+      const { data: isAdmin } = await supabase.rpc("is_admin");
+      if (!isAdmin) {
+        const redirect = request.nextUrl.clone();
+        redirect.pathname = "/";
+        redirect.search = "";
+        return NextResponse.redirect(redirect);
+      }
+    } else {
+      const { data: roleRows } = await supabase
+        .from("user_roles")
+        .select("role, tenant_id")
+        .eq("user_id", user.id);
 
-    const roles = (roleRows ?? []).map((r) => r.role as string);
-    const requiredDbRole = URL_PATH_TO_DB_ROLE[firstSeg as UrlRolePath];
-    const allowed = roles.includes(requiredDbRole) || roles.includes("admin");
-    if (!allowed) {
-      const redirect = request.nextUrl.clone();
-      redirect.pathname = "/login";
-      redirect.search = "";
-      return NextResponse.redirect(redirect);
+      const roles = (roleRows ?? []).map((r) => r.role as string);
+      const requiredDbRole = URL_PATH_TO_DB_ROLE[firstSeg as UrlRolePath];
+      const allowed = roles.includes(requiredDbRole) || roles.includes("admin");
+      if (!allowed) {
+        const redirect = request.nextUrl.clone();
+        redirect.pathname = "/login";
+        redirect.search = "";
+        return NextResponse.redirect(redirect);
+      }
+
+      // Suspension enforcement — if the tenant the user is acting as (this
+      // role's tenant) is suspended, bounce to /suspended. That page isn't a
+      // role path, so the user can still reach it to read the notice + appeal.
+      // tenants_select_member_or_admin RLS lets the user read their own row.
+      const actingTenantIds = (roleRows ?? [])
+        .filter((r) => r.role === requiredDbRole)
+        .map((r) => (r as { tenant_id: string | null }).tenant_id)
+        .filter((id): id is string => Boolean(id));
+      if (actingTenantIds.length > 0) {
+        const { data: suspended } = await supabase
+          .from("tenants")
+          .select("id")
+          .in("id", actingTenantIds)
+          .not("suspended_at", "is", null)
+          .limit(1);
+        if (suspended && suspended.length > 0) {
+          const redirect = request.nextUrl.clone();
+          redirect.pathname = "/suspended";
+          redirect.search = "";
+          return NextResponse.redirect(redirect);
+        }
+      }
     }
   }
 
