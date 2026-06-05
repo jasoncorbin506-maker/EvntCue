@@ -27,11 +27,17 @@ export type InvitePlannerTarget = {
 type Props = {
   target: InvitePlannerTarget;
   events: InquiryEventOption[];
+  /** Chrome's currently-selected event (PL #61) — defaults the picker. */
+  defaultEventId?: string | null;
   onClose: () => void;
 };
 
-export function InvitePlannerSheet({ target, events, onClose }: Props) {
-  const [eventId, setEventId] = useState<string>(events[0]?.id ?? "");
+export function InvitePlannerSheet({ target, events, defaultEventId, onClose }: Props) {
+  const [eventId, setEventId] = useState<string>(
+    defaultEventId && events.some((e) => e.id === defaultEventId)
+      ? defaultEventId
+      : events[0]?.id ?? "",
+  );
   const [message, setMessage] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
