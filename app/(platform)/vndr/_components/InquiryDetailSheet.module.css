@@ -244,3 +244,65 @@
   from { transform: translateY(100%); }
   to { transform: translateY(0); }
 }
+
+/* Auto-populated brief (mig 091) — structured event context for the vendor. */
+.brief {
+  margin: 14px 0 4px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.03);
+  border: 0.5px solid var(--bdr);
+}
+.briefOffer {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 10px;
+}
+.briefOffer:not(:last-child) {
+  padding-bottom: 10px;
+  margin-bottom: 10px;
+  border-bottom: 0.5px solid var(--bdr);
+}
+.briefOfferLabel {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--txt3);
+}
+.briefOfferValue {
+  font-family: var(--font-display);
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.4px;
+  color: #fff;
+}
+.briefRows {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.briefRows:empty {
+  display: none;
+}
+.briefRow {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.briefKey {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.03em;
+  color: var(--txt3);
+}
+.briefVal {
+  font-family: var(--font-body);
+  font-size: 13px;
+  color: var(--txt);
+  text-align: right;
+}
