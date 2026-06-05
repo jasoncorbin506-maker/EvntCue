@@ -98,7 +98,7 @@ export async function proxy(request: NextRequest) {
     } else {
       const { data: roleRows } = await supabase
         .from("user_roles")
-        .select("role")
+        .select("role, tenant_id")
         .eq("user_id", user.id);
 
       const roles = (roleRows ?? []).map((r) => r.role as string);
@@ -109,6 +109,29 @@ export async function proxy(request: NextRequest) {
         redirect.pathname = "/login";
         redirect.search = "";
         return NextResponse.redirect(redirect);
+      }
+
+      // Suspension enforcement — if the tenant the user is acting as (this
+      // role's tenant) is suspended, bounce to /suspended. That page isn't a
+      // role path, so the user can still reach it to read the notice + appeal.
+      // tenants_select_member_or_admin RLS lets the user read their own row.
+      const actingTenantIds = (roleRows ?? [])
+        .filter((r) => r.role === requiredDbRole)
+        .map((r) => (r as { tenant_id: string | null }).tenant_id)
+        .filter((id): id is string => Boolean(id));
+      if (actingTenantIds.length > 0) {
+        const { data: suspended } = await supabase
+          .from("tenants")
+          .select("id")
+          .in("id", actingTenantIds)
+          .not("suspended_at", "is", null)
+          .limit(1);
+        if (suspended && suspended.length > 0) {
+          const redirect = request.nextUrl.clone();
+          redirect.pathname = "/suspended";
+          redirect.search = "";
+          return NextResponse.redirect(redirect);
+        }
       }
     }
   }
