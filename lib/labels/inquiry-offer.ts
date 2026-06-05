@@ -40,7 +40,7 @@ const ACTION_LABELS_ES: Record<InquiryOfferAction, string> = {
 
 /** Terse chip text shown in the reason picker. */
 const CAUSE_CHIP_EN: Record<InquiryOfferCause, string> = {
-  uncompetitive: "Offer too low",
+  uncompetitive: "Offer out of scope",
   time_constraint: "Timing doesn't work",
   prior_engagement: "Already booked",
   distance: "Too far",
@@ -48,7 +48,7 @@ const CAUSE_CHIP_EN: Record<InquiryOfferCause, string> = {
 };
 
 const CAUSE_CHIP_ES: Record<InquiryOfferCause, string> = {
-  uncompetitive: "Oferta muy baja",
+  uncompetitive: "Fuera de alcance",
   time_constraint: "El horario no funciona",
   prior_engagement: "Ya reservado",
   distance: "Muy lejos",
