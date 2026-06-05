@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useTransition } from "react";
+import { type ReactNode, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { useLocale, useTranslations } from "next-intl";
 import { useRouter } from "next/navigation";
@@ -20,6 +20,10 @@ type Props = {
   events: OrgnzEventSummary[];
   selectedEventId: string | null;
   eventNotFound: boolean;
+  // Server-rendered slot — only non-null for admins, so a normal user's client
+  // bundle never contains the /admin link (the gate is the real boundary; this
+  // just keeps it invisible).
+  adminLink?: ReactNode;
 };
 
 export function Chrome({
@@ -30,6 +34,7 @@ export function Chrome({
   events,
   selectedEventId,
   eventNotFound,
+  adminLink,
 }: Props) {
   const t = useTranslations("dashboard");
   const tLang = useTranslations("lang");
@@ -257,6 +262,7 @@ export function Chrome({
             >
               {t("menuSettings")}
             </button>
+            {adminLink}
             <form action={signOutAction}>
               <button
                 type="submit"

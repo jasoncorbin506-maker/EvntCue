@@ -1,5 +1,7 @@
 import { redirect } from "next/navigation";
+import Link from "next/link";
 import { Chrome } from "./_components/Chrome";
+import { getAdminUser } from "@/lib/admin/current-admin";
 import { HelpBar } from "./_components/HelpBar";
 import { ModeToggle } from "./_components/ModeToggle";
 import { Toast } from "./_components/Toast";
@@ -25,6 +27,10 @@ export default async function OrgnzLayout({
   const daysOut = event ? daysUntil(event.start_date) : null;
   const unreadInquiriesCount = tenantId ? await getUnreadCountForBuyer(tenantId) : 0;
 
+  // Admin entry — server-rendered slot, only present for admins (keeps the
+  // /admin link out of every non-admin's client bundle).
+  const isAdmin = Boolean(await getAdminUser());
+
   return (
     <>
       <div id="orgnz-app" className={styles.app}>
@@ -36,6 +42,13 @@ export default async function OrgnzLayout({
           events={events}
           selectedEventId={selectedEventId}
           eventNotFound={eventNotFound}
+          adminLink={
+            isAdmin ? (
+              <Link href="/admin" role="menuitem" className={styles.menuItem}>
+                Admin
+              </Link>
+            ) : null
+          }
         />
         {children}
         {/* HelpBar (Ask Cue + 12-Min Bump) is day-of-only — gated inside .app via .app.dayof. */}
