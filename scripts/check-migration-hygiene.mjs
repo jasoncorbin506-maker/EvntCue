@@ -75,8 +75,13 @@ function tablesMissingRls(sql) {
   while ((m = createRe.exec(sql))) created.add(m[1].toLowerCase());
 
   const rlsEnabled = new Set();
+  // ENABLE ROW LEVEL SECURITY is always its own standalone ALTER (Postgres
+  // can't combine it with ADD COLUMN etc.), so the table name is DIRECTLY
+  // followed by it. Require `\s+` adjacency — an earlier `[\s\S]*?` span let one
+  // table's ALTER greedily claim a *later* table's ENABLE RLS, false-flagging
+  // the later table as un-enabled (caught dogfooding mig 094).
   const rlsRe =
-    /alter\s+table\s+(?:only\s+)?(?:public\.)?"?([a-z0-9_]+)"?[\s\S]*?enable\s+row\s+level\s+security/gi;
+    /alter\s+table\s+(?:only\s+)?(?:public\.)?"?([a-z0-9_]+)"?\s+enable\s+row\s+level\s+security/gi;
   while ((m = rlsRe.exec(sql))) rlsEnabled.add(m[1].toLowerCase());
 
   return [...created].filter((t) => !rlsEnabled.has(t));
