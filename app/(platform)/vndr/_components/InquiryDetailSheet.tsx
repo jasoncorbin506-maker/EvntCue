@@ -3,30 +3,40 @@
 import { useState, useTransition } from "react";
 import { respondToInquiry } from "../_actions/respond-to-inquiry";
 import { declineInquiry } from "../_actions/decline-inquiry";
+import { quickClaimInquiry } from "../_actions/quick-claim-inquiry";
+import { counterInquiry } from "../_actions/counter-inquiry";
 import { isConfirmedHold } from "@/lib/labels/deposit-status";
+import {
+  INQUIRY_OFFER_CAUSES,
+  inquiryCauseChipLabel,
+  type InquiryOfferCause,
+} from "@/lib/labels/inquiry-offer";
 import type { VndrInquiry, VndrInquiryStatus } from "@/lib/vndr/inquiries";
 import { InquiryThread } from "./InquiryThread";
+import { OfferLedger } from "../../_components/OfferLedger";
 import s from "./InquiryDetailSheet.module.css";
 
 /**
  * Bottom-sheet detail view for a single inquiry. Opened from an InquiryRow
  * tap in InquiriesList. Surfaces:
  *
- *   - Event date + guest count + message from buyer (organizer or venue)
- *   - Existing status + responded info (if already quoted)
- *   - First-response action (price input + submit) when status is
- *     'inquiry' or 'reviewing' — sets quoted_price + responded_at + status
- *     via respondToInquiry server action.
- *   - Read-only view when status is past 'quoted'.
+ *   - Event date + guest count + auto-populated brief (mig 091) + message
+ *   - Confirmed-hold banner when escrow is funded (Model C)
+ *   - Negotiation actions (Layer B) when the buyer attached an offer:
+ *       Quick Claim (take their number) · Counter (price + reason) · Pass (reason)
+ *   - Legacy one-shot quote + decline when there's no structured offer
+ *   - The shared OfferLedger timeline + message thread
  *
  * Same scrim + drawer pattern as AvailabilityBlockSheet. Lock 22 holds —
- * any submit error inlines under the input; never blocks the close action.
+ * any submit error inlines; never blocks the close action.
  */
 
 type Props = {
   inquiry: VndrInquiry;
   onClose: () => void;
 };
+
+type Mode = "idle" | "counter" | "pass";
 
 const RESPONDABLE: VndrInquiryStatus[] = ["inquiry", "reviewing"];
 const DECLINABLE: VndrInquiryStatus[] = ["inquiry", "reviewing", "quoted"];
@@ -98,13 +108,22 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
   );
   const [error, setError] = useState<string | null>(null);
   const [confirmDecline, setConfirmDecline] = useState(false);
+  const [mode, setMode] = useState<Mode>("idle");
+  const [cause, setCause] = useState<InquiryOfferCause | null>(null);
+  const [note, setNote] = useState("");
 
   const canRespond = RESPONDABLE.includes(inquiry.status);
   const canDecline = DECLINABLE.includes(inquiry.status);
   const confirmed = isConfirmedHold(inquiry.depositStatus);
+  const hasOffer =
+    inquiry.initialOfferCents != null && inquiry.initialOfferCents > 0;
+  // Structured negotiation only when the buyer attached an offer; otherwise the
+  // legacy one-shot quote / decline holds.
+  const showNegotiation = canRespond && hasOffer;
+  const counterpartyLabel = inquiry.buyerRole === "venue" ? "Venu" : "Orgnz";
 
-  // Auto-populated brief (mig 091) — the structured event context the buyer's
-  // event carries, so the vendor isn't decoding it from free text.
+  // Auto-populated brief (mig 091) — structured event context, shown whenever
+  // any field is present (offer line gates separately on the offer).
   const typeLabel = joinParts(
     [titleCase(inquiry.eventType), titleCase(inquiry.eventSubtype)],
     " · ",
@@ -112,10 +131,22 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
   const durationLabel = formatDuration(inquiry.durationMinutes);
   const whereLabel = joinParts([inquiry.venueCity, inquiry.venueState], ", ");
   const hasBrief =
-    inquiry.initialOfferCents != null ||
-    Boolean(typeLabel) ||
-    Boolean(durationLabel) ||
-    Boolean(whereLabel);
+    hasOffer || Boolean(typeLabel) || Boolean(durationLabel) || Boolean(whereLabel);
+
+  function resetMode() {
+    setMode("idle");
+    setError(null);
+    setCause(null);
+    setNote("");
+  }
+
+  function startCounter() {
+    setError(null);
+    setCause(null);
+    setNote("");
+    setPriceStr(formatPriceInput(inquiry.initialOfferCents));
+    setMode("counter");
+  }
 
   function handleSubmit() {
     setError(null);
@@ -138,10 +169,55 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
     });
   }
 
-  function handleDecline() {
+  function handleQuickClaim() {
     setError(null);
     startTransition(async () => {
-      const res = await declineInquiry(inquiry.id);
+      const res = await quickClaimInquiry(inquiry.id);
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      onClose();
+    });
+  }
+
+  function handleCounter() {
+    setError(null);
+    const dollars = Number(priceStr);
+    if (!priceStr || !Number.isFinite(dollars) || dollars < 0) {
+      setError("Enter a counter price in whole dollars.");
+      return;
+    }
+    if (!cause) {
+      setError("Pick a reason for your counter.");
+      return;
+    }
+    const cents = Math.round(dollars * 100);
+    startTransition(async () => {
+      const res = await counterInquiry({
+        inquiryId: inquiry.id,
+        priceCents: cents,
+        cause,
+        note: note.trim() || null,
+      });
+      if (!res.ok) {
+        setError(res.error);
+        return;
+      }
+      onClose();
+    });
+  }
+
+  function runDecline(
+    declineCause?: InquiryOfferCause | null,
+    declineNote?: string | null,
+  ) {
+    setError(null);
+    startTransition(async () => {
+      const res = await declineInquiry(
+        inquiry.id,
+        declineCause ? { cause: declineCause, note: declineNote ?? null } : undefined,
+      );
       if (!res.ok) {
         setError(res.error);
         setConfirmDecline(false);
@@ -150,6 +226,22 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
       onClose();
     });
   }
+
+  const causeChips = (
+    <div className={s.chipRow}>
+      {INQUIRY_OFFER_CAUSES.map((c) => (
+        <button
+          key={c}
+          type="button"
+          className={`${s.chip} ${cause === c ? s.chipActive : ""}`.trim()}
+          onClick={() => setCause(c)}
+          disabled={pending}
+        >
+          {inquiryCauseChipLabel(c)}
+        </button>
+      ))}
+    </div>
+  );
 
   return (
     <>
@@ -195,7 +287,7 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
 
         {hasBrief && (
           <div className={s.brief}>
-            {inquiry.initialOfferCents != null && (
+            {hasOffer && (
               <div className={s.briefOffer}>
                 <span className={s.briefOfferLabel}>Their offer</span>
                 <span className={s.briefOfferValue}>
@@ -244,7 +336,138 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
           </>
         )}
 
-        {canRespond && (
+        {/* Layer B — structured negotiation when the buyer attached an offer. */}
+        {showNegotiation && mode === "idle" && (
+          <>
+            <div className={s.sectionLbl}>Your response</div>
+            <button
+              type="button"
+              className={`${s.btn} ${s.btnPrimary} ${s.fullBtn}`}
+              onClick={handleQuickClaim}
+              disabled={pending}
+            >
+              {pending
+                ? "…"
+                : `Quick Claim ${formatPriceDisplay(inquiry.initialOfferCents)}`}
+            </button>
+            <div className={s.actionRow}>
+              <button
+                type="button"
+                className={`${s.btn} ${s.btnGhost} ${s.grow}`}
+                onClick={startCounter}
+                disabled={pending}
+              >
+                Counter
+              </button>
+              <button
+                type="button"
+                className={`${s.btn} ${s.grow}`}
+                onClick={() => {
+                  setError(null);
+                  setCause(null);
+                  setNote("");
+                  setMode("pass");
+                }}
+                disabled={pending}
+              >
+                Pass
+              </button>
+            </div>
+            <div className={s.hint}>
+              Quick Claim takes their{" "}
+              {formatPriceDisplay(inquiry.initialOfferCents)} as your quote.
+              Counter to propose a different number with a reason.
+            </div>
+          </>
+        )}
+
+        {showNegotiation && mode === "counter" && (
+          <>
+            <div className={s.sectionLbl}>Your counter</div>
+            <div className={s.priceRow}>
+              <span className={s.dollarPrefix}>$</span>
+              <input
+                type="number"
+                inputMode="numeric"
+                min={0}
+                step={1}
+                value={priceStr}
+                onChange={(e) => setPriceStr(e.target.value)}
+                placeholder="0"
+                className={s.priceInput}
+                aria-label="Counter amount in dollars"
+              />
+            </div>
+            <div className={s.sectionLbl}>Why a different number?</div>
+            {causeChips}
+            <textarea
+              className={s.noteInput}
+              placeholder="Add a note (optional)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              maxLength={600}
+              disabled={pending}
+              aria-label="Counter note"
+            />
+            <div className={s.actionRow}>
+              <button
+                type="button"
+                className={`${s.btn} ${s.grow}`}
+                onClick={resetMode}
+                disabled={pending}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                className={`${s.btn} ${s.btnPrimary} ${s.grow}`}
+                onClick={handleCounter}
+                disabled={pending || !cause}
+              >
+                {pending ? "Sending…" : "Send counter"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {showNegotiation && mode === "pass" && (
+          <>
+            <div className={s.sectionLbl}>Reason for passing</div>
+            {causeChips}
+            <textarea
+              className={s.noteInput}
+              placeholder="Add a note (optional)"
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={2}
+              maxLength={600}
+              disabled={pending}
+              aria-label="Pass note"
+            />
+            <div className={s.actionRow}>
+              <button
+                type="button"
+                className={`${s.btn} ${s.grow}`}
+                onClick={resetMode}
+                disabled={pending}
+              >
+                Back
+              </button>
+              <button
+                type="button"
+                className={`${s.btn} ${s.btnDanger} ${s.grow}`}
+                onClick={() => runDecline(cause, note.trim() || null)}
+                disabled={pending || !cause}
+              >
+                {pending ? "Passing…" : "Pass"}
+              </button>
+            </div>
+          </>
+        )}
+
+        {/* Legacy one-shot quote — no structured offer on the inquiry. */}
+        {canRespond && !hasOffer && (
           <>
             <div className={s.sectionLbl}>Your quote</div>
             <div className={s.priceRow}>
@@ -262,16 +485,32 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
               />
             </div>
             <div className={s.hint}>
-              Sent now — the {inquiry.buyerRole === "venue" ? "Venu" : "Orgnz"} sees your price and can accept.
+              Sent now — the {counterpartyLabel} sees your price and can accept.
             </div>
           </>
         )}
 
         {error && <div className={s.errMsg}>{error}</div>}
 
+        <OfferLedger
+          inquiryId={inquiry.id}
+          viewerRole="vndr"
+          counterpartyLabel={counterpartyLabel}
+        />
+
         <InquiryThread inquiryId={inquiry.id} buyerRole={inquiry.buyerRole} />
 
-        {confirmDecline ? (
+        {/* Footer: negotiation modes carry their own buttons; otherwise the
+            legacy quote/decline footer + decline-confirm flow. */}
+        {showNegotiation ? (
+          mode === "idle" && (
+            <div className={s.footer}>
+              <button type="button" className={s.btn} onClick={onClose}>
+                Close
+              </button>
+            </div>
+          )
+        ) : confirmDecline ? (
           <div className={s.declineConfirm}>
             <div className={s.declineConfirmTxt}>
               Decline this inquiry? It will move to <b>Lost</b> and you
@@ -289,7 +528,7 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
               <button
                 type="button"
                 className={`${s.btn} ${s.btnDanger}`}
-                onClick={handleDecline}
+                onClick={() => runDecline()}
                 disabled={pending}
               >
                 {pending ? "Declining…" : "Yes, decline"}
@@ -311,7 +550,7 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
                 Decline
               </button>
             )}
-            {canRespond && (
+            {canRespond && !hasOffer && (
               <button
                 type="button"
                 className={`${s.btn} ${s.btnPrimary}`}

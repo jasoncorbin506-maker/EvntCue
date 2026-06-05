@@ -6,6 +6,7 @@ import { inquiryStatusLabel } from "@/lib/labels/inquiry-status";
 import { isConfirmedHold } from "@/lib/labels/deposit-status";
 import { acceptAndFundDeposit } from "../_actions/fund-deposit";
 import { OrgnzInquiryThread } from "./OrgnzInquiryThread";
+import { OfferLedger } from "../../_components/OfferLedger";
 import s from "./OrgnzInquiries.module.css";
 
 const RECIPIENT_NOUN = { vndr: "Vndr", venu: "Venu", catr: "Catr" } as const;
@@ -150,6 +151,12 @@ export function OrgnzInquiryDetailSheet({ inquiry, onClose }: Props) {
             {error && <div className={s.fundErr}>{error}</div>}
           </div>
         )}
+
+        <OfferLedger
+          inquiryId={inquiry.id}
+          viewerRole="orgnz"
+          counterpartyLabel={inquiry.vendorDisplayName ?? noun}
+        />
 
         <OrgnzInquiryThread inquiryId={inquiry.id} />
 
