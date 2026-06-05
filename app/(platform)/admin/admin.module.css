@@ -1,0 +1,117 @@
+/* Admin board — internal/utilitarian. Dark-theme tokens, mobile-first (Jason
+ * checks from a phone). Not a tenant portal, so no portal chrome. */
+
+.shell {
+  min-height: 100dvh;
+  background: var(--ink);
+}
+
+.topbar {
+  display: flex;
+  align-items: baseline;
+  gap: 10px;
+  padding: 14px 18px;
+  border-bottom: 0.5px solid var(--bdr);
+  position: sticky;
+  top: 0;
+  background: var(--ink);
+  z-index: 10;
+}
+
+.brand {
+  font-family: var(--font-display);
+  font-size: 16px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.2px;
+}
+
+.adminTag {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--coral);
+  border: 0.5px solid var(--coral);
+  border-radius: 5px;
+  padding: 2px 6px;
+}
+
+.main {
+  max-width: 920px;
+  margin: 0 auto;
+  padding: 18px 16px 48px;
+}
+
+.h1 {
+  font-family: var(--font-display);
+  font-size: 20px;
+  font-weight: 600;
+  color: #fff;
+  letter-spacing: -0.3px;
+  margin: 4px 0 14px;
+}
+
+.h2 {
+  font-family: var(--font-ui);
+  font-size: 11px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--txt3);
+  margin: 24px 0 10px;
+}
+
+.kpiGrid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+@media (min-width: 560px) {
+  .kpiGrid {
+    grid-template-columns: repeat(4, 1fr);
+  }
+}
+
+.kpi {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 0.5px solid var(--bdr);
+  background: rgba(255, 255, 255, 0.03);
+}
+
+.kpiLabel {
+  font-family: var(--font-ui);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--txt3);
+}
+
+.kpiValue {
+  margin-top: 6px;
+  font-family: var(--font-display);
+  font-size: 26px;
+  font-weight: 600;
+  letter-spacing: -0.5px;
+  color: #fff;
+  line-height: 1.05;
+}
+
+.kpiHint {
+  margin-top: 2px;
+  font-family: var(--font-body);
+  font-size: 10px;
+  color: var(--txt3);
+}
+
+.note {
+  margin-top: 24px;
+  font-family: var(--font-body);
+  font-size: 12px;
+  line-height: 1.5;
+  color: var(--txt3);
+}
