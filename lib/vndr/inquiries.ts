@@ -47,10 +47,19 @@ export type VndrInquiry = {
    *  events; null for marketplace-venue or no-location inquiries. The
    *  locationType (home/business) drives the early opt-out signal. */
   venueLocation: EventVenueLocation | null;
+  /** Brief snapshot (mig 091) — auto-populated from the buyer's event so the
+   *  seller sees a structured brief, not just free text. The seller can't read
+   *  the event cross-tenant, so these live on the inquiry. */
+  initialOfferCents: number | null;
+  eventType: string | null;
+  eventSubtype: string | null;
+  durationMinutes: number | null;
+  venueCity: string | null;
+  venueState: string | null;
 };
 
 const COLS =
-  "id, event_id, buyer_tenant_id, buyer_role, event_date, guest_count, message, proposed_price_cents, status, created_at, responded_at, expires_at, deposit_status, deposit_amount_cents, hold_expires_at";
+  "id, event_id, buyer_tenant_id, buyer_role, event_date, guest_count, message, proposed_price_cents, status, created_at, responded_at, expires_at, deposit_status, deposit_amount_cents, hold_expires_at, initial_offer_cents, event_type, event_subtype, duration_minutes, venue_city, venue_state";
 
 function shape(
   row: Record<string, unknown>,
@@ -73,6 +82,12 @@ function shape(
     depositAmountCents: (row.deposit_amount_cents as number | null) ?? null,
     holdExpiresAt: (row.hold_expires_at as string | null) ?? null,
     venueLocation,
+    initialOfferCents: (row.initial_offer_cents as number | null) ?? null,
+    eventType: (row.event_type as string | null) ?? null,
+    eventSubtype: (row.event_subtype as string | null) ?? null,
+    durationMinutes: (row.duration_minutes as number | null) ?? null,
+    venueCity: (row.venue_city as string | null) ?? null,
+    venueState: (row.venue_state as string | null) ?? null,
   };
 }
 

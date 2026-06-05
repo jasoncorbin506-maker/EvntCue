@@ -68,6 +68,29 @@ function formatHoldThrough(iso: string | null): string {
   return new Date(iso).toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
+function titleCase(v: string | null): string | null {
+  if (!v) return null;
+  return v
+    .split(/[_\s-]+/)
+    .filter(Boolean)
+    .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+    .join(" ");
+}
+
+function formatDuration(min: number | null): string | null {
+  if (!min || min <= 0) return null;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h} hr${h > 1 ? "s" : ""}`;
+  return `${m} min`;
+}
+
+function joinParts(parts: (string | null)[], sep: string): string | null {
+  const kept = parts.filter((p): p is string => Boolean(p));
+  return kept.length ? kept.join(sep) : null;
+}
+
 export function InquiryDetailSheet({ inquiry, onClose }: Props) {
   const [pending, startTransition] = useTransition();
   const [priceStr, setPriceStr] = useState(
@@ -79,6 +102,20 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
   const canRespond = RESPONDABLE.includes(inquiry.status);
   const canDecline = DECLINABLE.includes(inquiry.status);
   const confirmed = isConfirmedHold(inquiry.depositStatus);
+
+  // Auto-populated brief (mig 091) — the structured event context the buyer's
+  // event carries, so the vendor isn't decoding it from free text.
+  const typeLabel = joinParts(
+    [titleCase(inquiry.eventType), titleCase(inquiry.eventSubtype)],
+    " · ",
+  );
+  const durationLabel = formatDuration(inquiry.durationMinutes);
+  const whereLabel = joinParts([inquiry.venueCity, inquiry.venueState], ", ");
+  const hasBrief =
+    inquiry.initialOfferCents != null ||
+    Boolean(typeLabel) ||
+    Boolean(durationLabel) ||
+    Boolean(whereLabel);
 
   function handleSubmit() {
     setError(null);
@@ -152,6 +189,39 @@ export function InquiryDetailSheet({ inquiry, onClose }: Props) {
                 ? ` Date held through ${formatHoldThrough(inquiry.holdExpiresAt)}.`
                 : ""}{" "}
               A qualified, cash-backed booking — not a tire-kicker.
+            </div>
+          </div>
+        )}
+
+        {hasBrief && (
+          <div className={s.brief}>
+            {inquiry.initialOfferCents != null && (
+              <div className={s.briefOffer}>
+                <span className={s.briefOfferLabel}>Their offer</span>
+                <span className={s.briefOfferValue}>
+                  {formatPriceDisplay(inquiry.initialOfferCents)}
+                </span>
+              </div>
+            )}
+            <div className={s.briefRows}>
+              {typeLabel && (
+                <div className={s.briefRow}>
+                  <span className={s.briefKey}>Type</span>
+                  <span className={s.briefVal}>{typeLabel}</span>
+                </div>
+              )}
+              {durationLabel && (
+                <div className={s.briefRow}>
+                  <span className={s.briefKey}>Length</span>
+                  <span className={s.briefVal}>{durationLabel}</span>
+                </div>
+              )}
+              {whereLabel && (
+                <div className={s.briefRow}>
+                  <span className={s.briefKey}>Where</span>
+                  <span className={s.briefVal}>{whereLabel}</span>
+                </div>
+              )}
             </div>
           </div>
         )}

@@ -307,6 +307,7 @@ export function BrowseClient({
   activeEvents,
   invitedTenantIds,
   initialFocus,
+  selectedEventId,
 }: {
   vendors: VendorListing[];
   venues: VenueListing[];
@@ -315,6 +316,8 @@ export function BrowseClient({
   activeEvents: InquiryEventOption[];
   invitedTenantIds: string[];
   initialFocus: string | null;
+  /** The Chrome's currently-selected event (PL #61) — defaults the composers. */
+  selectedEventId: string | null;
 }) {
   const locale = useLocale() as Locale;
   const [selected, setSelected] = useState<string | null>(initialFocus);
@@ -577,6 +580,7 @@ export function BrowseClient({
         <SendInquirySheet
           target={inquiryTarget}
           events={activeEvents}
+          defaultEventId={selectedEventId}
           onClose={() => setInquiryTarget(null)}
         />
       )}
@@ -585,6 +589,7 @@ export function BrowseClient({
         <InvitePlannerSheet
           target={invitePlannerTarget}
           events={activeEvents}
+          defaultEventId={selectedEventId}
           onClose={() => setInvitePlannerTarget(null)}
         />
       )}

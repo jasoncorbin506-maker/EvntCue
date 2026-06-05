@@ -57,12 +57,34 @@ function errorMessage(code: string, noun: string): string {
 type Props = {
   target: InquiryTarget;
   events: InquiryEventOption[];
+  /** Chrome's currently-selected event (PL #61). Defaults the picker to the
+   *  event the buyer is actually viewing, not the earliest-dated one. */
+  defaultEventId?: string | null;
   onClose: () => void;
 };
 
-export function SendInquirySheet({ target, events, onClose }: Props) {
-  const [eventId, setEventId] = useState<string>(events[0]?.id ?? "");
+function fmtDuration(min: number | null): string | null {
+  if (!min || min <= 0) return null;
+  const h = Math.floor(min / 60);
+  const m = min % 60;
+  if (h && m) return `${h}h ${m}m`;
+  if (h) return `${h} hr${h > 1 ? "s" : ""}`;
+  return `${m} min`;
+}
+
+function fmtMoney(cents: number | null): string | null {
+  if (cents == null || cents <= 0) return null;
+  return `$${Math.round(cents / 100).toLocaleString("en-US")}`;
+}
+
+export function SendInquirySheet({ target, events, defaultEventId, onClose }: Props) {
+  const [eventId, setEventId] = useState<string>(
+    defaultEventId && events.some((e) => e.id === defaultEventId)
+      ? defaultEventId
+      : events[0]?.id ?? "",
+  );
   const [message, setMessage] = useState("");
+  const [offer, setOffer] = useState("");
   const [error, setError] = useState<string | null>(null);
   const [pending, startTransition] = useTransition();
 
@@ -78,13 +100,17 @@ export function SendInquirySheet({ target, events, onClose }: Props) {
         selectedEvent.typeLabel,
         selectedEvent.subtype,
         selectedEvent.dateLabel,
+        fmtDuration(selectedEvent.durationMinutes),
         selectedEvent.guestCount != null
           ? `${selectedEvent.guestCount.toLocaleString("en-US")} guests`
           : null,
+        selectedEvent.locationLabel,
       ]
         .filter(Boolean)
         .join(" · ")
     : "";
+
+  const budgetLabel = selectedEvent ? fmtMoney(selectedEvent.budgetCents) : null;
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -111,13 +137,20 @@ export function SendInquirySheet({ target, events, onClose }: Props) {
       setError("Pick which event this inquiry is for.");
       return;
     }
+    const offerDollars = Number(offer);
+    const offerCents =
+      offer.trim() && Number.isFinite(offerDollars) && offerDollars > 0
+        ? Math.round(offerDollars * 100)
+        : null;
     startTransition(async () => {
-      // Event context (date + guest count) is carried server-side from the
-      // selected event — the buyer never re-enters what we already have.
+      // Event context (date, duration, location, guest count) is carried
+      // server-side from the selected event — the buyer never re-enters what we
+      // already have. Only the optional offer is entered here.
       const res = await createInquiry({
         vndrTenantId: target.tenantId,
         eventId,
         message: message.trim(),
+        offerCents,
       });
       if (!res.ok) {
         setError(errorMessage(res.error, noun));
@@ -201,6 +234,34 @@ export function SendInquirySheet({ target, events, onClose }: Props) {
                   )}
                 </div>
               )}
+
+              <label className={s.field}>
+                <span className={s.fieldLabel}>
+                  Your offer <span className={s.optional}>· optional</span>
+                </span>
+                <div className={s.offerRow}>
+                  <span className={s.offerPrefix}>$</span>
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    step={1}
+                    className={s.offerInput}
+                    name="inquiryOffer"
+                    autoComplete="off"
+                    data-1p-ignore
+                    data-lpignore="true"
+                    value={offer}
+                    onChange={(e) => setOffer(e.target.value)}
+                    placeholder="0"
+                    disabled={pending}
+                  />
+                </div>
+                <span className={s.offerHint}>
+                  {target.displayName} can accept this or counter.
+                  {budgetLabel ? ` Your event budget is ${budgetLabel}.` : ""}
+                </span>
+              </label>
 
               <label className={s.field}>
                 <span className={s.fieldLabel}>Your message</span>

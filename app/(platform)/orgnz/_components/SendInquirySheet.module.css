@@ -133,3 +133,45 @@
 .noEventsCta:hover {
   text-decoration: underline;
 }
+
+/* Optional offer — dollar-prefixed input on the same dark raised surface. */
+.offerRow {
+  display: flex;
+  align-items: center;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--bdr);
+  border-radius: 10px;
+  padding: 0 0.7rem;
+}
+.offerRow:focus-within {
+  border-color: var(--blue, #2a6bdb);
+  box-shadow: 0 0 0 3px rgba(42, 107, 219, 0.12);
+}
+.offerPrefix {
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--txt2);
+  padding-right: 0.3rem;
+}
+.offerInput {
+  flex: 1;
+  min-width: 0;
+  border: none;
+  background: transparent;
+  outline: none;
+  font-family: var(--font-body);
+  font-size: 0.95rem;
+  color: var(--txt);
+  padding: 0.6rem 0;
+}
+.offerInput::placeholder {
+  color: var(--txt3);
+}
+.offerHint {
+  display: block;
+  margin-top: 0.4rem;
+  font-family: var(--font-ui);
+  font-size: 0.78rem;
+  line-height: 1.4;
+  color: var(--txt3);
+}

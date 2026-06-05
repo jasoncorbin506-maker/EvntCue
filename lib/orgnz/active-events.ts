@@ -27,7 +27,18 @@ export type InquiryEventOption = {
   typeLabel: string | null;
   /** Raw subtype if set, e.g. "hindu". */
   subtype: string | null;
+  /** Event length in minutes, for the "how long" brief line. */
+  durationMinutes: number | null;
+  /** Region the seller sees pre-booking ("Dallas, TX"); null if no venue set. */
+  locationLabel: string | null;
+  /** Whole-event budget in cents — shown as CONTEXT only, never the offer. */
+  budgetCents: number | null;
 };
+
+function locationLabel(city: string | null, state: string | null): string | null {
+  const parts = [city, state].filter((p): p is string => Boolean(p && p.trim()));
+  return parts.length ? parts.join(", ") : null;
+}
 
 export async function getOrgnzActiveEvents(): Promise<InquiryEventOption[]> {
   const organizer = await getCurrentOrganizer();
@@ -36,7 +47,9 @@ export async function getOrgnzActiveEvents(): Promise<InquiryEventOption[]> {
   const supabase = await createClient();
   const { data: rows } = await supabase
     .from("events")
-    .select("id, name, start_date, guest_count, event_type, event_subtype")
+    .select(
+      "id, name, start_date, guest_count, event_type, event_subtype, duration_minutes, venue_city, venue_state, budget_cents",
+    )
     .eq("orgnz_tenant_id", organizer.tenantId)
     .eq("status", "active")
     .order("start_date", { ascending: true });
@@ -52,6 +65,12 @@ export async function getOrgnzActiveEvents(): Promise<InquiryEventOption[]> {
       guestCount: (r.guest_count as number | null) ?? null,
       typeLabel: eventType ? humanizeEventType(eventType) : null,
       subtype: (r.event_subtype as string | null) ?? null,
+      durationMinutes: (r.duration_minutes as number | null) ?? null,
+      locationLabel: locationLabel(
+        (r.venue_city as string | null) ?? null,
+        (r.venue_state as string | null) ?? null,
+      ),
+      budgetCents: (r.budget_cents as number | null) ?? null,
     };
   });
 }

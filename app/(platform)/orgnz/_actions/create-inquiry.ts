@@ -52,6 +52,9 @@ export type CreateInquiryInput = {
   eventDate?: string | null;
   /** Optional headcount hint. */
   guestCount?: number | null;
+  /** Optional buyer offer in whole cents. Snapshotted as the standing offer
+   *  the seller can Quick Claim or counter (Layer B). null = no offer named. */
+  offerCents?: number | null;
 };
 
 export type CreateInquiryResult =
@@ -75,7 +78,9 @@ export async function createInquiry(
   // it's *this* organizer's event (not one they merely participate in).
   const { data: event } = await supabase
     .from("events")
-    .select("id, name, start_date, guest_count, status, orgnz_tenant_id")
+    .select(
+      "id, name, start_date, guest_count, status, orgnz_tenant_id, event_type, event_subtype, duration_minutes, venue_city, venue_state",
+    )
     .eq("id", input.eventId)
     .maybeSingle();
   if (!event || (event.orgnz_tenant_id as string) !== organizer.tenantId) {
@@ -123,6 +128,17 @@ export async function createInquiry(
       // Carry the event's headcount automatically (the buyer doesn't re-enter
       // what the event already knows); an explicit override still wins if passed.
       guest_count: input.guestCount ?? (event.guest_count as number | null) ?? null,
+      // Brief snapshot (mig 091). The seller can't read the buyer's event row
+      // (cross-tenant RLS), so the auto-populated brief is copied onto the
+      // inquiry. venue_city/state only — the full street address stays private
+      // until a booking. The offer is the buyer-entered number, not budget_cents.
+      event_type: (event.event_type as string | null) ?? null,
+      event_subtype: (event.event_subtype as string | null) ?? null,
+      duration_minutes: (event.duration_minutes as number | null) ?? null,
+      venue_city: (event.venue_city as string | null) ?? null,
+      venue_state: (event.venue_state as string | null) ?? null,
+      initial_offer_cents:
+        input.offerCents != null && input.offerCents > 0 ? input.offerCents : null,
       message: msg.message,
       status: "inquiry",
     })

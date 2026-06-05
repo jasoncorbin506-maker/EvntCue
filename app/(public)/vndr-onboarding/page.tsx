@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { getTranslations } from "next-intl/server";
+import { COMMISSION_RATES } from "@/data/commission-rates";
 import s from "./vndr-onboarding.module.css";
 import { Calculator } from "./Calculator";
 
@@ -31,6 +32,15 @@ export async function generateMetadata() {
 
 export default async function VndrOnboardingPage() {
   const t = await getTranslations("vndr.onboarding");
+
+  // Breakeven booking volume where Pro's lower rate offsets its subscription:
+  //   monthlyPrice / (freeRate − proRate) = 129 / (0.075 − 0.06) = $8,600/mo.
+  // Derived from the Lock 25 v2a constants so it never drifts from the calc.
+  const freeRate = COMMISSION_RATES.vndr.free.commissionRate ?? 0.075;
+  const proRate = COMMISSION_RATES.vndr.pro.commissionRate ?? 0.06;
+  const proMonthly = COMMISSION_RATES.vndr.pro.monthlyPrice ?? 129;
+  const breakevenGmv = Math.round(proMonthly / (freeRate - proRate));
+  const breakevenAmount = "$" + breakevenGmv.toLocaleString("en-US");
 
   return (
     <main className={s.phone}>
@@ -138,6 +148,45 @@ export default async function VndrOnboardingPage() {
             <div className={s.compareNote}>{t("compare.evntcueNote")}</div>
           </div>
         </div>
+      </section>
+
+      {/* Free vs Pro — mid-page breakeven. Introduces Pro honestly here, in
+       * take-home terms (§75 one-glance), instead of springing it on the user
+       * at the bottom. The $ anchor is derived from the Lock 25 v2a constants. */}
+      <section className={s.switchSection}>
+        <div className={s.switchHead}>
+          <div className={s.switchEye}>{t("switch.eye")}</div>
+          <h2 className={s.switchH}>
+            {t.rich("switch.h", { em: (chunks) => <em>{chunks}</em> })}
+          </h2>
+          <p className={s.switchSub}>{t("switch.sub")}</p>
+        </div>
+        <div className={s.switchGrid}>
+          <div className={s.switchCard}>
+            <div className={s.switchTag}>{t("switch.freeTag")}</div>
+            <div className={s.switchKeep}>{t("switch.freeKeepPct")}</div>
+            <div className={s.switchKeepL}>{t("switch.keepOf")}</div>
+            <div className={s.switchMeta}>{t("switch.freeMeta")}</div>
+          </div>
+          <div className={`${s.switchCard} ${s.switchCardPro}`}>
+            <div className={`${s.switchTag} ${s.switchTagPro}`}>{t("switch.proTag")}</div>
+            <div className={`${s.switchKeep} ${s.switchKeepPro}`}>{t("switch.proKeepPct")}</div>
+            <div className={s.switchKeepL}>{t("switch.keepOf")}</div>
+            <div className={s.switchMeta}>{t("switch.proMeta")}</div>
+          </div>
+        </div>
+        <div className={s.switchBreakeven}>
+          <div className={s.switchBreakevenLabel}>{t("switch.breakevenLabel")}</div>
+          <p className={s.switchBreakevenText}>
+            {t.rich("switch.breakeven", {
+              amount: breakevenAmount,
+              strong: (chunks) => <strong>{chunks}</strong>,
+            })}
+          </p>
+        </div>
+        <Link href="#calc" className={s.switchLink}>
+          {t("switch.link")}
+        </Link>
       </section>
 
       {/* "What free actually means" — port of `what-section` lines 669–708 */}
