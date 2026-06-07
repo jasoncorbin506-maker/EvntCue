@@ -1,37 +1,37 @@
 import { randomUUID } from "node:crypto";
 import type { SupabaseClient } from "@supabase/supabase-js";
+import { ingestFromUrl } from "../media/index.ts";
 
 /**
- * Mood Board Chunk C — fetch a Pinterest image server-side and re-host it
- * to the private `mood-board-renders` Supabase Storage bucket.
+ * Mood Board Chunk C — fetch a remote image (Pinterest pin, or an AI render
+ * provider's output) server-side and re-host it to the private
+ * `mood-board-renders` bucket.
  *
- * Why re-host instead of hot-link:
- *   1. Lock 18 visibility — we own the bytes; Pinterest can't observe who
- *      views our pins.
- *   2. Link rot — Pinterest CDN URLs go stale.
- *   3. Consistency with the upload path — same render code on the canvas.
+ * As of the MediaService chokepoint (2026-06-07) this is a thin wrapper over
+ * MediaService.ingestFromUrl — so re-hosted images get the same validation +
+ * (future) CSAM/nudity scan as direct uploads. The funnel owns the fetch,
+ * size/type checks, scan, upload, and signed URL; this wrapper only preserves
+ * the historical RehostInput/RehostResult/RehostError surface its callers use.
  *
- * Pure helper; no DB writes. Returns the storage path + a 1h signed URL
- * for immediate render. The caller (import-pinterest-url server action)
- * is responsible for the `mood_board_pins` INSERT.
+ * Why re-host instead of hot-link: Lock 18 visibility (we own the bytes),
+ * link rot (provider CDNs go stale), and one code path on the canvas.
+ *
+ * Pure-ish helper; no DB writes. The caller (import-pinterest-url server
+ * action / finalize-render) is responsible for the `mood_board_pins` INSERT.
  */
-
-const MAX_BYTES = 10 * 1024 * 1024; // 10 MB — matches bucket file_size_limit + upload path
-const ALLOWED_EXTS = new Set(["jpeg", "jpg", "png", "webp", "heic"]);
-
-const MIME_TO_EXT: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-  "image/heic": "heic",
-};
 
 export type RehostInput = {
   sourceUrl: string;
   tenantId: string;
   boardId: string;
-  supabase: SupabaseClient;
-  /** Override fetch — used by tests. Defaults to global fetch. */
+  /** Authed user id — recorded as upload provenance in the moderation ledger. */
+  uploadedBy: string;
+  /**
+   * @deprecated MediaService uses its own service-role client; retained so
+   * existing call sites compile unchanged.
+   */
+  supabase?: SupabaseClient;
+  /** Override fetch — used by tests. Forwarded to MediaService. */
   fetchImpl?: typeof fetch;
 };
 
@@ -58,81 +58,40 @@ export class RehostError extends Error {
 export async function fetchAndRehostImage(
   input: RehostInput,
 ): Promise<RehostResult> {
-  const fetcher = input.fetchImpl ?? fetch;
+  // Path convention preserved: `${tenant_id}/${board_id}/${randomUUID()}.${ext}`.
+  // The funnel appends the extension from the fetched content-type.
+  const objectKeyPrefix = `${input.tenantId}/${input.boardId}/${randomUUID()}`;
 
-  // 1. Fetch the image with size check.
-  const response = await fetcher(input.sourceUrl, {
-    headers: { "User-Agent": "EvntCue/1.0 (+https://evntcue.com)" },
+  const result = await ingestFromUrl({
+    kind: "mood_board_pin",
+    objectKeyPrefix,
+    sourceUrl: input.sourceUrl,
+    tenantId: input.tenantId,
+    uploadedBy: input.uploadedBy,
+    fetchImpl: input.fetchImpl,
+    // Callers (and tests) already hold a client; forward it so the funnel
+    // doesn't instantiate a second one and tests can inject a stub.
+    adminClient: input.supabase,
   });
-  if (!response.ok) {
-    throw new RehostError(
-      `Pinterest returned ${response.status}`,
-      "fetch_failed",
-    );
-  }
 
-  const contentLengthHeader = response.headers.get("content-length");
-  const contentLength = contentLengthHeader
-    ? parseInt(contentLengthHeader, 10)
-    : 0;
-  if (contentLength > MAX_BYTES) {
-    throw new RehostError("Image too large (>10MB)", "too_large");
-  }
-
-  const contentType = (response.headers.get("content-type") ?? "image/jpeg")
-    .split(";")[0]
-    .trim()
-    .toLowerCase();
-
-  // 2. Determine extension from content-type. Tolerate Pinterest serving
-  //    weird headers; reject only if extension fails our allowlist.
-  const ext = MIME_TO_EXT[contentType] ?? contentType.split("/")[1] ?? "";
-  if (!ALLOWED_EXTS.has(ext)) {
-    throw new RehostError(
-      `Unsupported image type: ${contentType}`,
-      "unsupported_type",
-    );
-  }
-  const normalizedExt = ext === "jpeg" ? "jpg" : ext;
-
-  // 3. Read bytes; double-check size when the server lied about content-length.
-  const arrayBuffer = await response.arrayBuffer();
-  if (arrayBuffer.byteLength > MAX_BYTES) {
-    throw new RehostError("Image too large (>10MB)", "too_large");
-  }
-  const buffer = Buffer.from(arrayBuffer);
-
-  // 4. Upload to Storage. Path mirrors upload-image.ts:
-  //    `${tenant_id}/${board_id}/${randomUUID()}.${ext}`
-  const storagePath = `${input.tenantId}/${input.boardId}/${randomUUID()}.${normalizedExt}`;
-
-  const { error: uploadErr } = await input.supabase.storage
-    .from("mood-board-renders")
-    .upload(storagePath, buffer, {
-      contentType,
-      upsert: false,
-    });
-  if (uploadErr) {
-    throw new RehostError(
-      `Upload failed: ${uploadErr.message}`,
-      "upload_failed",
-    );
-  }
-
-  // 5. Mint a 1h signed URL for immediate client render.
-  const { data: signed, error: signErr } = await input.supabase.storage
-    .from("mood-board-renders")
-    .createSignedUrl(storagePath, 60 * 60);
-  if (signErr || !signed?.signedUrl) {
-    throw new RehostError(
-      `Signed URL failed: ${signErr?.message ?? "unknown"}`,
-      "signed_url_failed",
-    );
+  if (!result.ok) {
+    // Map funnel error codes back onto the historical RehostError union so
+    // callers' existing switch/handling keeps working.
+    const code: RehostError["code"] =
+      result.code === "url_failed"
+        ? "signed_url_failed"
+        : result.code === "fetch_failed" ||
+            result.code === "too_large" ||
+            result.code === "unsupported_type" ||
+            result.code === "upload_failed"
+          ? result.code
+          : "upload_failed";
+    throw new RehostError(result.error, code);
   }
 
   return {
-    storagePath,
-    signedUrl: signed.signedUrl,
-    sizeBytes: arrayBuffer.byteLength,
+    storagePath: result.storagePath,
+    signedUrl: result.url,
+    sizeBytes: result.byteSize,
   };
 }

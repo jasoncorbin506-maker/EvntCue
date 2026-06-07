@@ -5,22 +5,16 @@ import { revalidatePath } from "next/cache";
 import { createClient } from "@/lib/supabase/server";
 import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentPlanner } from "@/lib/plnr/current-planner";
+import { ingestBytes, extForMime, removeObjects } from "@/lib/media";
 
 /**
- * Planner portfolio photo upload (Lock 30 Phase C pt 2) — mirrors
- * upload-catr-photo.ts. Uploads to the public `planner-photos` bucket via the
- * admin client (service-role bypasses storage RLS; the bucket is public for
- * reads) and inserts a planner_photos row stamped with the uploader's user id.
+ * Planner portfolio photo upload (Lock 30 Phase C pt 2). Funnels the file
+ * through MediaService (the CSAM-safety chokepoint) — validation (5 MB;
+ * jpeg/png/webp), future scan, upload to the public `planner-photos` bucket,
+ * public-URL — then inserts a planner_photos row stamped with the uploader.
  */
 
-const MAX_BYTES = 5 * 1024 * 1024;
 const MAX_PHOTOS_PER_PLNR = 12;
-const ALLOWED_MIME = new Set(["image/jpeg", "image/png", "image/webp"]);
-const MIME_TO_EXT: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/webp": "webp",
-};
 
 export type UploadPlnrPhotoResult =
   | { ok: true; photo: { id: string; storagePath: string; publicUrl: string } }
@@ -38,8 +32,6 @@ export async function uploadPlnrPhoto(
 
   const file = formData.get("file");
   if (!(file instanceof File)) return { ok: false, error: "No file received." };
-  if (file.size > MAX_BYTES) return { ok: false, error: "Image must be 5 MB or smaller." };
-  if (!ALLOWED_MIME.has(file.type)) return { ok: false, error: "Image must be JPEG, PNG, or WEBP." };
 
   const admin = createAdminClient();
 
@@ -52,20 +44,22 @@ export async function uploadPlnrPhoto(
     return { ok: false, error: `Up to ${MAX_PHOTOS_PER_PLNR} photos. Remove one to add another.` };
   }
 
-  const ext = MIME_TO_EXT[file.type] ?? "bin";
-  const storagePath = `${planner.tenantId}/${randomUUID()}.${ext}`;
-  const buffer = Buffer.from(await file.arrayBuffer());
-
-  const { error: uploadErr } = await admin.storage
-    .from("planner-photos")
-    .upload(storagePath, buffer, { contentType: file.type, upsert: false });
-  if (uploadErr) return { ok: false, error: `Upload failed: ${uploadErr.message}` };
+  const objectKey = `${planner.tenantId}/${randomUUID()}.${extForMime(file.type)}`;
+  const ingest = await ingestBytes({
+    kind: "planner_photo",
+    objectKey,
+    contentType: file.type,
+    bytes: await file.arrayBuffer(),
+    tenantId: planner.tenantId,
+    uploadedBy: user.id,
+  });
+  if (!ingest.ok) return { ok: false, error: ingest.error };
 
   const { data: row, error: insertErr } = await admin
     .from("planner_photos")
     .insert({
       tenant_id: planner.tenantId,
-      storage_path: storagePath,
+      storage_path: ingest.storagePath,
       display_order: existingCount ?? 0,
       created_by: user.id,
     })
@@ -73,13 +67,12 @@ export async function uploadPlnrPhoto(
     .single();
 
   if (insertErr || !row) {
-    await admin.storage.from("planner-photos").remove([storagePath]);
+    await removeObjects(ingest.bucket, [ingest.storagePath]);
     return { ok: false, error: `Photo insert failed: ${insertErr?.message ?? "unknown"}` };
   }
 
-  const { data: pub } = admin.storage.from("planner-photos").getPublicUrl(storagePath);
   revalidatePath("/plnr/profile");
   revalidatePath("/plnr");
 
-  return { ok: true, photo: { id: row.id as string, storagePath, publicUrl: pub.publicUrl } };
+  return { ok: true, photo: { id: row.id as string, storagePath: ingest.storagePath, publicUrl: ingest.url } };
 }

@@ -81,6 +81,7 @@ export async function finalizeRenderJob(
       sourceUrl: outcome.imageUrl,
       tenantId: board.tenant_id,
       boardId: board.id,
+      uploadedBy: userId,
       supabase: admin,
     });
   } catch (err) {

@@ -1,9 +1,9 @@
 "use server";
 
 import { createClient } from "@/lib/supabase/server";
-import { createAdminClient } from "@/lib/supabase/admin";
 import { getCurrentVendor } from "@/lib/vndr/current-vendor";
 import { CERT_TYPES, type CertTypeKey } from "@/lib/labels/cert-types";
+import { ingestBytes } from "@/lib/media";
 
 /**
  * Stage 4 cert upload server action. Two side effects:
@@ -31,16 +31,6 @@ import { CERT_TYPES, type CertTypeKey } from "@/lib/labels/cert-types";
 
 const VALID_CERT_KEYS = new Set<string>(CERT_TYPES.map((c) => c.key));
 
-const ALLOWED_MIME = new Set<string>([
-  "application/pdf",
-  "image/png",
-  "image/jpeg",
-  "image/webp",
-  "image/heic",
-]);
-
-const MAX_BYTES = 10 * 1024 * 1024; // 10MB matches bucket cap (session 18g)
-
 export type UploadCertResult =
   | { ok: true; certType: CertTypeKey }
   | { ok: false; error: string };
@@ -58,43 +48,41 @@ export async function uploadCertAction(
   if (!(file instanceof File) || file.size === 0) {
     return { ok: false, error: "Pick a file to upload." };
   }
-  if (file.size > MAX_BYTES) {
-    return { ok: false, error: "File too large. Max 10MB." };
-  }
-  if (!ALLOWED_MIME.has(file.type)) {
-    return {
-      ok: false,
-      error: "Only PDF, PNG, JPG, WebP, or HEIC files allowed.",
-    };
-  }
 
   const vendor = await getCurrentVendor();
   if (!vendor) {
     return { ok: false, error: "Your session expired. Sign in again." };
   }
 
+  const supabase = await createClient();
+
   const ext =
     file.name.split(".").pop()?.toLowerCase().replace(/[^a-z0-9]/g, "") ||
     "bin";
   const path = `vendors/${vendor.tenantId}/${certType}.${ext}`;
 
-  // Storage upload — admin client bypasses bucket policy (service role).
-  const admin = createAdminClient();
-  const buffer = await file.arrayBuffer();
-  const { error: uploadErr } = await admin.storage
-    .from("mood-board-renders")
-    .upload(path, buffer, {
-      contentType: file.type,
-      upsert: true,
-    });
-
-  if (uploadErr) {
-    return { ok: false, error: "Upload failed. Try again." };
+  // Funnel through MediaService (CSAM-safety chokepoint). vendor_cert policy:
+  // 10 MB; pdf/png/jpeg/webp/heic; private `mood-board-renders` bucket. The
+  // fixed per-cert key means re-upload overwrites (upsert), matching prior
+  // behavior. We store the storage path (not a URL) on the row below.
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
+  const ingest = await ingestBytes({
+    kind: "vendor_cert",
+    objectKey: path,
+    contentType: file.type,
+    bytes: await file.arrayBuffer(),
+    tenantId: vendor.tenantId,
+    uploadedBy: user?.id ?? vendor.tenantId,
+    upsert: true,
+  });
+  if (!ingest.ok) {
+    return { ok: false, error: ingest.error };
   }
 
   // Upsert tenant_certifications row. One row per (tenant_id, cert_type)
   // — re-upload overwrites + resets verified state.
-  const supabase = await createClient();
   const { data: existing } = await supabase
     .from("tenant_certifications")
     .select("id")
