@@ -12,6 +12,11 @@ import {
   fetchAndRehostImage,
   RehostError,
 } from "@/lib/moodboard/pinterest-import";
+import {
+  moodBoardPhotoCap,
+  countBoardPhotos,
+  photoCapMessage,
+} from "@/lib/moodboard/photo-cap";
 
 /**
  * Mood Board Chunk C — server action: import 1+ Pinterest images from a
@@ -26,9 +31,9 @@ import {
  * admin client does the Storage write + pin INSERT.
  */
 
-const PER_BOARD_CAP = 100;
 /** Defensive hard cap — protects against runaway costs if a future Apify
- *  actor change starts returning huge result sets. */
+ *  actor change starts returning huge result sets. The per-board photo cap
+ *  (free vs paid, Lock 3) is resolved at call time via moodBoardPhotoCap. */
 const HARD_CAP = 200;
 /** Cap on errors surfaced to the user — dedupe + truncate. */
 const MAX_ERRORS_SURFACED = 3;
@@ -92,19 +97,13 @@ export async function importPinterestUrl(
     return { ok: false, error: "You don't own this board." };
   }
 
-  const { count: existingCount } = await admin
-    .from("mood_board_pins")
-    .select("id", { count: "exact", head: true })
-    .eq("board_id", input.boardId)
-    .is("deleted_at", null);
-
-  const used = existingCount ?? 0;
-  const remaining = PER_BOARD_CAP - used;
+  // Freemium photo cap (Lock 3). Counts user-supplied photos only — renders +
+  // chips are free. Imports fill up to the remaining headroom on the board.
+  const photoCap = await moodBoardPhotoCap(user.id, board.tenant_id as string);
+  const used = await countBoardPhotos(admin, input.boardId);
+  const remaining = photoCap.cap - used;
   if (remaining <= 0) {
-    return {
-      ok: false,
-      error: "Your board is full at 100 pins — drop a few to bring more in.",
-    };
+    return { ok: false, error: photoCapMessage(photoCap) };
   }
 
   const limit = Math.min(remaining, HARD_CAP);
@@ -159,6 +158,7 @@ export async function importPinterestUrl(
         sourceUrl: item.imageUrl!,
         tenantId: board.tenant_id as string,
         boardId: board.id as string,
+        uploadedBy: user.id,
         supabase: admin,
       });
 
