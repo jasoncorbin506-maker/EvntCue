@@ -1,5 +1,6 @@
 import { type NextRequest, NextResponse } from "next/server";
 import { createServerClient } from "@supabase/ssr";
+import { GATE_COOKIE, gateCookieValue } from "@/lib/site-gate";
 
 // URL path segment (UI side, "Venu" per Lock 1).
 const ROLE_PATHS = ["orgnz", "plnr", "vndr", "catr", "venu", "admin"] as const;
@@ -22,6 +23,23 @@ const URL_PATH_TO_DB_ROLE: Record<UrlRolePath, string> = {
 const ORGNZ_EVENT_HEADER = "x-orgnz-event-id";
 
 export async function proxy(request: NextRequest) {
+  // Private-preview gate — active only while SITE_ACCESS_CODE is set. Page
+  // requests without the gate cookie bounce to /gate. /api stays open: crons
+  // and webhooks authenticate themselves and must not see an HTML lock screen.
+  const accessCode = process.env.SITE_ACCESS_CODE;
+  const pathname = request.nextUrl.pathname;
+  if (accessCode && pathname !== "/gate" && !pathname.startsWith("/api/")) {
+    const cookie = request.cookies.get(GATE_COOKIE)?.value;
+    if (cookie !== (await gateCookieValue(accessCode))) {
+      const redirect = request.nextUrl.clone();
+      const original = request.nextUrl.pathname + request.nextUrl.search;
+      redirect.pathname = "/gate";
+      redirect.search = "";
+      if (original !== "/") redirect.searchParams.set("next", original);
+      return NextResponse.redirect(redirect);
+    }
+  }
+
   // Forward the Orgnz event selection as a request header (scoped to /orgnz;
   // stripped elsewhere so a client can't smuggle it in). The header rides on a
   // copy of the request headers that we keep cookie-synced below.
@@ -134,6 +152,12 @@ export async function proxy(request: NextRequest) {
         }
       }
     }
+  }
+
+  // While the preview gate is up, keep crawlers out of anything they reach
+  // (e.g. /gate itself, or pages fetched with a shared cookie).
+  if (accessCode) {
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
   }
 
   return response;
